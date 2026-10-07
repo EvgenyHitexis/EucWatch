@@ -15,6 +15,11 @@ interface View {
   session: number;
   connected: boolean;
   fresh: boolean;
+  screen: 'dashboard' | 'presets' | 'settings';
+  awake: boolean;
+  button: { down: boolean; wake_cycle: boolean };
+  recovery: boolean;
+  established_connection: boolean;
   dashboard: Dashboard;
   simulator: {
     speed_kmh: number;
@@ -37,9 +42,9 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
     </header>
     <div class="workspace">
       <section class="watch-area" aria-label="Watch interface">
-        <div class="watch"><canvas id="watch" width="240" height="240" role="img" aria-label="Connecting to application"></canvas></div>
+        <div class="watch"><canvas id="watch" width="240" height="240" role="img" aria-label="Connecting to application"></canvas><button class="side-button" id="watch-button" aria-label="Watch physical button" disabled></button></div>
         <p class="watch-caption">Riding dashboard · 240 × 240</p>
-        <p class="watch-note">Watch battery is simulated.<br>Wheel battery percentage is a voltage estimate.</p>
+        <p class="watch-note">Swipe left for presets, down from the top for Settings.<br>Swipe right to go back. Side button wakes the screen.<br>Watch battery is simulated.</p>
       </section>
       <section class="panel" aria-labelledby="scenario-title">
         <h2 id="scenario-title">Wheel simulator</h2>
@@ -102,6 +107,7 @@ async function acquireSession(): Promise<Session> {
 }
 
 function setControls(): void {
+  document.querySelector<HTMLButtonElement>('#watch-button')!.disabled = !available || !session?.controller;
   document.querySelectorAll<HTMLButtonElement>('[data-control]').forEach(button => {
     button.disabled = !available || !session?.controller || submitting;
   });
@@ -124,6 +130,46 @@ function render(view: View | null): void {
   rendered = key;
   ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, 240, 240);
+  const screen = view?.screen ?? 'dashboard';
+  const awake = view?.awake ?? true;
+  canvas.dataset.screen = screen;
+  canvas.dataset.awake = String(awake);
+  document.querySelector<HTMLElement>('#mode')!.textContent = view?.mode === 'simulator' ? 'SIMULATOR' : view?.mode === 'replay' ? 'READ-ONLY REPLAY' : view?.mode === 'live' ? 'LIVE WHEEL' : 'IDLE · NO WHEEL';
+  if (view) document.querySelector<HTMLElement>('#diagnostics')!.textContent = `Session ${view.session} · Valid frames: ${view.diagnostics.valid_frames} · CRC/format rejects: ${view.diagnostics.rejected_frames} · Resume events: ${view.diagnostics.resume_events}`;
+  if (!awake) {
+    text('SCREEN ASLEEP', 120, 113, 16, '#777777', 'center');
+    text('Press side button to wake', 120, 140, 12, '#777777', 'center');
+    canvas.setAttribute('aria-label', 'Screen asleep. Press the watch physical button to wake only.');
+    return;
+  }
+  if (view?.recovery) {
+    text('RECOVERY', 120, 108, 24, '#ffffff', 'center');
+    text('Wheel controls unavailable', 120, 137, 12, '#ffffff', 'center');
+    canvas.setAttribute('aria-label', 'Recovery mode. Wheel controls unavailable.');
+    return;
+  }
+  if (screen !== 'dashboard') {
+    text(screen === 'presets' ? 'RIDING PRESETS' : 'SETTINGS', 120, 26, 15, '#ffffff', 'center');
+    if (screen === 'presets') {
+      for (let i = 0; i < 4; i++) {
+        const x = 9 + (i % 2) * 115;
+        const y = 43 + Math.floor(i / 2) * 81;
+        ctx.strokeStyle = '#777777';
+        ctx.strokeRect(x, y, 106, 72);
+        text(`Preset ${i + 1}`, x + 53, y + 31, 16, '#777777', 'center');
+        text('Unconfigured', x + 53, y + 51, 10, '#777777', 'center');
+      }
+      canvas.setAttribute('aria-label', 'Preset menu. Four fixed slots: Preset 1, Preset 2, Preset 3, Preset 4, all unconfigured. Swipe right to return without applying.');
+    } else {
+      ctx.strokeStyle = '#ffffff';
+      ctx.strokeRect(12, 71, 216, 60);
+      text('Sleep screen', 120, 107, 20, '#ffffff', 'center');
+      text('Swipe right to go back', 120, 155, 12, '#ffffff', 'center');
+      canvas.setAttribute('aria-label', 'Settings. Sleep screen. Swipe right to return without saving.');
+    }
+    text('‹ Swipe right to return', 120, 228, 11, '#ffffff', 'center');
+    return;
+  }
   const d = view?.dashboard;
   const connected = !!view?.fresh && available;
   const muted = '#777777';
@@ -151,8 +197,6 @@ function render(view: View | null): void {
   canvas.setAttribute('aria-label', summary);
   canvas.dataset.fresh = String(connected);
   canvas.dataset.batteryDimmed = String(!!d?.wheel_battery_dimmed || !available);
-  document.querySelector<HTMLElement>('#mode')!.textContent = view?.mode === 'simulator' ? 'SIMULATOR' : view?.mode === 'replay' ? 'READ-ONLY REPLAY' : view?.mode === 'live' ? 'LIVE WHEEL' : 'IDLE · NO WHEEL';
-  if (view) document.querySelector<HTMLElement>('#diagnostics')!.textContent = `Session ${view.session} · Valid frames: ${view.diagnostics.valid_frames} · CRC/format rejects: ${view.diagnostics.rejected_frames} · Resume events: ${view.diagnostics.resume_events}`;
 }
 
 async function read<T>(path: string): Promise<T> {
@@ -226,6 +270,66 @@ document.querySelector('#advance')!.addEventListener('click', () => void action(
 document.querySelector('#disconnect')!.addEventListener('click', () => void action('disconnect'));
 document.querySelector('#connect')!.addEventListener('click', () => void action('connect', { mode: 'simulator', controlled: document.querySelector<HTMLInputElement>('#controlled')!.checked }));
 document.querySelector('#controlled')!.addEventListener('change', setControls);
+
+function watchPoint(event: PointerEvent): { x: number; y: number } {
+  const bounds = canvas.getBoundingClientRect();
+  return { x: (event.clientX - bounds.left) * 240 / bounds.width, y: (event.clientY - bounds.top) * 240 / bounds.height };
+}
+let gesture: { x: number; y: number; pointer: number } | null = null;
+canvas.addEventListener('pointerdown', event => {
+  if (!available || !session?.controller || !current?.awake || current.recovery) return;
+  gesture = { ...watchPoint(event), pointer: event.pointerId };
+  canvas.setPointerCapture(event.pointerId);
+  enqueueWatch('interact');
+});
+canvas.addEventListener('pointerup', event => {
+  if (!gesture || gesture.pointer !== event.pointerId) return;
+  const start = gesture;
+  gesture = null;
+  const end = watchPoint(event);
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy)) {
+    enqueueWatch('swipe', { direction: dx < 0 ? 'left' : 'right', from_top: start.y <= 45 });
+  } else if (dy >= 40 && Math.abs(dy) > Math.abs(dx)) {
+    enqueueWatch('swipe', { direction: 'down', from_top: start.y <= 45 });
+  } else if (Math.abs(dx) < 12 && Math.abs(dy) < 12 && current?.screen === 'settings' && end.x >= 12 && end.x <= 228 && end.y >= 71 && end.y <= 131) {
+    enqueueWatch('sleep');
+  }
+});
+canvas.addEventListener('pointercancel', () => { gesture = null; });
+
+const sideButton = document.querySelector<HTMLButtonElement>('#watch-button')!;
+let buttonPointer: number | null = null;
+let watchChain: Promise<unknown> = Promise.resolve();
+let holdTimer: number | null = null;
+function enqueueWatch(actionName: string, payload: Record<string, unknown> = {}): void {
+  const wheelSession = current?.session;
+  const controller = session?.controller;
+  watchChain = watchChain.then(() => {
+    if (current?.session !== wheelSession || session?.controller !== controller) return false;
+    return action(actionName, payload);
+  });
+}
+sideButton.addEventListener('pointerdown', event => {
+  if (buttonPointer !== null || !available || !session?.controller || submitting) return;
+  event.preventDefault();
+  buttonPointer = event.pointerId;
+  sideButton.setPointerCapture(event.pointerId);
+  sideButton.classList.add('pressed');
+  enqueueWatch('button_down');
+  holdTimer = window.setTimeout(() => enqueueWatch('button_hold'), 500);
+});
+function releaseButton(event: PointerEvent): void {
+  if (buttonPointer !== event.pointerId) return;
+  if (holdTimer !== null) window.clearTimeout(holdTimer);
+  holdTimer = null;
+  buttonPointer = null;
+  sideButton.classList.remove('pressed');
+  enqueueWatch('button_up');
+}
+sideButton.addEventListener('pointerup', releaseButton);
+sideButton.addEventListener('pointercancel', releaseButton);
 
 // A single awaited loop bounds requests and redraws to five per second,
 // including recovery after a slow response. Browser time never drives behavior.

@@ -48,3 +48,17 @@ Two-axis #18 review found no documented standards violations and identified
 credential recovery after backend restart and loss of controlled time on reconnect.
 Both were corrected. Regression checks preserve the selected clock and recover
 the same controlling tab token; competing viewers receive disabled controls.
+
+### #19 — navigation and sleep
+
+Six Application-boundary navigation checks pass, including 30-second initial
+idle sleep, interaction reset, complete wake-cycle consumption, keep-awake after
+an established transport loses its link and modeled independent recovery hold.
+The real browser flow now dispatches pointer input to the Canvas and side button:
+left reaches four fixed slots, right returns, a swipe from the top opens Settings,
+Sleep turns the display off, the side-button cycle wakes only, and initial idle
+sleep and established-loss keep-awake match the backend. Observed: passed.
+[Navigation result](evidence/navigation.json). Python typechecking and the
+frontend build pass. Back-navigation with an editable alert draft is collected
+with #20, where the actual editor becomes available; that acceptance remains open
+until the combined flow is verified.

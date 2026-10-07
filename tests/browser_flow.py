@@ -10,6 +10,7 @@ import tempfile
 
 from aiohttp import ClientSession, web
 
+from eucwatch import Application, ManualClock
 from eucwatch.server import create_app
 
 
@@ -43,9 +44,18 @@ class Browser:
             while not await self.evaluate(expression, session):
                 await asyncio.sleep(.05)
 
+    async def pointer(self, selector, start, end, session):
+        box = await self.evaluate(f"""(() => {{ const b=document.querySelector({json.dumps(selector)}).getBoundingClientRect(); return {{x:b.x,y:b.y,width:b.width,height:b.height}}; }})()""", session)
+        for kind, point, pressed in [('mousePressed', start, True), ('mouseMoved', end, True), ('mouseReleased', end, False)]:
+            await self.call('Input.dispatchMouseEvent', {'type': kind,
+                'x': box['x'] + point[0], 'y': box['y'] + point[1],
+                'button': 'left', 'buttons': 1 if pressed else 0, 'clickCount': 1}, session)
+
 
 async def run():
-    runner = web.AppRunner(create_app())
+    host_clock = ManualClock()
+    behavior = Application(clock=host_clock)
+    runner = web.AppRunner(create_app(behavior))
     await runner.setup()
     sock = socket.socket()
     sock.bind(('127.0.0.1', 0))
@@ -73,6 +83,29 @@ async def run():
                             {'targetId': target['targetId'], 'flatten': True})
                         session = attached['sessionId']
                         await cdp.wait("document.querySelector('canvas') && document.querySelector('canvas').getAttribute('aria-label').includes('Not connected')", session)
+                        await cdp.pointer('#watch', (215, 120), (20, 120), session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen === 'presets'", session)
+                        presets = await cdp.evaluate("document.querySelector('canvas').getAttribute('aria-label')", session)
+                        assert all(f'Preset {i}' in presets for i in range(1, 5))
+                        await cdp.pointer('#watch', (20, 120), (215, 120), session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen === 'dashboard'", session)
+                        await cdp.pointer('#watch', (120, 10), (120, 110), session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen === 'settings'", session)
+                        await cdp.pointer('#watch', (120, 100), (120, 100), session)
+                        await cdp.wait("document.querySelector('canvas').dataset.awake === 'false'", session)
+                        await cdp.pointer('#watch-button', (10, 20), (10, 20), session)
+                        await cdp.wait("document.querySelector('canvas').dataset.awake === 'true'", session)
+                        self_button = behavior.view()['button']
+                        assert self_button['down'] is False and self_button['wake_cycle'] is False
+                        await cdp.pointer('#watch', (20, 120), (215, 120), session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen === 'dashboard'", session)
+                        host_clock.advance(31)
+                        await cdp.wait("document.querySelector('canvas').dataset.awake === 'false'", session)
+                        await cdp.pointer('#watch-button', (10, 20), (10, 20), session)
+                        await cdp.wait("document.querySelector('canvas').dataset.awake === 'true'", session)
+                        navigation = {'issue':19, 'provenance':'actual Canvas gestures / button / aiohttp with controlled clock',
+                            'expected':'fixed four slots, swipe back, Settings sleep, wake-only button, initial idle sleep',
+                            'observed':'passed', 'preset_menu':presets}
                         await cdp.evaluate("document.querySelector('[data-action=simulator_start]').click()", session)
                         await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('Connected')", session)
                         async def scenario(speed, voltage, pwm, traffic='normal'):
@@ -99,6 +132,10 @@ async def run():
                         await cdp.evaluate("document.querySelector('[data-action=disconnect]').click()", session)
                         await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('Disconnected')", session)
                         disconnected = await cdp.evaluate("document.querySelector('canvas').getAttribute('aria-label')", session)
+                        await cdp.evaluate("document.querySelector('[data-action=advance]').click()", session)
+                        await cdp.wait("document.querySelector('canvas').dataset.awake === 'true'", session)
+                        navigation['keep_awake_after_loss'] = 'passed'
+                        await cdp.wait("!document.querySelector('[data-action=connect]').disabled", session)
                         await cdp.evaluate("document.querySelector('[data-action=connect]').click()", session)
                         await cdp.wait("!document.querySelector('[data-action=simulator_emit]').disabled", session)
                         await cdp.evaluate("document.querySelector('[data-action=simulator_emit]').click()", session)
@@ -113,6 +150,7 @@ async def run():
                         screenshot = await cdp.call('Page.captureScreenshot', {'format': 'png'}, session)
                         (output / 'dashboard.png').write_bytes(base64.b64decode(screenshot['data']))
                         (output / 'browser.json').write_text(json.dumps(report, indent=2) + '\n')
+                        (output / 'navigation.json').write_text(json.dumps(navigation, indent=2) + '\n')
                         print(json.dumps(report, indent=2))
             finally:
                 browser.terminate()

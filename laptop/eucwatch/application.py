@@ -1,11 +1,12 @@
 """Behavior entered through explicit actions, raw notifications and time."""
 
 import math
+from collections.abc import Callable
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
 from .clock import Clock, ManualClock, SystemClock
-from .protocol import Assembler, Telemetry, decode
+from .protocol import CHARACTERISTIC, Assembler, Telemetry, decode
 from .simulator import Simulator
 
 
@@ -24,7 +25,11 @@ def battery_percent(voltage: float) -> int:
 
 
 class Application:
-    def __init__(self, clock: Clock | None = None):
+    def __init__(
+        self,
+        clock: Clock | None = None,
+        event_sink: Callable[[dict[str, Any]], None] | None = None,
+    ):
         self.clock = clock or SystemClock()
         self.host_clock = self.clock
         self.controlled = False
@@ -41,17 +46,46 @@ class Application:
         self.time_offset = 0.0
         self.previous_clock = self.clock.read()
         self.resume_events = 0
+        self.screen = "dashboard"
+        self.awake = True
+        self.button_down = False
+        self.wake_cycle = False
+        self.button_started: float | None = None
+        self.recovery = False
+        self.feedback = ""
+        self.last_interaction = self.elapsed()
+        self.established_connection = False
+        self.event_sink = event_sink
+        self.recording_error: str | None = None
+
+    def _event(self, event: str, **values: Any) -> None:
+        if self.event_sink is not None:
+            try:
+                self.event_sink(
+                    {
+                        "event": event,
+                        "session": self.session,
+                        "receipt_elapsed_s": self.host_clock.read()[0],
+                        "source": self.mode,
+                        **values,
+                    }
+                )
+            except (OSError, ValueError) as exc:
+                self.recording_error = f"Recording failed: {type(exc).__name__}: {exc}"
 
     def elapsed(self) -> float:
         return self.clock.read()[0] + self.time_offset
 
     def action(self, name: str, **payload: Any) -> dict[str, Any]:
         self.tick()
+        self._event("intent", action=name, payload=payload)
         if name in ("connect", "simulator_start"):
             mode = payload.get("mode", "simulator")
             if mode != "simulator":
                 raise ValueError("Only simulator connections are available")
-            controlled = payload.get("controlled", self.controlled if name == "connect" else False)
+            controlled = payload.get(
+                "controlled", self.controlled if name == "connect" else False
+            )
             if type(controlled) is not bool:
                 raise ValueError("Controlled simulator time must be true or false")
             self.controlled = controlled
@@ -61,9 +95,16 @@ class Application:
             self.mode = mode
             self.session += 1
             self.connected = True
+            self.established_connection = True
+            self.awake = True
+            self.last_interaction = self.elapsed()
+            # Time-source changes cannot create a button-hold interval.
+            if self.button_down:
+                self.button_started = self.elapsed()
             self.last_valid = None
             self.parser = Assembler()
             self.simulating = name == "simulator_start"
+            self._event("transport", transition="connected")
             if self.simulating:
                 self._emit()
         elif name in ("disconnect", "stop"):
@@ -74,6 +115,9 @@ class Application:
             self.simulating = False
             if name == "stop":
                 self.mode = "idle"
+            self._event(
+                "transport", transition="stopped" if name == "stop" else "disconnected"
+            )
         elif name == "simulator_configure":
             self.simulator.configure(payload)
         elif name == "simulator_emit":
@@ -94,12 +138,63 @@ class Application:
                 )
             self.time_offset += seconds
             self.tick()
+        elif name == "swipe":
+            direction = payload.get("direction")
+            if direction not in ("left", "right", "down", "up"):
+                raise ValueError("Invalid swipe direction")
+            if self.awake:
+                if direction == "left" and self.screen == "dashboard":
+                    self.screen = "presets"
+                elif direction == "down" and payload.get("from_top", True):
+                    self.screen = "settings"
+                elif direction == "right" and self.screen != "dashboard":
+                    self.screen = "dashboard"
+        elif name == "sleep":
+            if not self.awake or self.screen != "settings":
+                raise ValueError("Sleep screen is available inside Settings")
+            self.awake = False
+        elif name == "button_down":
+            if not self.button_down:
+                self.button_down = True
+                self.button_started = self.elapsed()
+                self.wake_cycle = not self.awake
+                self.awake = True
+                if self.wake_cycle:
+                    self.feedback = "Wake only"
+                elif self.recovery:
+                    self.feedback = "Horn unavailable in recovery"
+                else:
+                    self.feedback = "Horn control not implemented"
+        elif name == "button_up":
+            self.button_down = False
+            self.wake_cycle = False
+            self.button_started = None
+        elif name in ("button_hold", "interact"):
+            pass
         else:
             raise ValueError(f"Unknown action: {name}")
+        if name not in ("advance", "simulator_emit") and self.awake:
+            self.last_interaction = self.elapsed()
         return self.view()
 
     def tick(self) -> None:
         self._check_resume()
+        if (
+            self.button_down
+            and self.button_started is not None
+            and self.elapsed() - self.button_started >= 30 - 1e-9
+        ):
+            self.recovery = True
+            self.awake = True
+            self.feedback = "Recovery mode"
+        if (
+            self.awake
+            and not self.established_connection
+            and not self.button_down
+            and not self.recovery
+            and self.elapsed() - self.last_interaction >= 30 - 1e-9
+        ):
+            self.awake = False
         if (
             self.simulating
             and self.connected
@@ -119,6 +214,10 @@ class Application:
             self.parser = Assembler()
             # No missed synthetic notifications are delivered after resume.
             self.last_emission = self.elapsed()
+            self.button_down = False
+            self.wake_cycle = False
+            self.button_started = None
+            self._event("transport", transition="resume")
 
     def _emit(self) -> None:
         self.last_emission = self.elapsed()
@@ -128,6 +227,12 @@ class Application:
 
     def receive(self, session: int, raw: bytes) -> None:
         self._check_resume()
+        self._event(
+            "notification",
+            session=session,
+            characteristic=CHARACTERISTIC,
+            raw_hex=raw.hex(),
+        )
         if session != self.session or not self.connected:
             return
         for frame in self.parser.feed(raw):
@@ -152,6 +257,13 @@ class Application:
         values = self.telemetry
         return {
             "mode": self.mode,
+            "screen": self.screen,
+            "awake": self.awake,
+            "button": {"down": self.button_down, "wake_cycle": self.wake_cycle},
+            "recovery": self.recovery,
+            "established_connection": self.established_connection,
+            "feedback": self.feedback,
+            "recording_error": self.recording_error,
             "session": self.session,
             "connected": self.connected,
             "fresh": live,

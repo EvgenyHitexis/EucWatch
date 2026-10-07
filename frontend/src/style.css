@@ -20,6 +20,9 @@ h1 { font-size: 24px; font-weight: 550; margin: 0; letter-spacing: -.03em; }
 .watch-area { text-align: center; }
 .watch { position: relative; display: inline-block; border: 14px solid #272d29; border-radius: 39px; padding: 5px; background: #030504; box-shadow: 0 8px 0 #080b09, 0 15px 35px #0006; }
 canvas { display: block; width: 240px; height: 240px; border-radius: 19px; image-rendering: pixelated; background: #000; }
+.watch canvas { touch-action: none; user-select: none; }
+.side-button { position: absolute; right: -26px; top: 86px; width: 12px; height: 48px; border-radius: 0 6px 6px 0; padding: 0; background: #536050; border: 1px solid #6c7867; touch-action: none; }
+.side-button.pressed { background: #d8ee91; }
 .watch-caption { color: #a0aba1; font-size: 12px; margin: 23px 0 8px; }
 .watch-note { color: #a0aba1; font-size: 12px; line-height: 1.6; margin: 0; }
 .panel { background: #1b211d; border: 1px solid #343b36; border-radius: 14px; padding: 25px; }
