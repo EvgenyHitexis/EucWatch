@@ -1,0 +1,122 @@
+{
+  "observed_on": "2026-10-07",
+  "method": "BLE UART read expressions and documented bounded metadata reads; no reset/flash/storage write",
+  "backup": {
+    "complete": true,
+    "files": 135,
+    "bytes": 470751,
+    "storage_files": 0,
+    "inventory_stable": true,
+    "dot_files": [
+      ".bootrst",
+      ".display"
+    ],
+    "per_file_remote_crc32_verified": true,
+    "independent_second_check": {
+      "files": 135,
+      "local_sha256_all_match": true,
+      "remote_length_crc32_all_match": true
+    },
+    "atomic_snapshot": false,
+    "firmware_backup": false,
+    "private_content_published": false,
+    "durable_private_archive_verified": true
+  },
+  "graphics": {
+    "width": 240,
+    "height": 240,
+    "bpp": 1,
+    "bufferBytes": 7200
+  },
+  "selected_code_hashes": [
+    {
+      "name": ".bootrst",
+      "bytes": 3123,
+      "sha256": "db90648d8ef4b080712cb7c8bcaf238fb9fd3940a7f91b9017dd4a3db57ea912"
+    },
+    {
+      "name": ".display",
+      "bytes": 4896,
+      "sha256": "ee488c87147017d74520466c004ad5703618ae3dee3aff2f4bfb8612a0975dc7"
+    },
+    {
+      "name": "handler",
+      "bytes": 2685,
+      "sha256": "79440f8db258974179477b1a9746686c66c7f3fc0660df3e401913ad2e7eec78"
+    },
+    {
+      "name": "handler_touch_816",
+      "bytes": 716,
+      "sha256": "199241ccdcc97b7c1820c55fab3d5649890ca2b518d7c9955db7cd2d708d359b"
+    },
+    {
+      "name": "handler_acc_SC7A20",
+      "bytes": 2159,
+      "sha256": "dc6cb64d962afe0cb55541c8b9126e8a9a9753eca7b3612691e06793ce36d4a2"
+    },
+    {
+      "name": "handler_charge",
+      "bytes": 1238,
+      "sha256": "d2ea9fb9e4ce6e6c1dda37a4f1607002459f902d5caeb9d01909f93e811596fc"
+    },
+    {
+      "name": "handler_buzz",
+      "bytes": 510,
+      "sha256": "cd6866c54e0268510511aa7f3bedec1580039f08b81c32da4c63d01e13442a03"
+    }
+  ],
+  "recovery_identity": {
+    "runtime": {
+      "board": "P22",
+      "version": "2v14"
+    },
+    "registers": {
+      "part": 337970,
+      "variant": 1094796593,
+      "package": 8192,
+      "ramKiB": 64,
+      "flashKiB": 512,
+      "bootloaderAddress": 491520,
+      "mbrParameterPage": 516096,
+      "sdInfoSize": 24,
+      "applicationAddress": 126976,
+      "softdeviceFirmwareId": 145,
+      "softdeviceId": 132,
+      "softdeviceVersion": 3001000
+    },
+    "application_prefix_256_crc32": "b0cdaca3",
+    "stored_hardware": {
+      "bpp": 4,
+      "cli": 1,
+      "touch": "816",
+      "rstP": "D10",
+      "rstR": 229,
+      "acc": "SC7A20"
+    },
+    "active_hardware": {
+      "bpp": 4,
+      "cli": 1,
+      "touch": "816",
+      "rstP": "D10",
+      "rstR": 229,
+      "acc": "SC7A20"
+    },
+    "backup_reverification": {
+      "files": 135,
+      "local_sha256_all_match": true,
+      "remote_length_crc32_all_match": true
+    }
+  },
+  "candidate_firmware": {
+    "upstream_commit": "72744e4003405de5e6a754777929866ea7b065fc",
+    "zip_sha256": "f332d3c7d8e920c84b54d7b745525349a6bf4d6e29cf6c868993ddaee7efe06c",
+    "application_bytes": 257796,
+    "application_sha256": "04d56559e4ce0b6b742a02d3eba8636b575df3ca1643313ab6aca5c7d0dd6d64",
+    "prefix_256_crc32": "b0cdaca3",
+    "prefix_matches": true,
+    "full_image_match_verified": false
+  },
+  "physical_recovery_demonstrated": false,
+  "vibration_physically_tested": false,
+  "battery_calibration_verified": false
+}
