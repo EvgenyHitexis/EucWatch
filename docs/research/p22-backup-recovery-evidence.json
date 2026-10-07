@@ -1,6 +1,6 @@
 {
   "observed_on": "2026-10-07",
-  "method": "BLE UART read expressions and documented bounded metadata reads; no reset/flash/storage write",
+  "method": "BLE UART read expressions and documented bounded metadata reads; owner-operated button recovery/return; no agent-issued reset, flash or Storage write",
   "backup": {
     "complete": true,
     "files": 135,
@@ -116,7 +116,54 @@
     "prefix_matches": true,
     "full_image_match_verified": false
   },
-  "physical_recovery_demonstrated": false,
+  "physical_recovery_demonstrated": true,
   "vibration_physically_tested": false,
-  "battery_calibration_verified": false
+  "battery_calibration_verified": false,
+  "physical_recovery_scope": "Existing developer-mode entry and return, with owner-operated button and console state checks; not damaged startup/firmware recovery.",
+  "recovery_observations": [
+    {
+      "phase": "developer",
+      "observed_utc": "2026-10-07T11:43:59Z",
+      "advertised_name": "Espruino-devmode",
+      "discovery_elapsed_s": 81.37860981000267,
+      "console_read_succeeded": true,
+      "startup_crc_matches_backup": true,
+      "state": {
+        "board": "P22",
+        "version": "2v14",
+        "devmode": "done",
+        "displayLoaded": false,
+        "wheelAppLoaded": false,
+        "bootCrc": 345418540,
+        "storedCli": 1,
+        "runtimeTime": 387749.0134868622
+      },
+      "status": "pass",
+      "disconnected": true
+    },
+    {
+      "phase": "working",
+      "observed_utc": "2026-10-07T11:45:29Z",
+      "advertised_name": "eucWatch",
+      "discovery_elapsed_s": 74.21845413799747,
+      "console_read_succeeded": true,
+      "startup_crc_matches_backup": true,
+      "state": {
+        "board": "P22",
+        "version": "2v14",
+        "devmode": null,
+        "displayLoaded": true,
+        "wheelAppLoaded": true,
+        "bootCrc": 345418540,
+        "storedCli": 1,
+        "runtimeTime": 387838.60827445984
+      },
+      "status": "pass",
+      "disconnected": true
+    }
+  ],
+  "owner_observations": {
+    "developer_entry": "It restarted or vibrated",
+    "working_return": "done. i saw standard screen"
+  }
 }
