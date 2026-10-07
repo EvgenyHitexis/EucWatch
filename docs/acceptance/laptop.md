@@ -167,7 +167,7 @@ simulated command/evidence behavior, not physical control or riding acceptance.
 
 ### #27 — configuration backup and review
 
-Nine Application checks cover complete saved-only export, explicit preview,
+Ten Application checks cover complete saved-only export, explicit preview,
 Cancel/Restore, schema validation, unsupported/duplicate/incomplete/oversized or
 deeply nested imports, revision change after preview, ongoing-operation sleep,
 interrupted replacement, last-good recovery and restart. Restoration activates
@@ -179,3 +179,19 @@ versions are visibly rejected; no wheel commands are produced.
 [Backup result](evidence/backup.json). Schema 1 is the only existing product
 format: compatible application updates preserve its meaning and fixed identities;
 unknown schemas require owner review rather than invented historical migrations.
+
+### #23 — modeled physical-button horn request
+
+Ten main-boundary checks verify exactly one source-pinned LkAp packet per eligible
+press, full wake-cycle consumption, no hold repetition/queue/stop command,
+freshness/preset/recovery eligibility, discarded presses, bounded feedback,
+transport failures and old-session/duplicate results. The actual side-button and
+Canvas flow verifies an awake request, explicit Sleep plus a wake-only cycle,
+the required subsequent fresh press, and blocked preset/stale presses.
+[Horn result](evidence/horn.json). Feedback says request sent, never audible
+success. No physical horn command or hardware operation was performed.
+
+Two-axis review: #22/#27 have no material spec or hard standards findings;
+#23 has no material spec or hard standards findings. Optional maintainability
+suggestions remain separate from acceptance criteria. Watch #32 review corrections
+and remaining physical evidence are recorded in the watch register.
