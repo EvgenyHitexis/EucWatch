@@ -558,6 +558,26 @@ async def run():
                             'expected':'complete bounded definition saves/exports; review noactivation; explicit freshstart; three deterministicsteps; no commands',
                             'observed':'passed','owner_review_and_live_acceptance':'pending'}
                         (output/'scenarios.json').write_text(json.dumps(scenario_result,indent=2)+'\n')
+                        await cdp.pointer('#watch',(215,120),(20,120),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='presets'",session)
+                        await cdp.pointer('#watch',(177,80),(177,80),session)
+                        await cdp.wait("document.querySelector('#preset-outcome').textContent.includes('Applying')",session)
+                        before_resume=behavior.view()
+                        host_clock.advance(60,suspended=True)
+                        await cdp.wait("document.querySelector('canvas').dataset.fresh==='false' && !document.querySelector('#preset-outcome').textContent.includes('Applying')",session)
+                        after_resume=behavior.view()
+                        assert after_resume['session']>before_resume['session']
+                        assert after_resume['elapsed_s']==before_resume['elapsed_s']
+                        assert len(after_resume['command_events'])>=len(before_resume['command_events'])
+                        submitted_before=[row for row in before_resume['command_events'] if row['event'] in ('command_submission','horn_submission')]
+                        submitted_after=[row for row in after_resume['command_events'] if row['event'] in ('command_submission','horn_submission')]
+                        assert submitted_after==submitted_before
+                        behavior.receive(before_resume['session'],b''.join(behavior.simulator.notifications(now=after_resume['elapsed_s'])))
+                        assert not behavior.view()['fresh']
+                        resume_result={'issue':30,'provenance':'actual Canvas pending preset / controlled simulator clock / independent synthetic host suspend / aiohttp',
+                            'expected':'host resume invalidates source and pending intent even with paused virtual time; late old frame cannot recover; no overdue command',
+                            'observed':'passed','physical_suspend':'omitted by owner'}
+                        (output/'resume.json').write_text(json.dumps(resume_result,indent=2)+'\n')
                         print(json.dumps(report, indent=2))
                         print(json.dumps(replay_result, indent=2))
             finally:

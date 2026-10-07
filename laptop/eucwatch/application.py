@@ -64,6 +64,7 @@ class Application:
         self.last_emission = 0.0
         self.time_offset = 0.0
         self.previous_clock = self.clock.read()
+        self.previous_host_clock = self.host_clock.read()
         self.resume_events = 0
         self.screen = "dashboard"
         self.awake = True
@@ -668,7 +669,11 @@ class Application:
         boot, mono = self.clock.read()
         previous_boot, previous_mono = self.previous_clock
         self.previous_clock = boot, mono
-        if boot - previous_boot - (mono - previous_mono) > 0.1:
+        host_boot, host_mono = self.host_clock.read()
+        previous_host_boot, previous_host_mono = self.previous_host_clock
+        self.previous_host_clock = host_boot, host_mono
+        if (boot - previous_boot - (mono - previous_mono) > 0.1
+                or host_boot - previous_host_boot - (host_mono - previous_host_mono) > 0.1):
             self.resume_events += 1
             self.session += 1
             self.last_valid = None

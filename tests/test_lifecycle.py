@@ -12,6 +12,29 @@ from eucwatch.server import create_app
 
 
 class LifecycleTests(unittest.IsolatedAsyncioTestCase):
+    async def test_host_resume_invalidates_controlled_simulator_and_replay_sources(self):
+        from eucwatch.recording import Replay
+        fixture=Path('experiments/laptop-feasibility/evidence/fixture-recording.jsonl').read_text()
+        for mode in ('simulator','replay'):
+            with self.subTest(mode=mode):
+                host=ManualClock()
+                app=Application(clock=host)
+                if mode=='simulator':
+                    app.action('simulator_start',controlled=True)
+                else:
+                    app.action('replay_start',recording=Replay.from_text(fixture))
+                    for _ in range(13): app.action('replay_step')
+                self.assertTrue(app.view()['fresh'])
+                before=app.view()
+                host.advance(60,suspended=True)
+                app.tick()
+                resumed=app.view()
+                self.assertFalse(resumed['fresh'])
+                self.assertGreater(resumed['session'],before['session'])
+                self.assertEqual(resumed['diagnostics']['resume_events'],1)
+                self.assertEqual(resumed['elapsed_s'],before['elapsed_s'])
+                self.assertEqual(resumed['command_events'],[])
+
     async def test_evicted_response_identity_never_becomes_another_button_request(self):
         app = Application(clock=ManualClock())
         app.action('simulator_start')

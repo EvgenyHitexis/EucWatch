@@ -29,3 +29,14 @@ It uses an accelerated 0.7-second ownership lease and synthetic local content.
 Expected/observed provenance is retained in
 [lifecycle-browser.json](evidence/lifecycle-browser.json).
 Physical laptop suspend testing was explicitly omitted by the owner.
+
+Review correction: resume detection now checks the independent host clock even
+when simulator/replay behavior uses paused virtual time. Controlled-mode and
+replay regressions preserve virtual elapsed time while invalidating telemetry and
+pending intent. The actual Canvas pending-preset flow confirms a host resume
+cannot deliver overdue submissions or permit late old frames to recover state:
+[resume-browser.json](evidence/resume-browser.json).
+
+Supporting reproducible scenario files and their actual browser evidence are
+documented in [scenarios.md](scenarios.md). This software evidence contributes to
+#31; required live observations and explicit owner review remain incomplete.
