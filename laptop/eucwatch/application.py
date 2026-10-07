@@ -8,6 +8,7 @@ from typing import Any
 
 from .alerts import AlertScheduler
 from .clock import Clock, ManualClock, SystemClock
+from .control import PresetControl
 from .configuration import (
     default_configuration,
     validate_alerts,
@@ -15,7 +16,7 @@ from .configuration import (
 )
 from .persistence import ConfigStore, MemoryStore
 from . import presets
-from .protocol import CHARACTERISTIC, Assembler, Telemetry, decode
+from .protocol import CHARACTERISTIC, Assembler, Telemetry, decode, decode_settings
 from .recording import Replay
 from .simulator import Simulator
 
@@ -41,6 +42,7 @@ class Application:
         event_sink: Callable[[dict[str, Any]], None] | None = None,
         store: ConfigStore | None = None,
         vibration_output: Callable[[dict[str, Any]], None] | None = None,
+        command_output: Callable[[dict[str, Any]], None] | None = None,
     ):
         self.clock = clock or SystemClock()
         self.host_clock = self.clock
@@ -85,6 +87,55 @@ class Application:
         self.preset_draft: dict[str, Any] | None = None
         self.confirmed_preset: dict[str, Any] | None = None
         self.alerts = AlertScheduler(self.config["alerts"], output=vibration_output)
+        self.command_output = command_output
+        self.command_events: list[dict[str, Any]] = []
+        self.control = PresetControl(self._submit_control, self._control_event)
+        self.simulated_receipts: list[dict[str, Any]] = []
+        self.control_status: tuple[int, str] | None = None
+
+    def _control_event(self, row: dict[str, Any]) -> None:
+        self.command_events.append(deepcopy(row))
+        del self.command_events[:-128]
+        self._event(row["event"], **{key: value for key, value in row.items() if key != "event"})
+
+    def _submit_control(self, row: dict[str, Any]) -> None:
+        if self.command_output is not None:
+            try:
+                self.command_output(deepcopy(row))
+            except (OSError, ValueError) as exc:
+                self.control.result(row["attempt"], row["session"], row["index"], False, self.elapsed(), str(exc))
+            return
+        status = self.simulator.submit(bytes.fromhex(row["packet_hex"]), row["index"], self.elapsed())
+        if status == "pending":
+            return
+        receipt = {**row, "due_s": self.elapsed() + self.simulator.values["control_submission_delay_s"], "success": status == "accepted"}
+        if receipt["due_s"] <= self.elapsed():
+            self._control_result(receipt)
+        else:
+            self.simulated_receipts.append(receipt)
+
+    def _control_result(self, receipt: dict[str, Any]) -> None:
+        before = self.control.attempt["status"] if self.control.attempt else None
+        self.control.result(receipt["attempt"], receipt["session"], receipt["index"], receipt["success"], self.elapsed(), receipt.get("error", ""))
+        if before == "submitting" and self.control.pending and self.control.attempt and self.control.attempt["status"] == "confirming":
+            # A frame begun before submission completion is not fresh evidence.
+            self.parser = Assembler()
+
+    def _update_control(self) -> None:
+        self.control.tick(self.elapsed(), fresh=self.fresh(), session=self.session, revision=self.config["revision"])
+        due = [row for row in self.simulated_receipts if row["due_s"] <= self.elapsed() + 1e-9]
+        self.simulated_receipts = [row for row in self.simulated_receipts if row["due_s"] > self.elapsed() + 1e-9]
+        for row in due:
+            self._control_result(row)
+        if self.confirmed_preset is not None and self.control.confirmed is None:
+            self.feedback = "Wheel confirmation unavailable" if not self.fresh() else "Settings changed"
+        self.confirmed_preset = deepcopy(self.control.confirmed)
+        attempt = self.control.attempt
+        if attempt is not None:
+            status = (attempt["id"], attempt["status"])
+            if status != self.control_status:
+                self.control_status = status
+                self.feedback = f"{attempt['name']} · {'Applying' if attempt['pending'] else attempt['status']}"
 
     def _update_alerts(self) -> None:
         now = self.elapsed()
@@ -310,6 +361,30 @@ class Application:
                     if row["session"] == self.replay_source_session:
                         self.receive(self.session, bytes.fromhex(row["raw_hex"]))
                 # Recorded intents/submissions/results are evidence, never actions.
+        elif name == "preset_apply":
+            slot = presets.validate_slot(payload.get("slot"))
+            if self.control.pending:
+                return self.view()
+            preset = self.config["presets"][slot - 1]
+            if not preset["configured"]:
+                raise ValueError("This preset slot is unconfigured")
+            if not self.awake:
+                raise ValueError("Wake the screen before selecting a riding preset")
+            if not self.fresh() or self.recovery or self.mode not in ("simulator", "live"):
+                raise ValueError("A healthy fresh wheel connection is required")
+            if self.mode == "live" and self.command_output is None:
+                raise ValueError("Live control transport is unavailable")
+            self.screen = "dashboard"
+            self.parser = Assembler()
+            self.control.start(preset, self.config["revision"], self.session, self.elapsed())
+        elif name == "command_result":
+            if (type(payload.get("success")) is not bool
+                    or any(type(payload.get(key)) is not int for key in ("attempt", "session", "index"))
+                    or payload["attempt"] < 1 or payload["session"] < 0
+                    or not 0 <= payload["index"] <= 2
+                    or not isinstance(payload.get("error", ""), str)):
+                raise ValueError("An explicit command result is required")
+            self._control_result(payload)
         elif name == "swipe":
             direction = payload.get("direction")
             if direction not in ("left", "right", "down", "up"):
@@ -418,6 +493,7 @@ class Application:
 
     def tick(self) -> None:
         self._check_resume()
+        self._update_control()
         if (
             self.button_down
             and self.button_started is not None
@@ -439,11 +515,12 @@ class Application:
         if (
             self.simulating
             and self.connected
-            and self.elapsed() - self.last_emission >= 0.2
+            and self.elapsed() - self.last_emission >= 0.2 - 1e-9
             and self.simulator.values["traffic"] != "paused"
         ):
             self._emit()
         self._update_alerts()
+        self._update_control()
 
     def _check_resume(self) -> None:
         boot, mono = self.clock.read()
@@ -467,7 +544,7 @@ class Application:
     def _emit(self) -> None:
         self.last_emission = self.elapsed()
         corrupt = self.simulator.values["traffic"] == "corrupt"
-        for raw in self.simulator.notifications(corrupt=corrupt):
+        for raw in self.simulator.notifications(corrupt=corrupt, now=self.elapsed()):
             self.receive(self.session, raw)
 
     def receive(self, session: int, raw: bytes) -> None:
@@ -480,6 +557,7 @@ class Application:
         )
         if session != self.session or not self.connected:
             return
+        self._update_control()
         self._update_alerts()
         for frame in self.parser.feed(raw):
             telemetry = decode(frame)
@@ -488,6 +566,10 @@ class Application:
                 self.last_valid = self.elapsed()
                 self.valid_frames += 1
                 self._update_alerts()
+                settings = decode_settings(frame)
+                if settings is not None:
+                    self.control.observe(settings, self.elapsed(), session)
+                self._update_control()
             else:
                 self.parser.rejected += 1
 
@@ -515,8 +597,11 @@ class Application:
             "alerts_draft": deepcopy(self.alerts_draft),
             "preset_draft": deepcopy(self.preset_draft),
             "confirmed_preset": deepcopy(self.confirmed_preset),
+            "preset_attempt": self.control.view(),
+            "actual_settings": deepcopy(self.control.actual),
+            "command_events": deepcopy(self.command_events),
             "presets_menu": [{"id": preset["id"], "name": preset["name"],
-                              "configured": preset["configured"], "available": False,
+                              "configured": preset["configured"], "available": bool(preset["configured"] and live and not self.control.pending and not self.recovery and self.mode in ("simulator", "live") and (self.mode == "simulator" or self.command_output is not None)),
                               "revision": self.config["revision"]}
                              for preset in self.config["presets"]],
             "persistence_error": self.persistence_error,

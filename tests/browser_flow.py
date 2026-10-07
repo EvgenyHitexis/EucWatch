@@ -7,6 +7,7 @@ from pathlib import Path
 import socket
 import subprocess
 import tempfile
+from uuid import uuid4
 
 from aiohttp import ClientSession, web
 
@@ -57,7 +58,8 @@ class Browser:
 
 async def run():
     host_clock = ManualClock()
-    recorder = Recorder(Path('.test-output/ui-recording.jsonl'))
+    run_id=uuid4().hex
+    recorder = Recorder(Path(f'.test-output/ui-recording-{run_id}.jsonl'))
     behavior = Application(clock=host_clock, event_sink=recorder.record)
     live_clients = Clients()
     live = LiveSession(behavior,scanner=Scanner(),client_factory=live_clients,reconnect_delay=0)
@@ -187,6 +189,54 @@ async def run():
                         await scenario(25, 148.05, 45)
                         await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('100 percent') && document.querySelector('canvas').getAttribute('aria-label').includes('Speed 25')", session)
                         boundary_high = await cdp.evaluate("document.querySelector('canvas').getAttribute('aria-label')", session)
+                        await cdp.pointer('#watch',(215,120),(20,120),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='presets'",session)
+                        await cdp.pointer('#watch',(177,80),(177,80),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard' && document.querySelector('canvas').getAttribute('aria-label').includes('Rain · Applying')",session)
+                        await cdp.evaluate("document.querySelector('#advance-seconds').value='0.2'",session)
+                        for index in range(2):
+                            await cdp.wait("!document.querySelector('#advance').disabled",session)
+                            await cdp.evaluate("document.querySelector('#advance').click()",session)
+                            await cdp.wait(f"Number(document.querySelector('canvas').dataset.elapsed)>={.2*(index+1)-.00001}",session)
+                        await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('Rain · Confirmed')",session)
+                        control_result={'issue':22,'provenance':'actual Canvas one-tap / aiohttp / actual settings-frame parser / moving simulator',
+                            'expected':'Rain onetap immediately dashboard Applying while speed25; two matching fresh settings frames Confirmed',
+                            'observed':'passed','attempt':behavior.view()['preset_attempt']}
+                        control_result['failure_scenarios']=[]
+                        async def advance_control(seconds=.5):
+                            elapsed=behavior.view()['elapsed_s']
+                            await cdp.evaluate(f"document.querySelector('#advance-seconds').value={json.dumps(str(seconds))}",session)
+                            await cdp.wait("!document.querySelector('#advance').disabled",session)
+                            await cdp.evaluate("document.querySelector('#advance').click()",session)
+                            await cdp.wait(f"Number(document.querySelector('canvas').dataset.elapsed)>={elapsed+seconds-.00001}",session)
+                        for readback,submission,expected in [('missing','normal','Not confirmed'),('mismatch','normal','Not confirmed'),('partial','normal','Partially applied'),('normal','fail','Not confirmed'),('normal','hang','Not confirmed')]:
+                            await cdp.evaluate(f"document.querySelector('#control-readback').value={json.dumps(readback)}; document.querySelector('#control-submission').value={json.dumps(submission)}",session)
+                            await scenario(25,148.05,45)
+                            previous_id=behavior.view()['preset_attempt']['id']
+                            await cdp.pointer('#watch',(215,120),(20,120),session)
+                            await cdp.wait("document.querySelector('canvas').dataset.screen==='presets'",session)
+                            await cdp.pointer('#watch',(177,80),(177,80),session)
+                            await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard'",session)
+                            assert behavior.view()['preset_attempt']['id']>previous_id
+                            for _ in range(22):
+                                if not behavior.view()['preset_attempt']['pending']:break
+                                await advance_control()
+                            result=behavior.view()['preset_attempt']
+                            assert result['status']==expected,result
+                            await cdp.wait(f"document.querySelector('#preset-outcome').textContent.includes({json.dumps(expected)})",session)
+                            control_result['failure_scenarios'].append({'readback':readback,'submission':submission,'observed':expected,'reason':result['reason']})
+                        await cdp.evaluate("document.querySelector('#control-readback').value='normal'; document.querySelector('#control-submission').value='normal'",session)
+                        await scenario(25,148.05,45)
+                        assert behavior.view()['preset_attempt']['status']=='Not confirmed'
+                        await cdp.pointer('#watch',(215,120),(20,120),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='presets'",session)
+                        await cdp.pointer('#watch',(177,80),(177,80),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard'",session)
+                        await advance_control(.2)
+                        await advance_control(.2)
+                        await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('Rain · Confirmed')",session)
+                        control_result['explicit_retry']='Confirmed; late readings before retry retained prior failure'
+                        await cdp.evaluate("document.querySelector('#advance-seconds').value='1.1'",session)
                         await scenario(25, 119.02, 45)
                         await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('battery 0 percent')", session)
                         await scenario(25, 138, 45, 'paused')
@@ -194,6 +244,7 @@ async def run():
                         await cdp.wait("document.querySelector('canvas').dataset.fresh === 'false'", session)
                         stale = await cdp.evaluate("document.querySelector('canvas').getAttribute('aria-label')", session)
                         assert 'Speed —' in stale and 'wheel battery dimmed' in stale
+                        assert 'Rain · Confirmed' not in stale
                         await scenario(99, 138, 99, 'corrupt')
                         await cdp.wait("document.querySelector('canvas').dataset.fresh === 'false'", session)
                         await scenario(25, 138, 45)
@@ -223,6 +274,7 @@ async def run():
                         (output / 'navigation.json').write_text(json.dumps(navigation, indent=2) + '\n')
                         (output / 'alerts.json').write_text(json.dumps(alert_result, indent=2) + '\n')
                         (output / 'presets.json').write_text(json.dumps(preset_result, indent=2) + '\n')
+                        (output / 'control.json').write_text(json.dumps(control_result, indent=2) + '\n')
                         before_replay = behavior.view()['diagnostics']['valid_frames']
                         document = await cdp.call('DOM.getDocument', session=session)
                         node = await cdp.call('DOM.querySelector', {'nodeId':document['root']['nodeId'], 'selector':'#replay-file'}, session)

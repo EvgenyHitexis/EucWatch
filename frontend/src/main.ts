@@ -63,6 +63,8 @@ interface View {
   alerts_draft: AlertSettings | null;
   preset_draft: Preset | null;
   presets_menu: PresetMenuSlot[];
+  preset_attempt: null | { name: string; status: string; pending: boolean; requested_s: number; submitted_s: number | null; reason: string; fields: Record<string, { requested: number; actual: number | null; state: string }> };
+  confirmed_preset: null | { name: string };
   live: LiveStatus | null;
   persistence_error: string | null;
   vibration: {
@@ -116,13 +118,25 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
             <label>Watch battery (%)<input id="watch-battery" type="number" min="0" max="100" value="80" required></label>
           </div>
           <label style="margin-top:16px">Notification traffic<select id="traffic"><option value="normal">Normal</option><option value="paused">Paused (no valid readings)</option><option value="corrupt">Corrupt CRC</option></select></label>
+          <div class="fields" style="margin-top:16px">
+            <label>Setting submission<select id="control-submission"><option value="normal">Normal</option><option value="fail">Fail between writes</option><option value="hang">No completion</option></select></label>
+            <label>Fail after write<input id="control-fail-after" type="number" min="0" max="3" value="1"></label>
+            <label>Submission delay (s)<input id="control-submission-delay" type="number" min="0" max="30" value="0" step="0.1"></label>
+          </div>
+          <div class="fields" style="margin-top:16px">
+            <label>Settings readback<select id="control-readback"><option value="normal">Matching</option><option value="missing">Missing</option><option value="mismatch">Mismatching</option><option value="partial">Only some match</option></select></label>
+            <label>Readback delay (s)<input id="control-readback-delay" type="number" min="0" max="30" value="0" step="0.1"></label>
+          </div>
           <div class="actions"><button type="submit" class="primary" data-action="simulator_configure" data-simulator>Send simulator readings</button><button type="button" id="emit" data-action="simulator_emit" data-simulator>Emit another frame</button></div>
         </form>
-        <div class="actions"><button id="advance" data-action="advance" data-simulator>Advance 1.1 seconds</button><button id="disconnect" data-action="disconnect" data-simulator>Disconnect</button><button id="connect" data-action="connect" data-simulator>Reconnect</button></div>
+        <label>Advance elapsed time (s)<input id="advance-seconds" type="number" min="0" max="3600" step="0.1" value="1.1"></label>
+        <div class="actions"><button id="advance" data-action="advance" data-simulator>Advance time</button><button id="disconnect" data-action="disconnect" data-simulator>Disconnect</button><button id="connect" data-action="connect" data-simulator>Reconnect</button></div>
         <p class="messages" id="message" role="alert"></p>
         <div class="divider"></div>
         <div class="metadata" id="diagnostics">Session not started.</div>
         <p class="metadata">Simulator results establish software behavior. Physical wheel and watch acceptance remains separate.</p>
+        <p id="preset-outcome" role="status">No preset requested.</p>
+        <pre class="metadata" id="preset-field-results"></pre>
         <div class="divider"></div>
         <h2>Session recording</h2>
         <p class="metadata" id="recording-status">Recording status unavailable.</p>
@@ -266,6 +280,9 @@ function render(view: View | null): void {
   canvas.dataset.elapsed = String(view?.elapsed_s ?? 0);
   document.querySelector<HTMLElement>('#mode')!.textContent = view?.mode === 'simulator' ? 'SIMULATOR' : view?.mode === 'replay' ? 'READ-ONLY REPLAY' : view?.mode === 'live' ? 'LIVE WHEEL' : 'IDLE · NO WHEEL';
   if (view) document.querySelector<HTMLElement>('#diagnostics')!.textContent = `Session ${view.session} · Valid frames: ${view.diagnostics.valid_frames} · CRC/format rejects: ${view.diagnostics.rejected_frames} · Resume events: ${view.diagnostics.resume_events}`;
+  const outcome=view?.preset_attempt;
+  document.querySelector<HTMLElement>('#preset-outcome')!.textContent=outcome ? `${outcome.name} · ${outcome.pending ? 'Applying' : outcome.status==='Confirmed' && !view?.confirmed_preset ? 'Previous result Confirmed; current confirmation lost' : outcome.status}${outcome.reason ? ` · ${outcome.reason}` : ''}${!outcome.pending && (outcome.status!=='Confirmed' || !view?.confirmed_preset) ? ' · Some settings may have changed; the previous preset is not assured.' : ''}` : 'No preset requested.';
+  document.querySelector<HTMLElement>('#preset-field-results')!.textContent=outcome ? Object.entries(outcome.fields).map(([field,result])=>`${field.replaceAll('_',' ')}: requested ${result.requested}, actual ${result.actual ?? 'unknown'} · ${result.state}`).join('\n')+`\nRequested ${outcome.requested_s.toFixed(3)} s · submission ${outcome.submitted_s===null ? 'incomplete' : outcome.submitted_s.toFixed(3)+' s'}` : '';
   const recording = view?.recording;
   document.querySelector<HTMLElement>('#recording-status')!.textContent = recording ? `${recording.closed ? 'Closed recording' : 'Recording'} · ${recording.written} events written · ${recording.queued} queued · ${recording.rejected} rejected${!available ? ' · last known status' : ''}` : 'Recording is not enabled for this application session.';
   document.querySelector<HTMLElement>('#recording-error')!.textContent = recording?.error ? `Recording failure: ${recording.error}` : '';
@@ -354,10 +371,11 @@ function render(view: View | null): void {
         ctx.strokeStyle = color;
         ctx.strokeRect(x, y, 106, 72);
         drawPresetName(preset?.name ?? `Preset ${i + 1}`, x + 53, y + 24, color);
-        text(preset?.configured ? 'Configured' : 'Unconfigured', x + 53, y + 60, 10, color, 'center');
+        const eligible = view?.presets_menu?.[i]?.available && available;
+        text(preset?.configured ? (eligible ? 'Tap to apply' : 'Unavailable') : 'Unconfigured', x + 53, y + 60, 10, color, 'center');
       }
       const names = (view?.config?.presets ?? [1, 2, 3, 4].map(id => ({ id, name: `Preset ${id}`, configured: false }))).map(preset => `slot ${preset.id}: ${preset.name}, ${preset.configured ? 'configured' : 'unconfigured'}`).join('; ');
-      canvas.setAttribute('aria-label', `Preset menu. Four fixed slots: ${names}. Application unavailable. Swipe right to return without applying.`);
+      canvas.setAttribute('aria-label', `Preset menu. Four fixed slots: ${names}. ${view?.presets_menu?.some(slot=>slot.available) && available ? 'Tap one eligible slot to apply immediately.' : 'Application unavailable.'} Swipe right to return without applying.`);
     } else {
       ctx.strokeStyle = '#ffffff';
       ctx.strokeRect(12, 71, 216, 60);
@@ -382,6 +400,9 @@ function render(view: View | null): void {
   const pwm = connected ? d!.pwm : '—';
   text(speed, 120, 99, 69, '#ffffff', 'center');
   text('km/h', 120, 121, 12, '#ffffff', 'center');
+  const attempt=view?.preset_attempt;
+  const presetFeedback=attempt ? `${attempt.name} · ${attempt.pending ? 'Applying' : attempt.status==='Confirmed' && !view?.confirmed_preset ? 'Unconfirmed' : attempt.status}` : '';
+  if(presetFeedback) text(presetFeedback,120,139,11,'#ffffff','center');
   text('PWM', 13, 161, 13);
   text(`${pwm}%`, 228, 164, 33, '#ffffff', 'right');
   ctx.fillStyle = '#777777';
@@ -393,7 +414,7 @@ function render(view: View | null): void {
   if (!connected) { ctx.strokeStyle = '#ffffff'; ctx.strokeRect(8, 210, 224, 23); }
   text(connection, 120, 226, 12, '#ffffff', 'center');
   const summary = `Speed ${speed} km/h; PWM ${pwm} percent; estimated wheel battery ${d?.wheel_battery_percent ?? '—'} percent; average cell voltage ${d?.average_cell_voltage ?? '—'} volts; simulated watch battery ${d?.watch_battery_percent ?? '—'} percent; ${connection}${d?.wheel_battery_dimmed ? '; wheel battery dimmed' : ''}`;
-  canvas.setAttribute('aria-label', summary);
+  canvas.setAttribute('aria-label', summary+(presetFeedback ? `; ${presetFeedback}` : ''));
   canvas.dataset.fresh = String(connected);
   canvas.dataset.batteryDimmed = String(!!d?.wheel_battery_dimmed || !available);
 }
@@ -598,11 +619,14 @@ document.querySelector('#scenario')!.addEventListener('submit', async event => {
     speed_kmh: number('speed'), voltage_V: number('voltage'), pwm_percent: number('pwm'),
     watch_battery_percent: number('watch-battery'), frame_length: number('length'),
     fragment_size: number('fragment'), traffic: document.querySelector<HTMLSelectElement>('#traffic')!.value,
+    control_submission:document.querySelector<HTMLSelectElement>('#control-submission')!.value,
+    control_fail_after:number('control-fail-after'),control_submission_delay_s:number('control-submission-delay'),
+    control_readback:document.querySelector<HTMLSelectElement>('#control-readback')!.value,control_delay_s:number('control-readback-delay'),
   });
   if (configured) await action('simulator_emit');
 });
 document.querySelector('#emit')!.addEventListener('click', () => void action('simulator_emit'));
-document.querySelector('#advance')!.addEventListener('click', () => void action('advance', { seconds: 1.1 }));
+document.querySelector('#advance')!.addEventListener('click', () => void action('advance', { seconds: number('advance-seconds') }));
 document.querySelector('#disconnect')!.addEventListener('click', () => void action('disconnect'));
 document.querySelector('#connect')!.addEventListener('click', () => void action('connect', { mode: 'simulator', controlled: document.querySelector<HTMLInputElement>('#controlled')!.checked }));
 document.querySelector('#controlled')!.addEventListener('change', setControls);
@@ -674,6 +698,14 @@ canvas.addEventListener('pointerup', event => {
     if (current.alerts_draft) watchAlertTap(end.x, end.y);
     else if (end.x >= 12 && end.x <= 228 && end.y >= 71 && end.y <= 131) enqueueWatch('sleep');
     else if (end.x >= 12 && end.x <= 228 && end.y >= 145 && end.y <= 194) { alertPage = 0; thresholdEntry = null; enqueueWatch('alerts_begin'); }
+  } else if (Math.abs(dx)<12 && Math.abs(dy)<12 && current?.screen==='presets') {
+    const column=end.x>=124 ? 1 : 0;
+    const row=end.y>=124 ? 1 : 0;
+    const left=9+column*115,top=43+row*81;
+    if(end.x>=left && end.x<=left+106 && end.y>=top && end.y<=top+72) {
+      const slot=column+row*2+1;
+      if(current.presets_menu?.[slot-1]?.available) enqueueWatch('preset_apply',{slot});
+    }
   }
 });
 canvas.addEventListener('pointercancel', () => { gesture = null; });

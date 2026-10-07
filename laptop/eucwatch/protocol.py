@@ -70,3 +70,11 @@ def decode(frame: bytes) -> Telemetry | None:
         pwm_percent=int.from_bytes(frame[34:36], "big") / 100,
         firmware_word=firmware,
     )
+
+
+def decode_settings(frame: bytes) -> dict[str, int | None] | None:
+    if frame[46] != 8 or len(frame) - 4 <= 68:
+        return None
+    return {name: frame[offset] if frame[offset] <= 100 else None
+            for name, offset in (("pedal_sensitivity", 50), ("dynamic_assist", 66),
+                                 ("pedal_dip_compensation", 68))}
