@@ -30,6 +30,19 @@ class Wire:
 
 
 class TransferTests(unittest.TestCase):
+    def test_read_only_replay_cannot_enter_a_transfer_that_discards_its_source(self):
+        from eucwatch.recording import Replay
+        source = Path('experiments/laptop-feasibility/evidence/fixture-recording.jsonl').read_text()
+        app = Application(clock=ManualClock())
+        app.action('replay_start', recording=Replay.from_text(source))
+        app.action('swipe', direction='down')
+        before = app.view()['replay']
+        with self.assertRaisesRegex(ValueError, 'Replay'):
+            app.action('transfer_begin')
+        self.assertEqual(app.view()['replay'], before)
+        self.assertFalse(app.view()['transfer']['active'])
+        app.action('replay_step')
+
     def test_transfer_terminates_pending_preset_and_button_cannot_submit_horn(self):
         output = []
         app = Application(clock=ManualClock(), command_output=output.append)
