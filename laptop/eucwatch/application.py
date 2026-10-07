@@ -51,7 +51,7 @@ class Application:
             mode = payload.get("mode", "simulator")
             if mode != "simulator":
                 raise ValueError("Only simulator connections are available")
-            controlled = payload.get("controlled", False)
+            controlled = payload.get("controlled", self.controlled if name == "connect" else False)
             if type(controlled) is not bool:
                 raise ValueError("Controlled simulator time must be true or false")
             self.controlled = controlled

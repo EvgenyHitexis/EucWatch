@@ -43,3 +43,8 @@ Python `ty` and frontend `tsc`/Vite build pass. `EUCWATCH_NO_BROWSER=1 EUCWATCH_
 reached readiness offline and Ctrl-C stopped the backend (port then unavailable).
 Browser opening is supplied by `xdg-open` after readiness; automated checks use
 Chrome directly. No hardware operations were performed.
+
+Two-axis #18 review found no documented standards violations and identified
+credential recovery after backend restart and loss of controlled time on reconnect.
+Both were corrected. Regression checks preserve the selected clock and recover
+the same controlling tab token; competing viewers receive disabled controls.

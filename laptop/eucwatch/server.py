@@ -4,7 +4,6 @@ import asyncio
 from contextlib import suppress
 from pathlib import Path
 import secrets
-import signal
 
 from aiohttp import web
 
@@ -38,8 +37,11 @@ def create_app(application=None):
         local(request)
         controller = request.query.get('controller')
         if controller not in controllers:
-            controller = secrets.token_urlsafe(16)
-            controllers.add(controller)
+            if controllers:
+                controller = None
+            else:
+                controller = secrets.token_urlsafe(16)
+                controllers.add(controller)
         return web.json_response({'credential': credential, 'controller': controller},
             headers={'Cache-Control': 'no-store'})
 

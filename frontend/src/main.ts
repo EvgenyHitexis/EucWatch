@@ -80,6 +80,26 @@ let current: View | null = null;
 let available = false;
 let submitting = false;
 let rendered = '';
+const controllerStorageKey = 'sherman-l-controller';
+let acquiringSession: Promise<Session> | null = null;
+
+function storedController(): string | null {
+  try { return sessionStorage.getItem(controllerStorageKey); } catch { return null; }
+}
+
+async function acquireSession(): Promise<Session> {
+  if (!acquiringSession) {
+    const token = storedController();
+    const query = token ? `?controller=${encodeURIComponent(token)}` : '';
+    acquiringSession = read<Session>(`/api/session${query}`).then(result => {
+      if (result.controller) {
+        try { sessionStorage.setItem(controllerStorageKey, result.controller); } catch { /* Storage is optional. */ }
+      }
+      return result;
+    }).finally(() => { acquiringSession = null; });
+  }
+  return acquiringSession;
+}
 
 function setControls(): void {
   document.querySelectorAll<HTMLButtonElement>('[data-control]').forEach(button => {
@@ -143,13 +163,14 @@ async function read<T>(path: string): Promise<T> {
 
 async function refresh(): Promise<void> {
   try {
-    if (!session) session = await read<Session>('/api/session');
+    if (!session) session = await acquireSession();
     current = await read<View>('/api/state');
     available = true;
     status.textContent = session.controller ? 'Application ready' : 'Viewing only · another window controls this session';
     status.classList.remove('error');
   } catch {
     available = false;
+    session = null;
     status.textContent = 'Application unavailable · controls disabled';
     status.classList.add('error');
   }
@@ -169,6 +190,10 @@ async function action(actionName: string, payload: Record<string, unknown> = {})
       body: JSON.stringify({ id: crypto.randomUUID(), controller: session.controller, action: actionName, ...payload }),
     });
     if (!response.ok) {
+      if (response.status === 403) {
+        session = null;
+        available = false;
+      }
       const result = await response.json() as { error?: string };
       throw new Error(result.error ?? `Action refused (${response.status})`);
     }
@@ -199,7 +224,7 @@ document.querySelector('#scenario')!.addEventListener('submit', async event => {
 document.querySelector('#emit')!.addEventListener('click', () => void action('simulator_emit'));
 document.querySelector('#advance')!.addEventListener('click', () => void action('advance', { seconds: 1.1 }));
 document.querySelector('#disconnect')!.addEventListener('click', () => void action('disconnect'));
-document.querySelector('#connect')!.addEventListener('click', () => void action('connect', { mode: 'simulator' }));
+document.querySelector('#connect')!.addEventListener('click', () => void action('connect', { mode: 'simulator', controlled: document.querySelector<HTMLInputElement>('#controlled')!.checked }));
 document.querySelector('#controlled')!.addEventListener('change', setControls);
 
 // A single awaited loop bounds requests and redraws to five per second,

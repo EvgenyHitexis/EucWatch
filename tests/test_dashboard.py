@@ -17,6 +17,18 @@ SOURCE_FRAME = bytes.fromhex(
 
 
 class DashboardTests(unittest.TestCase):
+    def test_reconnect_preserves_controlled_clock_selection(self):
+        host = ManualClock()
+        app = Application(clock=host)
+        app.action('simulator_start', controlled=True)
+        app.action('simulator_configure', traffic='paused')
+        app.action('disconnect')
+        app.action('connect')
+        app.action('simulator_emit')
+        host.advance(5)
+        self.assertTrue(app.view()['fresh'])
+        self.assertTrue(app.view()['controlled'])
+
     def test_launch_is_idle_and_watch_battery_is_explicitly_simulated(self):
         app = Application(clock=ManualClock())
         state = app.view()

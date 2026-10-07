@@ -19,6 +19,7 @@ class LocalApplication(unittest.IsolatedAsyncioTestCase):
         self.assertEqual((await response.json())['mode'], 'idle')
         response = await self.client.post('/api/action', json={'action': 'simulator_start'})
         self.assertEqual(response.status, 403)
+
         response = await self.client.get('/api/session', headers={'Origin': self.origin})
         session = await response.json()
         headers = {'Origin': self.origin, 'X-EucWatch-Key': session['credential']}
@@ -30,3 +31,10 @@ class LocalApplication(unittest.IsolatedAsyncioTestCase):
         response = await self.client.post('/api/action', headers=headers,
             json={'action': 'disconnect', 'id': 'bad', 'controller': session['controller']})
         self.assertEqual(response.status, 403)
+
+    async def test_only_one_controller_can_acquire_control_and_reload_reuses_it(self):
+        first = await (await self.client.get('/api/session')).json()
+        second = await (await self.client.get('/api/session')).json()
+        self.assertIsNone(second['controller'])
+        recovered = await (await self.client.get('/api/session', params={'controller': first['controller']})).json()
+        self.assertEqual(recovered['controller'], first['controller'])
