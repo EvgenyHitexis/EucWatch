@@ -122,14 +122,22 @@ def create_app(application=None, recorder=None):
                 if time.monotonic() - last_ui_seen > 2 and behavior.view()['button']['down']:
                     behavior.action('button_up')
                 behavior.tick()
-                if recorder is not None:
-                    await recorder.drain()
                 await asyncio.sleep(.02)
+        async def write_recording():
+            assert recorder is not None
+            while True:
+                await recorder.drain()
+                await asyncio.sleep(.05)
         task = asyncio.create_task(run())
+        writer = None if recorder is None else asyncio.create_task(write_recording())
         yield
         task.cancel()
         with suppress(asyncio.CancelledError):
             await task
+        if writer is not None:
+            writer.cancel()
+            with suppress(asyncio.CancelledError):
+                await writer
         if recorder is not None:
             await recorder.close()
 

@@ -85,3 +85,10 @@ simulator command input remains disabled. [Replay result](evidence/replay.json)
 retains fixture SHA256 and provenance. The recording HTTP boundary checks raw
 download, validated replay import and read-only rejection. External recording
 checks cover ordering, bounds and failures; no private raw capture is committed.
+
+Two-axis #24 review corrections separate the writer from the behavior ticker,
+preserve batch order/accounting during cancellation, preserve disconnected resume
+state and discard a delayed replay-file read after a newer session choice. Eight
+recording checks now include direct application capture/replay dashboard equivalence
+across corruption and gaps. Two recording HTTP checks include a blocked writer:
+autonomous simulator frames continue without browser polling. Observed: passed.

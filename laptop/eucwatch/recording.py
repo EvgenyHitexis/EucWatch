@@ -8,7 +8,7 @@ import os
 from collections import deque
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 from uuid import uuid4
 
 
@@ -20,7 +20,8 @@ class Recorder:
     """
 
     def __init__(self, path: Path | None = None, *, max_queue: int = 256,
-                 max_event_bytes: int = 65536):
+                 max_event_bytes: int = 65536,
+                 writer: Callable[[Path,list[str]],None] | None = None):
         if max_queue < 1 or max_event_bytes < 1:
             raise ValueError("Recording bounds must be positive")
         if path is None:
@@ -37,6 +38,7 @@ class Recorder:
         self.error: str | None = None
         self.closed = False
         self.lock = asyncio.Lock()
+        self.writer = writer
 
     def record(self, event: str | dict[str, Any], **fields: Any) -> bool:
         if self.closed or self.error is not None:
@@ -63,6 +65,9 @@ class Recorder:
         return True
 
     def _append(self, lines: list[str]) -> None:
+        if self.writer is not None:
+            self.writer(self.path, lines)
+            return
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self.path.open("a", encoding="utf-8") as output:
             output.writelines(lines)
@@ -74,13 +79,26 @@ class Recorder:
                 return
             lines = list(self.queue)
             self.queue.clear()
+            cancelled = False
+            worker = asyncio.create_task(asyncio.to_thread(self._append, lines))
             try:
-                await asyncio.to_thread(self._append, lines)
+                while True:
+                    try:
+                        await asyncio.shield(worker)
+                        break
+                    except asyncio.CancelledError:
+                        cancelled = True
+                        if worker.cancelled():
+                            self.error = 'Recording writer was cancelled; capture stopped'
+                            self.rejected += len(lines)
+                            raise
             except (OSError, UnicodeError) as exc:
                 self.error = f"Recording storage failed: {exc}"
                 self.rejected += len(lines)
             else:
                 self.written += len(lines)
+            if cancelled:
+                raise asyncio.CancelledError
 
     async def close(self) -> None:
         self.closed = True

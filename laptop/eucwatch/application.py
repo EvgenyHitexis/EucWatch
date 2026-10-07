@@ -187,7 +187,11 @@ class Application:
                     self.parser = Assembler()
                     self.last_valid = None
                     self.replay_source_session = row['session']
-                    self.connected = row['transition'] in ('connected', 'resume')
+                    if row['transition'] != 'resume':
+                        self.connected = row['transition'] == 'connected'
+                    self.button_down = False
+                    self.wake_cycle = False
+                    self.button_started = None
                     self.established_connection |= self.connected
                     if self.connected:
                         self.awake = True

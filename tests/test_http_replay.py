@@ -2,6 +2,8 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+import asyncio
+import threading
 
 from aiohttp.test_utils import TestClient, TestServer
 from eucwatch.server import create_app
@@ -9,6 +11,32 @@ from eucwatch.recording import Recorder
 
 
 class RecordingUIBoundary(unittest.IsolatedAsyncioTestCase):
+    async def test_slow_storage_does_not_stop_behavior_without_browser_polling(self):
+        with tempfile.TemporaryDirectory() as directory:
+            entered, release = threading.Event(), threading.Event()
+            def writer(path,lines):
+                entered.set()
+                release.wait(3)
+                with path.open('a') as output:
+                    output.writelines(lines)
+            recorder = Recorder(Path(directory)/'slow.jsonl',writer=writer)
+            client = TestClient(TestServer(create_app(recorder=recorder)))
+            await client.start_server()
+            try:
+                origin = str(client.make_url('/')).rstrip('/')
+                session = await (await client.get('/api/session')).json()
+                await client.post('/api/action',headers={'Origin':origin,'X-EucWatch-Key':session['credential']},
+                    json={'action':'simulator_start','id':'start','controller':session['controller']})
+                async with asyncio.timeout(2):
+                    while not entered.is_set():
+                        await asyncio.sleep(.01)
+                await asyncio.sleep(.75)
+                state = await (await client.get('/api/state')).json()
+                self.assertGreaterEqual(state['diagnostics']['valid_frames'],4)
+            finally:
+                release.set()
+                await client.close()
+
     async def test_raw_recording_download_and_read_only_replay_actions(self):
         with tempfile.TemporaryDirectory() as directory:
             recorder = Recorder(Path(directory) / 'session.jsonl')

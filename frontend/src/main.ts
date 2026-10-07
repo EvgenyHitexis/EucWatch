@@ -100,6 +100,7 @@ let current: View | null = null;
 let available = false;
 let submitting = false;
 let loadingReplay = false;
+let replayLoadGeneration = 0;
 let rendered = '';
 const controllerStorageKey = 'sherman-l-controller';
 let acquiringSession: Promise<Session> | null = null;
@@ -250,6 +251,7 @@ async function refresh(): Promise<void> {
 
 async function action(actionName: string, payload: Record<string, unknown> = {}): Promise<boolean> {
   if (!available || !session?.controller || submitting) return false;
+  if (['simulator_start', 'stop', 'connect', 'replay_start'].includes(actionName)) replayLoadGeneration++;
   submitting = true;
   setControls();
   message.textContent = '';
@@ -303,8 +305,13 @@ document.querySelector('#replay-load')!.addEventListener('click', async () => {
   if (!file) { message.textContent = 'Choose a JSONL recording before loading replay.'; return; }
   loadingReplay = true;
   setControls();
+  const generation = replayLoadGeneration;
+  const wheelSession = current?.session;
+  const controller = session?.controller;
+  const credential = session?.credential;
   try {
     const recording = await file.text();
+    if (generation !== replayLoadGeneration || wheelSession !== current?.session || controller !== session?.controller || credential !== session?.credential) return;
     await action('replay_start', { recording, name: file.name });
   } catch (error) {
     message.textContent = error instanceof Error ? error.message : 'Could not read the selected recording.';
@@ -395,6 +402,7 @@ sideButton.addEventListener('pointerup', releaseButton);
 sideButton.addEventListener('pointercancel', releaseButton);
 
 function releaseForLifecycle(): void {
+  replayLoadGeneration++;
   inputGeneration++;
   gesture = null;
   if (holdTimer !== null) window.clearTimeout(holdTimer);

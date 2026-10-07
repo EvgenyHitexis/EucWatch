@@ -3,9 +3,12 @@
 import json
 import tempfile
 import unittest
+import asyncio
+import threading
 from pathlib import Path
 
 from eucwatch.recording import Recorder, Replay
+from eucwatch import Application, ManualClock
 
 FIXTURE = Path(__file__).resolve().parents[1] / (
     "experiments/laptop-feasibility/evidence/fixture-recording.jsonl"
@@ -55,6 +58,81 @@ class ReplayTests(unittest.TestCase):
 
 
 class RecordingTests(unittest.IsolatedAsyncioTestCase):
+    async def test_replay_of_disconnected_resume_does_not_invent_connection(self):
+        with tempfile.TemporaryDirectory() as directory:
+            recorder = Recorder(Path(directory)/'resume.jsonl')
+            clock = ManualClock()
+            app = Application(clock=clock,event_sink=recorder.record)
+            app.action('disconnect')
+            clock.advance(60,suspended=True)
+            self.assertFalse(app.view()['connected'])
+            await recorder.close()
+            replay = Replay.load(recorder.path)
+            restored = Application(clock=ManualClock())
+            restored.action('replay_start',recording=replay)
+            for _ in replay.rows:
+                restored.action('replay_step')
+            self.assertFalse(restored.view()['connected'])
+            self.assertFalse(restored.view()['fresh'])
+
+    async def test_captured_application_states_replay_equivalently_with_corruption_and_gaps(self):
+        with tempfile.TemporaryDirectory() as directory:
+            recorder = Recorder(Path(directory) / 'capture.jsonl')
+            clock = ManualClock()
+            app = Application(clock=clock, event_sink=recorder.record)
+            session = app.action('connect')['session']
+            expected = []
+            for line in FIXTURE.read_text().splitlines():
+                row = json.loads(line)
+                clock.advance(row['receipt_elapsed_s'] - clock.elapsed)
+                app.receive(session,bytes.fromhex(row['raw_hex']))
+                expected.append(app.view()['dashboard'])
+            await recorder.close()
+            rows = [json.loads(line) for line in recorder.path.read_text().splitlines()]
+            self.assertEqual([r['raw_hex'] for r in rows if r['event']=='notification'],
+                [json.loads(line)['raw_hex'] for line in FIXTURE.read_text().splitlines()])
+            replay = Replay.load(recorder.path)
+            replay_app = Application(clock=ManualClock())
+            replay_app.action('replay_start',recording=replay)
+            observed = []
+            for row in replay.rows:
+                state = replay_app.action('replay_step')
+                if row['event']=='notification':
+                    observed.append(state['dashboard'])
+            self.assertEqual(observed,expected)
+            self.assertEqual(state['diagnostics']['valid_frames'],3)
+            with self.assertRaises(ValueError):
+                replay_app.action('simulator_emit')
+
+    async def test_cancelled_drain_finishes_earlier_write_before_close_flushes_later_events(self):
+        with tempfile.TemporaryDirectory() as directory:
+            entered, release = threading.Event(), threading.Event()
+            def writer(path, lines):
+                if json.loads(lines[0])['sequence']==0:
+                    entered.set()
+                    release.wait(3)
+                with path.open('a') as output:
+                    output.writelines(lines)
+            recorder = Recorder(Path(directory)/'ordered.jsonl',writer=writer)
+            recorder.record('intent',session=1,source='simulator',receipt_elapsed_s=0)
+            first = asyncio.create_task(recorder.drain())
+            try:
+                async with asyncio.timeout(2):
+                    while not entered.is_set():
+                        await asyncio.sleep(.01)
+                recorder.record('intent',session=1,source='simulator',receipt_elapsed_s=1)
+                first.cancel()
+                close = asyncio.create_task(recorder.close())
+                await asyncio.sleep(.05)
+                release.set()
+                with self.assertRaises(asyncio.CancelledError):
+                    await first
+                await close
+                rows = [json.loads(line) for line in recorder.path.read_text().splitlines()]
+                self.assertEqual([row['sequence'] for row in rows],[0,1])
+                self.assertEqual(recorder.status()['written'],2)
+            finally:
+                release.set()
     async def test_overflow_stops_capture_and_retains_queued_evidence(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "session.jsonl"
