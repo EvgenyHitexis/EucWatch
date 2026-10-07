@@ -15,6 +15,7 @@ from eucwatch import Application, ManualClock
 from eucwatch.server import create_app
 from eucwatch.recording import Recorder
 from eucwatch.live import LiveSession
+from eucwatch.scenarios import FileScenarioStore
 from test_live import Scanner, Clients, ADDRESS, SOURCE_FRAME
 from test_live_control import WritingClient
 from test_control import settings_frame
@@ -69,7 +70,7 @@ async def run():
         live_clients.created.append(client)
         return client
     live = LiveSession(behavior,scanner=Scanner(),client_factory=writing_client,reconnect_delay=0)
-    runner = web.AppRunner(create_app(behavior, recorder=recorder,live=live))
+    runner = web.AppRunner(create_app(behavior, recorder=recorder,live=live,scenario_store=FileScenarioStore(Path(f'.test-output/ui-scenario-{run_id}.json'))))
     await runner.setup()
     sock = socket.socket()
     sock.bind(('127.0.0.1', 0))
@@ -482,6 +483,37 @@ async def run():
                             'expected':'moving entry refused; stopped entry disconnects; Cancel preserves; verified saved copies; return requires fresh frame; no wheel commands',
                             'observed':'passed','endpoint':'Simulated watch','physical_transfer':'not attempted'}
                         (output/'transfer.json').write_text(json.dumps(transfer_result,indent=2)+'\n')
+                        await cdp.wait("!document.querySelector('#scenario-save').disabled",session)
+                        await cdp.evaluate("document.querySelector('#scenario-name').value='Reproducible dashboard';document.querySelector('#scenario-save').click()",session)
+                        await cdp.wait("document.querySelector('#scenario-status').textContent.includes('saved locally')",session)
+                        await cdp.wait("!document.querySelector('#scenario-export').disabled",session)
+                        await cdp.evaluate("document.querySelector('#scenario-export').click()",session)
+                        async with asyncio.timeout(5):
+                            while not (download_dir/'eucwatch-scenario.json').exists(): await asyncio.sleep(.05)
+                        definition=json.loads((download_dir/'eucwatch-scenario.json').read_text())
+                        assert definition['seed']==0 and definition['clock']=='controlled'
+                        document=await cdp.call('DOM.getDocument',session=session)
+                        node=await cdp.call('DOM.querySelector',{'nodeId':document['root']['nodeId'],'selector':'#scenario-file'},session)
+                        await cdp.call('DOM.setFileInputFiles',{'nodeId':node['nodeId'],'files':[str(download_dir/'eucwatch-scenario.json')]},session)
+                        before_review=behavior.view()['session']
+                        await cdp.wait("!document.querySelector('#scenario-review').disabled",session)
+                        await cdp.evaluate("document.querySelector('#scenario-review').click()",session)
+                        await cdp.wait("document.querySelector('#scenario-preview').textContent.includes('Reviewed import')",session)
+                        assert behavior.view()['session']==before_review
+                        await cdp.wait("!document.querySelector('#scenario-start').disabled",session)
+                        await cdp.evaluate("document.querySelector('#scenario-start').click()",session)
+                        await cdp.wait("document.querySelector('#scenario-status').textContent.includes('started')",session)
+                        assert behavior.view()['controlled'] and behavior.view()['elapsed_s']==0
+                        for index in range(3):
+                            await cdp.wait("!document.querySelector('#scenario-step').disabled",session)
+                            await cdp.evaluate("document.querySelector('#scenario-step').click()",session)
+                            await cdp.wait(f"document.querySelector('#scenario-status').textContent.includes('{index+1}/3')",session)
+                        assert behavior.view()['elapsed_s']==1.4
+                        assert await cdp.evaluate("document.querySelector('#scenario-step').disabled",session)
+                        scenario_result={'issue':31,'provenance':'actual saved-file backend / Chrome export/import/review/start/step; fixed inputs seed0 controlled raw parser',
+                            'expected':'complete bounded definition saves/exports; review noactivation; explicit freshstart; three deterministicsteps; no commands',
+                            'observed':'passed','owner_review_and_live_acceptance':'pending'}
+                        (output/'scenarios.json').write_text(json.dumps(scenario_result,indent=2)+'\n')
                         print(json.dumps(report, indent=2))
                         print(json.dumps(replay_result, indent=2))
             finally:

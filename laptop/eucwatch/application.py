@@ -720,6 +720,7 @@ class Application:
         values = self.telemetry
         return {
             "mode": self.mode,
+            "controlled": self.controlled,
             "screen": self.screen,
             "awake": self.awake,
             "button": {"down": self.button_down, "wake_cycle": self.wake_cycle},
