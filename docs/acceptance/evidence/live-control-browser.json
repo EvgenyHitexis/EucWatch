@@ -1,0 +1,13 @@
+{
+  "issue": 26,
+  "provenance": "actual Canvas preset/button / aiohttp / selected fake Bleak telemetry connection",
+  "expected": "serialized responseFalse15/20/11 bytes; two raw matching frames confirm; one14byteLkAp horn request; no physical operation",
+  "observed": "passed",
+  "chunks": [
+    15,
+    20,
+    11,
+    14
+  ],
+  "physical_mappings_ranges_persistence_movement_and_audible_horn": "unverified under #9/#31"
+}
