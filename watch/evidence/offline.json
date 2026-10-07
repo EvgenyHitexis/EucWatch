@@ -1,0 +1,7 @@
+{
+  "issue": 32,
+  "provenance": "Node VM executes original ES5 application/hardware; fake radio/pins/clock; SVG replays Graphics operations, host fonts",
+  "fixture": "experiments/laptop-feasibility/evidence/fixture-recording.jsonl",
+  "observed": "240x240 1-bpp buffer7200; sourcebattery97/avg4.09; battery sampling/pinrelease; raw816 nav/wake; reconnect demandsnewtelemetry; independent recovery beforeimports",
+  "hardware_acceptance": "pending: no deployment, device memory, radio, fonts, timing or physical controls measured"
+}
