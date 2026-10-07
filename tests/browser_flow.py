@@ -333,6 +333,55 @@ async def run():
                             'expected':'explicitscanonly, livefreshidentity, loss/newsession/freshrecovery, oldcallbackinert, simulatorcloseslive',
                             'observed':'passed','physical_evidence':'pending owner authorization'}
                         (output/'live.json').write_text(json.dumps(live_result,indent=2)+'\n')
+                        download_dir=(output/f'downloads-{run_id}').resolve()
+                        download_dir.mkdir(exist_ok=True)
+                        await cdp.call('Browser.setDownloadBehavior',{'behavior':'allow','downloadPath':str(download_dir)})
+                        await cdp.wait("!document.querySelector('#configuration-export').disabled",session)
+                        await cdp.evaluate("document.querySelector('#configuration-export').click()",session)
+                        await cdp.wait("document.querySelector('#configuration-status').textContent.includes('Exported')",session)
+                        async with asyncio.timeout(5):
+                            while not (download_dir/'eucwatch-configuration.json').exists():
+                                await asyncio.sleep(.05)
+                        exported=json.loads((download_dir/'eucwatch-configuration.json').read_text())
+                        assert set(exported)=={'version','revision','presets','alerts'}
+                        before_backup=behavior.view()['config']
+                        before_commands=len(behavior.view()['command_events'])
+                        candidate=json.loads(json.dumps(exported))
+                        candidate['presets'][0]['name']='Backup slot'
+                        config_file=(output/'import-configuration.json').resolve()
+                        config_file.write_text(json.dumps(candidate))
+                        document=await cdp.call('DOM.getDocument',session=session)
+                        node=await cdp.call('DOM.querySelector',{'nodeId':document['root']['nodeId'],'selector':'#configuration-file'},session)
+                        await cdp.call('DOM.setFileInputFiles',{'nodeId':node['nodeId'],'files':[str(config_file)]},session)
+                        async def review_configuration():
+                            await cdp.wait("!document.querySelector('#configuration-review').disabled",session)
+                            await cdp.evaluate("document.querySelector('#configuration-review').click()",session)
+                            await cdp.wait("document.querySelector('#configuration-preview').textContent.includes('Backup slot')",session)
+                        await review_configuration()
+                        assert behavior.view()['config']==before_backup
+                        await cdp.wait("!document.querySelector('#configuration-cancel').disabled",session)
+                        await cdp.evaluate("document.querySelector('#configuration-cancel').click()",session)
+                        await cdp.wait("document.querySelector('#configuration-preview').textContent===''",session)
+                        assert behavior.view()['config']==before_backup
+                        await review_configuration()
+                        await cdp.wait("!document.querySelector('#configuration-restore').disabled",session)
+                        await cdp.evaluate("document.querySelector('#configuration-restore').click()",session)
+                        await cdp.wait("document.querySelector('#configuration-status').textContent.includes('restored locally')",session)
+                        assert behavior.view()['config']['presets'][0]['name']=='Backup slot'
+                        assert len(behavior.view()['command_events'])==before_commands
+                        assert behavior.view()['confirmed_preset'] is None
+                        invalid_file=(output/'invalid-configuration.json').resolve()
+                        candidate['version']=999
+                        invalid_file.write_text(json.dumps(candidate))
+                        await cdp.call('DOM.setFileInputFiles',{'nodeId':node['nodeId'],'files':[str(invalid_file)]},session)
+                        await cdp.wait("!document.querySelector('#configuration-review').disabled",session)
+                        await cdp.evaluate("document.querySelector('#configuration-review').click()",session)
+                        await cdp.wait("document.querySelector('#message').textContent.includes('Unsupported')",session)
+                        assert behavior.view()['config']['presets'][0]['name']=='Backup slot'
+                        backup_result={'issue':27,'provenance':'actual file download/import/review/Cancel/Restore / HTML / aiohttp',
+                            'expected':'saved-only export, preview noactivation, Cancelpreserves, explicitrestore, unknownversionrefused, no commands',
+                            'observed':'passed','migration':'Only existing schema1; compatible updates preserve meaning; unknown versions require review'}
+                        (output/'backup.json').write_text(json.dumps(backup_result,indent=2)+'\n')
                         print(json.dumps(report, indent=2))
                         print(json.dumps(replay_result, indent=2))
             finally:

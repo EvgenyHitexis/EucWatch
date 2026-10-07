@@ -147,3 +147,35 @@ Both review axes identified awaited-request duplication and cancelled-child
 cleanup starvation. Corrected with serialized intents/deduplication and bounded
 uncertain-cleanup handling; regression checks pass. Actual application telemetry,
 cadence, owner firmware identity and reconnect evidence remain pending under #31.
+
+### #22 — immediate preset application and confirmation
+
+Nineteen main-boundary checks exercise exact encoded/CRC packets, omitted dip,
+serialized submission, extra taps, controlled submission/confirmation deadlines,
+two consecutive post-submission fresh settings frames, stale/session/revision
+invalidation, partial/unknown outcomes, explicit retry and late actual readings.
+Submission is bounded to 5 seconds; confirmation to 10 seconds after all writes
+complete. Cached, pre-request, pre-completion and old-session input cannot confirm.
+
+The actual moving-simulator Canvas flow taps Rain once and immediately returns
+to the dashboard with Applying feedback; two fresh settings frames confirm it.
+HTML scenarios exercise missing/mismatching/partial readback, failed/stalled
+submission, timeout and fresh explicit retry. Late readings preserve terminal
+failure. Stale/session loss removes current confirmation; historical results are
+labelled separately. [Control result](evidence/control.json). Outputs establish
+simulated command/evidence behavior, not physical control or riding acceptance.
+
+### #27 — configuration backup and review
+
+Nine Application checks cover complete saved-only export, explicit preview,
+Cancel/Restore, schema validation, unsupported/duplicate/incomplete/oversized or
+deeply nested imports, revision change after preview, ongoing-operation sleep,
+interrupted replacement, last-good recovery and restart. Restoration activates
+saved alerts, invalidates confirmation and stops unsent settings requests.
+
+The actual HTML/aiohttp/file flow downloads a JSON backup, reviews a complete
+candidate without activation, cancels it, then explicitly restores. Unsupported
+versions are visibly rejected; no wheel commands are produced.
+[Backup result](evidence/backup.json). Schema 1 is the only existing product
+format: compatible application updates preserve its meaning and fixed identities;
+unknown schemas require owner review rather than invented historical migrations.

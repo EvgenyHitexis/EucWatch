@@ -1,0 +1,7 @@
+{
+  "issue": 27,
+  "provenance": "actual file download/import/review/Cancel/Restore / HTML / aiohttp",
+  "expected": "saved-only export, preview noactivation, Cancelpreserves, explicitrestore, unknownversionrefused, no commands",
+  "observed": "passed",
+  "migration": "Only existing schema1; compatible updates preserve meaning; unknown versions require review"
+}

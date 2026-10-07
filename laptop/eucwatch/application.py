@@ -15,7 +15,7 @@ from .configuration import (
     validate_configuration,
 )
 from .persistence import ConfigStore, MemoryStore
-from . import presets
+from . import backup, presets
 from .protocol import CHARACTERISTIC, Assembler, Telemetry, decode, decode_settings
 from .recording import Replay
 from .simulator import Simulator
@@ -86,6 +86,8 @@ class Application:
         self.alerts_draft: dict[str, Any] | None = None
         self.preset_draft: dict[str, Any] | None = None
         self.confirmed_preset: dict[str, Any] | None = None
+        self.configuration_preview: dict[str, Any] | None = None
+        self.configuration_export: dict[str, Any] | None = None
         self.alerts = AlertScheduler(self.config["alerts"], output=vibration_output)
         self.command_output = command_output
         self.command_events: list[dict[str, Any]] = []
@@ -199,6 +201,8 @@ class Application:
             "alerts_cancel",
             "alert_test",
             "preset_begin", "preset_update", "preset_save", "preset_cancel", "preset_clear",
+            "configuration_export", "configuration_import_prepare",
+            "configuration_import_cancel", "configuration_import_commit",
         ):
             raise ValueError(
                 "Replay is read-only; no wheel commands or simulator input"
@@ -399,6 +403,27 @@ class Application:
                     self.alerts_draft = None
         elif name == "alerts_begin":
             self.alerts_draft = deepcopy(self.config["alerts"])
+        elif name == "configuration_export":
+            self.configuration_export = backup.export(self.config)
+        elif name == "configuration_import_prepare":
+            self.configuration_preview = backup.prepare(payload.get("content"), self.config["revision"])
+        elif name == "configuration_import_cancel":
+            self.configuration_preview = None
+        elif name == "configuration_import_commit":
+            if self.configuration_preview is None:
+                raise ValueError("Review a configuration import before committing")
+            proposed = backup.replacement(self.configuration_preview, self.config["revision"])
+            try:
+                self.store.save(proposed)
+            except (OSError, ValueError) as exc:
+                self.persistence_error = f"Configuration save failed: {exc}"
+            else:
+                self.config = proposed
+                self.confirmed_preset = None
+                self.configuration_preview = None
+                self.persistence_error = None
+                self.alerts.configure(proposed["alerts"], self.elapsed())
+                self._update_alerts()
         elif name in ("preset_begin", "preset_update", "preset_save", "preset_cancel", "preset_clear"):
             if payload.pop("source", "panel") != "panel":
                 raise ValueError("Preset definitions can only be edited in the laptop panel")
@@ -509,6 +534,7 @@ class Application:
             and not self.recovery
             and self.alerts_draft is None
             and self.preset_draft is None
+            and self.configuration_preview is None
             and self.elapsed() - self.last_interaction >= 30 - 1e-9
         ):
             self.awake = False
@@ -596,6 +622,8 @@ class Application:
             "config": deepcopy(self.config),
             "alerts_draft": deepcopy(self.alerts_draft),
             "preset_draft": deepcopy(self.preset_draft),
+            "configuration_preview": deepcopy(self.configuration_preview),
+            "configuration_export": deepcopy(self.configuration_export),
             "confirmed_preset": deepcopy(self.confirmed_preset),
             "preset_attempt": self.control.view(),
             "actual_settings": deepcopy(self.control.actual),

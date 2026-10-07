@@ -1,4 +1,5 @@
 import './style.css';
+import { mountBackup } from './backup';
 
 interface Dashboard {
   speed: string;
@@ -63,6 +64,8 @@ interface View {
   alerts_draft: AlertSettings | null;
   preset_draft: Preset | null;
   presets_menu: PresetMenuSlot[];
+  configuration_preview: null | { content: unknown; base_revision:number; migration:{from:number;to:number;changes:string[]} };
+  configuration_export: unknown;
   preset_attempt: null | { name: string; status: string; pending: boolean; requested_s: number; submitted_s: number | null; reason: string; fields: Record<string, { requested: number; actual: number | null; state: string }> };
   confirmed_preset: null | { name: string };
   live: LiveStatus | null;
@@ -258,6 +261,7 @@ function setControls(): void {
   document.querySelector<HTMLButtonElement>('#live-select')!.disabled ||= !current?.live || !document.querySelector<HTMLSelectElement>('#live-device')!.value;
   document.querySelector<HTMLButtonElement>('#live-disconnect')!.disabled ||= !current?.live || current.mode !== 'live';
   document.querySelector<HTMLSelectElement>('#live-device')!.disabled = !available || submitting || !current?.live?.devices.length;
+  updateBackup(!submitting && available && !!session?.controller);
 }
 
 function text(value: string, x: number, y: number, size: number, color = '#ffffff', align: CanvasTextAlign = 'left'): void {
@@ -716,6 +720,7 @@ let watchChain: Promise<unknown> = Promise.resolve();
 let holdTimer: number | null = null;
 let buttonCycleOpen = false;
 let inputGeneration = 0;
+const updateBackup=mountBackup(action,()=>current,()=>JSON.stringify([inputGeneration,current?.session,current?.config.revision,session?.credential]));
 function enqueueWatch(actionName: string, payload: Record<string, unknown> = {}): Promise<unknown> {
   const wheelSession = current?.session;
   const controller = session?.controller;
