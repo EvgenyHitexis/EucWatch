@@ -1,0 +1,14 @@
+{
+  "issue": 21,
+  "provenance": "actual HTML editor / Canvas menu / aiohttp / store restart",
+  "expected": "required validation, Save/Cancel, optional dip absent, four identities and restart retention",
+  "observed": "passed",
+  "saved": {
+    "id": 2,
+    "name": "Rain",
+    "configured": true,
+    "pedal_sensitivity": 30,
+    "dynamic_assist": 20
+  },
+  "menu": "Preset menu. Four fixed slots: slot 1: Preset 1, unconfigured; slot 2: Rain, configured; slot 3: Preset 3, unconfigured; slot 4: Preset 4, unconfigured. Application unavailable. Swipe right to return without applying."
+}

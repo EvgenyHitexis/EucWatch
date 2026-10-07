@@ -14,6 +14,7 @@ from .configuration import (
     validate_configuration,
 )
 from .persistence import ConfigStore, MemoryStore
+from . import presets
 from .protocol import CHARACTERISTIC, Assembler, Telemetry, decode
 from .recording import Replay
 from .simulator import Simulator
@@ -81,6 +82,8 @@ class Application:
         except (OSError, ValueError) as exc:
             self.persistence_error = f"Saved configuration requires review: {exc}"
         self.alerts_draft: dict[str, Any] | None = None
+        self.preset_draft: dict[str, Any] | None = None
+        self.confirmed_preset: dict[str, Any] | None = None
         self.alerts = AlertScheduler(self.config["alerts"], output=vibration_output)
 
     def _update_alerts(self) -> None:
@@ -119,7 +122,8 @@ class Application:
     def elapsed(self) -> float:
         return self.clock.read()[0] + self.time_offset
 
-    def action(self, name: str, **payload: Any) -> dict[str, Any]:
+    def action(self, action_name: str, **payload: Any) -> dict[str, Any]:
+        name = action_name
         self.tick()
         self._event(
             "intent",
@@ -142,6 +146,7 @@ class Application:
             "alerts_save",
             "alerts_cancel",
             "alert_test",
+            "preset_begin", "preset_update", "preset_save", "preset_cancel", "preset_clear",
         ):
             raise ValueError(
                 "Replay is read-only; no wheel commands or simulator input"
@@ -288,6 +293,33 @@ class Application:
                     self.alerts_draft = None
         elif name == "alerts_begin":
             self.alerts_draft = deepcopy(self.config["alerts"])
+        elif name in ("preset_begin", "preset_update", "preset_save", "preset_cancel", "preset_clear"):
+            if payload.pop("source", "panel") != "panel":
+                raise ValueError("Preset definitions can only be edited in the laptop panel")
+            if name == "preset_begin":
+                self.preset_draft = presets.begin(self.config, payload.get("slot"))
+            elif name == "preset_update":
+                if self.preset_draft is None:
+                    raise ValueError("Open the preset editor before editing")
+                self.preset_draft = presets.update(self.preset_draft, payload)
+            elif name == "preset_clear":
+                self.preset_draft = presets.cleared(self.config, payload.get("slot"))
+            elif name == "preset_cancel":
+                self.preset_draft = None
+            elif name == "preset_save":
+                if self.preset_draft is None:
+                    raise ValueError("No preset draft is open")
+                proposed = presets.replacement(self.config, self.preset_draft)
+                try:
+                    self.store.save(proposed)
+                except (OSError, ValueError) as exc:
+                    self.persistence_error = f"Configuration save failed: {exc}"
+                else:
+                    if proposed["presets"] != self.config["presets"]:
+                        self.confirmed_preset = None
+                    self.config = proposed
+                    self.preset_draft = None
+                    self.persistence_error = None
         elif name == "alerts_update":
             alert = payload.pop("alert", None)
             if self.alerts_draft is None:
@@ -369,6 +401,7 @@ class Application:
             and not self.button_down
             and not self.recovery
             and self.alerts_draft is None
+            and self.preset_draft is None
             and self.elapsed() - self.last_interaction >= 30 - 1e-9
         ):
             self.awake = False
@@ -449,6 +482,12 @@ class Application:
             "recording_error": self.recording_error,
             "config": deepcopy(self.config),
             "alerts_draft": deepcopy(self.alerts_draft),
+            "preset_draft": deepcopy(self.preset_draft),
+            "confirmed_preset": deepcopy(self.confirmed_preset),
+            "presets_menu": [{"id": preset["id"], "name": preset["name"],
+                              "configured": preset["configured"], "available": False,
+                              "revision": self.config["revision"]}
+                             for preset in self.config["presets"]],
             "persistence_error": self.persistence_error,
             "vibration": self.alerts.view(),
             "replay": None if self.replay is None else self.replay.status(),

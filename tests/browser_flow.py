@@ -138,6 +138,39 @@ async def run():
                         alert_result={'issue':20,'provenance':'actual Canvas and HTML editor / aiohttp / controlled clock',
                             'expected':'back discards, missing enabled threshold refused, save authoritative threshold, PWM test three150ms pulses',
                             'observed':'passed','pulse_durations_s':starts}
+                        await cdp.wait("!document.querySelector('#preset-edit').disabled",session)
+                        await cdp.evaluate("document.querySelector('#preset-slot').value='2'; document.querySelector('#preset-slot').dispatchEvent(new Event('change')); document.querySelector('#preset-edit').click()",session)
+                        await cdp.wait("!document.querySelector('#preset-name').disabled",session)
+                        async def preset_field(selector,value):
+                            await cdp.evaluate(f"(() => {{ const field=document.querySelector({json.dumps(selector)}); field.value={json.dumps(value)}; field.dispatchEvent(new Event('change',{{bubbles:true}})); }})()",session)
+                            await cdp.wait("!document.querySelector('#preset-save').disabled",session)
+                        await preset_field('#preset-name','Rain')
+                        await preset_field('#preset-pedal-sensitivity','30')
+                        await cdp.evaluate("document.querySelector('#preset-editor').requestSubmit()",session)
+                        await cdp.wait("document.querySelector('#preset-validation-error').textContent.length>0",session)
+                        assert not behavior.view()['config']['presets'][1]['configured']
+                        await preset_field('#preset-dynamic-assist','20')
+                        await cdp.evaluate("document.querySelector('#preset-editor').requestSubmit()",session)
+                        await cdp.wait("document.querySelector('#preset-status').textContent.includes('Saved')",session)
+                        expected_preset={'id':2,'name':'Rain','configured':True,'pedal_sensitivity':30,'dynamic_assist':20}
+                        assert behavior.view()['config']['presets'][1]==expected_preset
+                        await cdp.pointer('#watch',(215,120),(20,120),session)
+                        await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('Rain')",session)
+                        menu=await cdp.evaluate("document.querySelector('canvas').getAttribute('aria-label')",session)
+                        await cdp.wait("!document.querySelector('#preset-clear').disabled",session)
+                        await cdp.evaluate("document.querySelector('#preset-clear').click()",session)
+                        await cdp.wait("document.querySelector('#preset-status').textContent.includes('Unsaved')",session)
+                        await cdp.wait("!document.querySelector('#preset-cancel').disabled",session)
+                        await cdp.evaluate("document.querySelector('#preset-cancel').click()",session)
+                        await cdp.wait("document.querySelector('#preset-status').textContent.includes('Saved')",session)
+                        assert behavior.view()['config']['presets'][1]==expected_preset
+                        restarted=Application(clock=ManualClock(),store=behavior.store)
+                        assert restarted.view()['config']['presets'][1]==expected_preset
+                        preset_result={'issue':21,'provenance':'actual HTML editor / Canvas menu / aiohttp / store restart',
+                            'expected':'required validation, Save/Cancel, optional dip absent, four identities and restart retention',
+                            'observed':'passed','saved':expected_preset,'menu':menu}
+                        await cdp.pointer('#watch',(20,120),(215,120),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard'",session)
                         await cdp.evaluate("document.querySelector('[data-action=simulator_start]').click()", session)
                         await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('Connected')", session)
                         async def scenario(speed, voltage, pwm, traffic='normal'):
@@ -185,6 +218,7 @@ async def run():
                         (output / 'browser.json').write_text(json.dumps(report, indent=2) + '\n')
                         (output / 'navigation.json').write_text(json.dumps(navigation, indent=2) + '\n')
                         (output / 'alerts.json').write_text(json.dumps(alert_result, indent=2) + '\n')
+                        (output / 'presets.json').write_text(json.dumps(preset_result, indent=2) + '\n')
                         before_replay = behavior.view()['diagnostics']['valid_frames']
                         document = await cdp.call('DOM.getDocument', session=session)
                         node = await cdp.call('DOM.querySelector', {'nodeId':document['root']['nodeId'], 'selector':'#replay-file'}, session)

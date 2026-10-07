@@ -17,7 +17,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, canvas:focus-vi
 h1 { font-size: 24px; font-weight: 550; margin: 0; letter-spacing: -.03em; }
 .mode { background: #d8ee91; color: #18210e; border-radius: 20px; padding: 7px 13px; font-size: 12px; font-weight: 650; white-space: nowrap; }
 .workspace { display: grid; grid-template-columns: 330px 1fr; gap: 44px; padding-top: 38px; align-items: start; }
-.watch-area { text-align: center; }
+.watch-area { text-align: center; position: sticky; top: 24px; }
 .watch { position: relative; display: inline-block; border: 14px solid #272d29; border-radius: 39px; padding: 5px; background: #030504; box-shadow: 0 8px 0 #080b09, 0 15px 35px #0006; }
 canvas { display: block; width: 240px; height: 240px; border-radius: 19px; image-rendering: pixelated; background: #000; }
 .watch canvas { touch-action: none; user-select: none; }
@@ -55,6 +55,7 @@ input, select { display: block; margin-top: 7px; width: 100%; min-width: 0; bord
 @media (max-width: 730px) {
   .shell { padding: 24px 18px; }
   .workspace { grid-template-columns: 1fr; gap: 30px; }
+  .watch-area { position: static; }
   .panel { padding: 20px; }
   .fields { grid-template-columns: 1fr; }
   .alert-row { grid-template-columns: 1fr; gap: 8px; }
