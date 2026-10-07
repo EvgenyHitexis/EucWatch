@@ -11,5 +11,6 @@
     "total": 13,
     "position": 13,
     "finished": true
-  }
+  },
+  "delayed_file_after_new_session": "discarded"
 }

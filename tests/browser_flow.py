@@ -174,6 +174,15 @@ async def run():
                             'recording':behavior.view()['replay']}
                         assert replay_result['valid_frames'] == 3
                         assert await cdp.evaluate("document.querySelector('[data-action=simulator_emit]').disabled",session)
+                        await cdp.evaluate("window.savedFileText=File.prototype.text; File.prototype.text=function(){return new Promise(resolve=>{window.finishFileRead=()=>window.savedFileText.call(this).then(resolve)})}; document.querySelector('#replay-load').click()",session)
+                        await cdp.wait("typeof window.finishFileRead === 'function'",session)
+                        await cdp.evaluate("document.querySelector('[data-action=simulator_start]').click()",session)
+                        await cdp.wait("document.querySelector('#mode').textContent === 'SIMULATOR' && !document.querySelector('[data-action=simulator_start]').disabled",session)
+                        newer_session = behavior.view()['session']
+                        await cdp.evaluate("window.finishFileRead(); File.prototype.text=window.savedFileText",session)
+                        await cdp.wait("!document.querySelector('#replay-load').disabled",session)
+                        assert behavior.view()['mode']=='simulator' and behavior.view()['session']==newer_session
+                        replay_result['delayed_file_after_new_session']='discarded'
                         (output / 'replay.json').write_text(json.dumps(replay_result,indent=2)+'\n')
                         print(json.dumps(report, indent=2))
                         print(json.dumps(replay_result, indent=2))
