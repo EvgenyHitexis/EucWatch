@@ -3,6 +3,7 @@
   "provenance": "actual Canvas gestures / button / aiohttp with controlled clock",
   "expected": "fixed four slots, swipe back, Settings sleep, wake-only button, initial idle sleep",
   "observed": "passed",
-  "preset_menu": "Preset menu. Four fixed slots: Preset 1, Preset 2, Preset 3, Preset 4, all unconfigured. Swipe right to return without applying.",
+  "preset_menu": "Preset menu. Four fixed slots: slot 1: Preset 1, unconfigured; slot 2: Preset 2, unconfigured; slot 3: Preset 3, unconfigured; slot 4: Preset 4, unconfigured. Application unavailable. Swipe right to return without applying.",
+  "back_discards_unsaved_alert_draft": "passed",
   "keep_awake_after_loss": "passed"
 }

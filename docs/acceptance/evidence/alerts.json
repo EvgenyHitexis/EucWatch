@@ -1,0 +1,11 @@
+{
+  "issue": 20,
+  "provenance": "actual Canvas and HTML editor / aiohttp / controlled clock",
+  "expected": "back discards, missing enabled threshold refused, save authoritative threshold, PWM test three150ms pulses",
+  "observed": "passed",
+  "pulse_durations_s": [
+    0.15,
+    0.15,
+    0.15
+  ]
+}

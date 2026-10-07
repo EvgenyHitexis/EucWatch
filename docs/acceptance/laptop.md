@@ -59,9 +59,9 @@ left reaches four fixed slots, right returns, a swipe from the top opens Setting
 Sleep turns the display off, the side-button cycle wakes only, and initial idle
 sleep and established-loss keep-awake match the backend. Observed: passed.
 [Navigation result](evidence/navigation.json). Python typechecking and the
-frontend build pass. Back-navigation with an editable alert draft is collected
-with #20, where the actual editor becomes available; that acceptance remains open
-until the combined flow is verified.
+frontend build pass. The combined #20 browser flow opens the watch alert editor,
+changes an unsaved switch and swipes back: the draft is discarded and the saved
+disabled/null setting remains unchanged. Observed: passed.
 
 #19 review corrections: the rendered keep-awake check now advances 31 seconds
 after disconnection and waits for the rendered elapsed time before asserting awake.
@@ -92,3 +92,19 @@ state and discard a delayed replay-file read after a newer session choice. Eight
 recording checks now include direct application capture/replay dashboard equivalence
 across corruption and gaps. Two recording HTTP checks include a blocked writer:
 autonomous simulator frames continue without browser polling. Observed: passed.
+
+### #20 — vibration alerts and durable configuration
+
+Seventeen Application-boundary alert checks cover exact pulse lengths, repeat
+intervals, hysteresis, battery rearming, interruption latching, priority and no
+overlap, stale input, resume cancellation, Save/Cancel and restart recovery. The
+default PWM/speed/battery alerts remain disabled with no invented thresholds;
+lost telemetry starts enabled. Atomic configuration writes retain a validated
+backup; failed saves remain visible and do not replace the active configuration.
+
+The actual Canvas/HTML/aiohttp flow verifies back discards a draft, an enabled
+alert without a threshold is refused, saving PWM 70 persists the authoritative
+setting, and the Test action emits three 150 ms simulated pulses separated by
+150 ms. [Alert result](evidence/alerts.json). Watch editing includes explicit
+Save/Cancel, switch controls, threshold adjustments and a numeric keypad. Pattern
+output is simulated; physical vibration/timing acceptance remains pending.

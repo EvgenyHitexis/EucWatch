@@ -44,6 +44,12 @@ input, select { display: block; margin-top: 7px; width: 100%; min-width: 0; bord
 .metadata { color: #a0aba1; font-size: 12px; line-height: 1.7; }
 .metadata strong { color: #cbd3c6; font-weight: 500; }
 .replay-provenance { overflow-wrap: anywhere; font-size: 11px; }
+.alert-row { display: grid; grid-template-columns: 1fr 130px 105px; align-items: center; gap: 12px; margin-top: 16px; }
+.alert-row button { padding: 8px; font-size: 12px; }
+.vibration-output { border: 1px solid #485043; border-radius: 8px; padding: 12px; margin-top: 18px; }
+.vibration-output p { margin: 0; font-size: 12px; }
+.vibration-output .active { color: #d8ee91; }
+.vibration-output pre { max-height: 160px; overflow: auto; font-size: 11px; white-space: pre-wrap; color: #aeb8ad; }
 .messages { min-height: 20px; color: #ffb497; font-size: 12px; line-height: 1.5; }
 .screen-reader { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (max-width: 730px) {
@@ -51,4 +57,5 @@ input, select { display: block; margin-top: 7px; width: 100%; min-width: 0; bord
   .workspace { grid-template-columns: 1fr; gap: 30px; }
   .panel { padding: 20px; }
   .fields { grid-template-columns: 1fr; }
+  .alert-row { grid-template-columns: 1fr; gap: 8px; }
 }

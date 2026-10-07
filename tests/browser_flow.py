@@ -108,6 +108,36 @@ async def run():
                         navigation = {'issue':19, 'provenance':'actual Canvas gestures / button / aiohttp with controlled clock',
                             'expected':'fixed four slots, swipe back, Settings sleep, wake-only button, initial idle sleep',
                             'observed':'passed', 'preset_menu':presets}
+                        await cdp.pointer('#watch', (120,10), (120,110), session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='settings'",session)
+                        await cdp.pointer('#watch', (120,175), (120,175), session)
+                        await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('Alert editor 1')",session)
+                        await cdp.pointer('#watch',(120,88),(120,88),session)
+                        await cdp.wait("document.querySelector('#alert-pwm-enabled').checked",session)
+                        await cdp.pointer('#watch',(20,120),(215,120),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard' && document.querySelector('#alerts-status').textContent.includes('Saved')",session)
+                        assert behavior.view()['config']['alerts']['pwm']=={'enabled':False,'threshold':None}
+                        navigation['back_discards_unsaved_alert_draft']='passed'
+                        await cdp.evaluate("document.querySelector('#alerts-edit').click()",session)
+                        await cdp.wait("!document.querySelector('#alert-pwm-enabled').disabled",session)
+                        await cdp.evaluate("document.querySelector('#alert-pwm-enabled').click(); document.querySelector('#alerts-editor').requestSubmit()",session)
+                        await cdp.wait("document.querySelector('#message').textContent.includes('threshold')",session)
+                        assert behavior.view()['config']['alerts']['pwm']['enabled'] is False
+                        await cdp.evaluate("const i=document.querySelector('#alert-pwm-threshold'); i.value='70'; i.dispatchEvent(new Event('change',{bubbles:true}))",session)
+                        await cdp.wait("!document.querySelector('#alerts-save').disabled",session)
+                        await cdp.evaluate("document.querySelector('#alerts-editor').requestSubmit()",session)
+                        await cdp.wait("document.querySelector('#alerts-status').textContent.includes('Saved') && document.querySelector('#alert-pwm-threshold').value==='70'",session)
+                        assert behavior.view()['config']['alerts']['pwm']=={'enabled':True,'threshold':70}
+                        await cdp.wait("!document.querySelector('[data-alert-test=pwm]').disabled",session)
+                        await cdp.evaluate("document.querySelector('[data-alert-test=pwm]').click()",session)
+                        await cdp.wait("document.querySelector('#vibration-trace').textContent.includes('PWM') || document.querySelector('#vibration-trace').textContent.includes('pwm')",session)
+                        host_clock.advance(.75)
+                        await cdp.wait("document.querySelector('#vibration-status').textContent.includes('idle')",session)
+                        starts=[e['duration_s'] for e in behavior.view()['vibration']['events'] if e['phase']=='start' and e['test']]
+                        assert starts==[.15,.15,.15],starts
+                        alert_result={'issue':20,'provenance':'actual Canvas and HTML editor / aiohttp / controlled clock',
+                            'expected':'back discards, missing enabled threshold refused, save authoritative threshold, PWM test three150ms pulses',
+                            'observed':'passed','pulse_durations_s':starts}
                         await cdp.evaluate("document.querySelector('[data-action=simulator_start]').click()", session)
                         await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('Connected')", session)
                         async def scenario(speed, voltage, pwm, traffic='normal'):
@@ -154,6 +184,7 @@ async def run():
                         (output / 'dashboard.png').write_bytes(base64.b64decode(screenshot['data']))
                         (output / 'browser.json').write_text(json.dumps(report, indent=2) + '\n')
                         (output / 'navigation.json').write_text(json.dumps(navigation, indent=2) + '\n')
+                        (output / 'alerts.json').write_text(json.dumps(alert_result, indent=2) + '\n')
                         before_replay = behavior.view()['diagnostics']['valid_frames']
                         document = await cdp.call('DOM.getDocument', session=session)
                         node = await cdp.call('DOM.querySelector', {'nodeId':document['root']['nodeId'], 'selector':'#replay-file'}, session)
