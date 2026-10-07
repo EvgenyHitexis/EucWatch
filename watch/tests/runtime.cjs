@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.resolve(__dirname,'..');
 function environment(){
-  let now=0,next=1,voltage=3.85,adc=0,disconnectFails=false,disconnectDelay=0,subscribeFails=false,scanHangs=false;
+  let now=0,next=1,voltage=3.85,adc=0,disconnectFails=false,disconnectDelay=0,subscribeFails=false,scanHangs=false,connectFailures=0,connectCalls=0;
   const pending=new Map(),watches=new Map(),pins={},writes=[],registers=[],commands=[];
   const context={module:{exports:{}},Uint8Array,Uint16Array,ArrayBuffer,Promise,Math,JSON,isFinite,
     print:()=>{},reset:()=>{context.resets++;},resets:0,global:{},
@@ -52,15 +52,16 @@ function environment(){
   const timers={setTimeout:context.setTimeout,clearTimeout:context.clearTimeout};
   const callbacks={};let notification;
   context.NRF={setServices:()=>{},setAdvertising:()=>{},findDevices:(callback)=>{if(!scanHangs)callback([{id:'11:22:33:44:55:66 public',name:'Sherman L'}]);},
-    connect:()=>Promise.resolve({device:{connected:true,on:(name,callback)=>callbacks[name]=callback},
+    connect:()=>{connectCalls++;if(connectFailures>0){connectFailures--;return Promise.reject(Error('wheel unavailable'));}return Promise.resolve({device:{connected:true,on:(name,callback)=>callbacks[name]=callback},
       disconnect(){if(disconnectFails)throw Error('radio cleanup failure');const device=this.device;return new Promise(resolve=>{context.setTimeout(()=>{device.connected=false;resolve();},disconnectDelay);});},getPrimaryService:uuid=>{assert.equal(uuid,'ffe0');return Promise.resolve({getCharacteristic:uuid=>{
         assert.equal(uuid,'ffe1');return Promise.resolve({on:(name,callback)=>{assert.equal(name,'characteristicvaluechanged');notification=callback;},startNotifications:()=>subscribeFails?Promise.reject(Error('notification subscription failed')):Promise.resolve()});
-      }});}})};
+      }});}});}};
   return {context,timers,watches,registers,commands,
     start:()=>context.require('sw-main').start({clock:{now:context.getTime},radio:context.NRF,timers}),
     voltage:value=>{voltage=value;},adc:()=>adc,
     disconnectFailure:value=>{disconnectFails=value;},
     disconnectDelay:value=>{disconnectDelay=value;},subscriptionFailure:value=>{subscribeFails=value;},scanHang:value=>{scanHangs=value;},
+    connectFailureCount:value=>{connectFailures=value;},connectCalls:()=>connectCalls,
     advance:time=>{while(true){const entry=[...pending].sort((a,b)=>a[1].at-b[1].at)[0];if(!entry||entry[1].at>time)break;now=entry[1].at;if(entry[1].period)entry[1].at+=entry[1].period;else pending.delete(entry[0]);entry[1].fn();}now=time;},
     button:down=>[...watches.values()].find(w=>w.pin===context.BTN1).callback({state:down}),
     touch:(gesture,x,y,fingers=1)=>{context.touchBytes=Uint8Array.from([0,gesture,fingers,x>>8,x&255,y>>8,y&255]);[...watches.values()].find(w=>w.pin===pins.D28).callback();},
@@ -72,6 +73,7 @@ function environment(){
 const flush=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
 (async()=>{
   const env=environment(),running=env.start();env.advance(200);
+  assert.equal(env.context.D16.state,0,'installed active-high vibration must remain inactive at startup');
   assert.equal(env.context.graphics.buffer.byteLength,7200);
   assert.equal(running.core.view().dashboard.watch_battery_percent,'50');
   assert.deepEqual(env.registers[0],[0x50000700+31*4,2]);
@@ -120,6 +122,23 @@ const flush=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
   assert.throws(()=>subscriptionApp.transport.select('11:22:33:44:55:66 public'),/Disconnect/);
   const scanning=environment(),scanningApp=scanning.start();scanning.scanHang(true);scanningApp.transport.discover();scanning.advance(6000);
   assert.equal(scanningApp.transport.status().link,'failed');assert.match(scanningApp.transport.status().error,/Discovery timed out/);
+  const retrying=environment(),retryApp=retrying.start();retryApp.transport.discover();retryApp.transport.select('11:22:33:44:55:66 public');await flush();
+  for(const row of rows.slice(0,5))retrying.notification(Buffer.from(row.raw_hex,'hex'));
+  const retrySession=retryApp.core.view().session;retrying.connectFailureCount(1);retrying.loss();retrying.advance(1000);await flush();
+  assert.equal(retryApp.transport.status().active,true,'a failed reconnect retains the bounded recovery intent');
+  assert.equal(retryApp.transport.status().link,'reconnecting');
+  retrying.advance(3000);await flush();assert.equal(retryApp.transport.status().link,'subscribed');
+  assert.equal(retrying.connectCalls(),3);assert.ok(retryApp.core.view().session>retrySession);
+  assert.equal(retryApp.core.view().fresh,false,'successful reconnect requires new telemetry');
+  for(const row of rows.slice(0,5))retrying.notification(Buffer.from(row.raw_hex,'hex'));assert.equal(retryApp.core.view().fresh,true);
+  const limited=environment(),limitedApp=limited.start();limitedApp.transport.discover();limitedApp.transport.select('11:22:33:44:55:66 public');await flush();
+  limited.connectFailureCount(10);limited.loss();
+  for(const elapsed of [1000,3000,7000]){limited.advance(elapsed);await flush();}
+  assert.equal(limited.connectCalls(),4);assert.equal(limitedApp.transport.status().active,false);
+  assert.equal(limitedApp.transport.status().link,'failed');limited.advance(20000);await flush();assert.equal(limited.connectCalls(),4);
+  const initial=environment(),initialApp=initial.start();initial.connectFailureCount(1);initialApp.transport.discover();initialApp.transport.select('11:22:33:44:55:66 public');await flush();
+  assert.equal(initialApp.transport.status().link,'failed');assert.equal(initialApp.transport.status().active,false);
+  initial.advance(20000);await flush();assert.equal(initial.connectCalls(),1);
   const replaced=environment(),replacedApp=replaced.start();replacedApp.transport.discover();replacedApp.transport.select('11:22:33:44:55:66 public');await flush();
   replacedApp.core.action('session_start');replaced.notification(Buffer.from(rows[0].raw_hex,'hex'));replaced.advance(50);await flush();
   assert.equal(replacedApp.transport.status().active,false);assert.equal(replacedApp.transport.status().connected,false);
@@ -133,6 +152,6 @@ const flush=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
   const broken=environment();broken.context.storage['sw-active.json']=JSON.stringify({main:'sw-missing'});broken.boot();
   assert.ok(broken.context.global.ShermanRecovery.reason.includes('startup failed'));
   assert.deepEqual(broken.context.watchdog,[30,false]);
-  fs.writeFileSync(path.join(out,'offline.json'),JSON.stringify({issue:32,provenance:'Node VM executes original ES5 application/hardware; fake radio/pins/clock; SVG replays Graphics operations, host fonts',fixture:'experiments/laptop-feasibility/evidence/fixture-recording.jsonl',observed:'240x240 1-bpp buffer7200; sourcebattery97/avg4.09; battery sampling/pinrelease; raw816 nav/wake; reconnect demandsnewtelemetry; independent recovery beforeimports',hardware_acceptance:'pending: no deployment, device memory, radio, fonts, timing or physical controls measured'},null,2)+'\n');
+  fs.writeFileSync(path.join(out,'offline.json'),JSON.stringify({issue:32,provenance:'Node VM executes original ES5 application/hardware; fake radio/pins/clock; SVG replays Graphics operations, host fonts',fixture:'experiments/laptop-feasibility/evidence/fixture-recording.jsonl',observed:'240x240 1-bpp buffer7200; sourcebattery97/avg4.09; battery sampling/pinrelease; raw816 nav/wake; D16 startup0 inactive; failed reconnect retries up to3 and later recovery requires newtelemetry; independent recovery beforeimports',hardware_acceptance:'pending: no deployment, device memory, radio, fonts, timing or physical controls measured'},null,2)+'\n');
   console.log('actual watch entry/hardware, battery, touch/button, fake direct BLE and recovery: passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});

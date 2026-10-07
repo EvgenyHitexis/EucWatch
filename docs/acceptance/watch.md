@@ -34,6 +34,7 @@ Graphics allocation is checked for a 7,200-byte framebuffer.
 | Physical navigation paths | Left→four slots, down from top→Settings, right→dashboard, Settings Sleep; whole wake button cycle consumed | Passed | Public actions and raw CST816 interrupt bytes with fake pins |
 | Initial idle versus established loss | Sleep after 30 idle seconds before connection; keep warning awake after connected loss | Passed | Controlled clock |
 | Direct connection and cleanup | Explicit discovery/selection, FFE0/FFE1 subscribe, bounded operations, no wheel writes; failed cleanup blocks replacement connection | Passed | Actual direct adapter with fake Promise-returning 2v14 GATT |
+| Startup vibration and reconnect retry | D16 idle 0; first failed reconnect can recover on a later attempt; stop after three retries; initial selection failure stays terminal | Passed | Actual hardware/transport with fake pins and delayed wheel availability |
 | Independent recovery | Held startup button bypasses app imports; failed startup leaves console recovery/watchdog | Passed | Production boot code in fake runtime, no device boot attempted |
 
 `watch/app.js` owns parsing, freshness, calculations, navigation and clocks.

@@ -1,7 +1,7 @@
 /* Direct Espruino 2v14 NRF/GATT session. No writes or initialization commands. */
 exports.create=function(options){
   var radio=options.radio,app=options.app,timers=options.timers;
-  var generation=0,desired=false,busy=false,gatt=null,selected=null,devices=[];
+  var generation=0,desired=false,busy=false,gatt=null,selected=null,devices=[],recovering=false;
   var error='',link='idle',retry=null,attempts=0,token=null,cleanupPending=false,cleanupGeneration=0,scanTimer=null;
   function publish(){app.tick();}
   function owned(value){var state=app.view();return value===generation&&desired&&token===state.session&&!state.recovery;}
@@ -48,7 +48,7 @@ exports.create=function(options){
   function lost(value){
     if(!owned(value))return;
     app.action('disconnect',{session:token});generation++;token=null;
-    error='Wheel disconnected';link='reconnecting';gatt=null;publish();schedule();
+    error='Wheel disconnected';link='reconnecting';recovering=true;gatt=null;publish();schedule();
   }
   function connect(){
     if(busy){error='Previous Bluetooth operation is still pending';publish();return;}
@@ -77,11 +77,15 @@ exports.create=function(options){
     }).then(function(){
       timers.clearTimeout(timeout);busy=false;
       if(!owned(value)){close(candidate);if(desired&&link==='reconnecting')schedule();return;}
-      link='subscribed';attempts=0;publish();
+      link='subscribed';attempts=0;recovering=false;publish();
     },function(exception){
       timers.clearTimeout(timeout);busy=false;
       if(!owned(value)){close(candidate);if(desired&&link==='reconnecting')schedule();return;}
       app.action('disconnect',{session:token});token=null;
+      if(recovering){
+        generation++;link='reconnecting';error=String(exception);
+        if(close(candidate))schedule();publish();return;
+      }
       link='failed';error=String(exception);desired=false;generation++;
       close(candidate);publish();
     });
@@ -109,10 +113,10 @@ exports.create=function(options){
       if(busy||gatt)throw new Error('Disconnect the selected wheel first');
       var allowed=devices.some(function(device){return device.id===id;});
       if(!allowed)throw new Error('Select a device from explicit discovery');
-      selected=id;desired=true;attempts=0;app.action('swipe',{direction:'right'});connect();
+      selected=id;desired=true;recovering=false;attempts=0;app.action('swipe',{direction:'right'});connect();
     },
     disconnect:function(){
-      desired=false;generation++;
+      desired=false;recovering=false;generation++;
       if(scanTimer!==null){timers.clearTimeout(scanTimer);scanTimer=null;}
       if(retry!==null){timers.clearTimeout(retry);retry=null;}
       if(token!==null)app.action('disconnect',{session:token});token=null;

@@ -4,7 +4,7 @@ exports.create=function(options){
   var g=require('sw-display').create(options), i2c=new I2C(), watches=[], touchTimer=null;
   var awake=true, touchWatch=null, onAction=function(){}, onTap=function(){}, touchStart=null;
   D15.write(1); // Installed button supply enable.
-  D16.write(1); // Vibration idle, active-low; no vibration in this slice.
+  D16.write(0); // Installed vibration active level is 1; keep startup inactive.
   i2c.setup({scl:D7,sda:D6,bitrate:100000});
   function readBattery(){
     var voltage=7.1*analogRead(D31), percent;
