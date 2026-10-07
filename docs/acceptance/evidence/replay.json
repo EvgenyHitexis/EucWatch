@@ -1,0 +1,15 @@
+{
+  "issue": 24,
+  "provenance": "actual file import / Canvas / aiohttp / read-only replay",
+  "expected": "13 preserved notifications; three valid source frames; final voltage-derived97% and avg4.09V",
+  "observed": "Speed 0 km/h; PWM 2 percent; estimated wheel battery 97 percent; average cell voltage 4.09 volts; simulated watch battery 80 percent; Connected",
+  "valid_frames": 3,
+  "recording": {
+    "name": "fixture-recording.jsonl",
+    "sha256": "869d9c7a05189c8d808cdddd68ef8ff03df1265afbe8aefab324f43d39e797f5",
+    "source": "upstream-fixture/synthetic-timing",
+    "total": 13,
+    "position": 13,
+    "finished": true
+  }
+}

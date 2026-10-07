@@ -9,16 +9,20 @@ import time
 from aiohttp import web
 
 from eucwatch import Application
+from eucwatch.recording import Recorder, Replay
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def create_app(application=None):
-    behavior = application or Application()
+def create_app(application=None, recorder=None):
+    behavior = application or Application(event_sink=None if recorder is None else recorder.record)
     credential = secrets.token_urlsafe(32)
     controllers = set()
     results = {}
     last_ui_seen = time.monotonic()
+
+    def snapshot():
+        return {**behavior.view(), 'recording': None if recorder is None else recorder.status()}
 
     def local(request):
         expected = f'{request.scheme}://{request.host}'
@@ -36,7 +40,7 @@ def create_app(application=None):
         local(request)
         if request.query.get('controller') in controllers:
             last_ui_seen = time.monotonic()
-        return web.json_response(behavior.view())
+        return web.json_response(snapshot())
 
     async def session(request):
         nonlocal last_ui_seen
@@ -70,6 +74,8 @@ def create_app(application=None):
             key = (controller, identity)
             if key in results:
                 return web.json_response(results[key])
+            if name == 'replay_start':
+                payload['recording'] = Replay.from_text(payload['recording'], name=payload.pop('name', 'Imported recording'))
             result = behavior.action(name, **payload)
             results[key] = result
             if len(results) > 2048:
@@ -85,13 +91,26 @@ def create_app(application=None):
             return web.Response(text='Build frontend assets with ./scripts/setup.sh', status=503)
         return web.FileResponse(path, headers={'Cache-Control': 'no-store'})
 
+    async def recording(request):
+        local(request)
+        if not secrets.compare_digest(request.headers.get('X-EucWatch-Key',''), credential):
+            raise web.HTTPForbidden(text='Launch credential required')
+        if recorder is None:
+            raise web.HTTPNotFound(text='Recording is not enabled')
+        await recorder.drain()
+        if recorder.status()['error']:
+            raise web.HTTPServiceUnavailable(text=recorder.status()['error'])
+        if not recorder.path.is_file():
+            raise web.HTTPNotFound(text='No captured events yet')
+        return web.FileResponse(recorder.path, headers={'Content-Disposition':'attachment; filename="wheel-recording.jsonl"'})
+
     async def websocket(request):
         local(request)
         ws = web.WebSocketResponse(heartbeat=20)
         await ws.prepare(request)
         try:
             while not ws.closed:
-                await ws.send_json(behavior.view())
+                await ws.send_json(snapshot())
                 await asyncio.sleep(.2)
         finally:
             await ws.close()
@@ -103,17 +122,21 @@ def create_app(application=None):
                 if time.monotonic() - last_ui_seen > 2 and behavior.view()['button']['down']:
                     behavior.action('button_up')
                 behavior.tick()
+                if recorder is not None:
+                    await recorder.drain()
                 await asyncio.sleep(.02)
         task = asyncio.create_task(run())
         yield
         task.cancel()
         with suppress(asyncio.CancelledError):
             await task
+        if recorder is not None:
+            await recorder.close()
 
-    app = web.Application(client_max_size=128 * 1024)
+    app = web.Application(client_max_size=16 * 1024 * 1024 + 4096)
     app.cleanup_ctx.append(lifetime)
     app.add_routes([web.get('/api/state', state), web.get('/api/session', session),
-        web.post('/api/action', action), web.get('/api/ws', websocket), web.get('/', index)])
+        web.post('/api/action', action), web.get('/api/ws', websocket), web.get('/api/recording', recording), web.get('/', index)])
     assets = ROOT / 'frontend/dist/assets'
     if assets.is_dir():
         app.router.add_static('/assets/', assets)
@@ -124,7 +147,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', type=int, default=8765)
     args = parser.parse_args()
-    web.run_app(create_app(), host='127.0.0.1', port=args.port, print=None,
+    web.run_app(create_app(recorder=Recorder()), host='127.0.0.1', port=args.port, print=None,
         handle_signals=True)
 
 

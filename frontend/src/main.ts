@@ -21,6 +21,8 @@ interface View {
   button: { down: boolean; wake_cycle: boolean };
   recovery: boolean;
   established_connection: boolean;
+  recording: { path: string; queued: number; written: number; rejected: number; error: string | null; closed: boolean } | null;
+  replay: { name: string; sha256: string; source: string; total: number; position: number; finished: boolean } | null;
   dashboard: Dashboard;
   simulator: {
     speed_kmh: number;
@@ -73,6 +75,18 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <div class="divider"></div>
         <div class="metadata" id="diagnostics">Session not started.</div>
         <p class="metadata">Simulator results establish software behavior. Physical wheel and watch acceptance remains separate.</p>
+        <div class="divider"></div>
+        <h2>Session recording</h2>
+        <p class="metadata" id="recording-status">Recording status unavailable.</p>
+        <p class="messages" id="recording-error" role="alert"></p>
+        <button id="recording-download" data-action="recording_download" disabled>Download recording</button>
+        <div class="divider"></div>
+        <h2>Read-only replay</h2>
+        <p class="intro">Load a versioned JSONL recording to reproduce its notification boundaries and time gaps. Replay cannot submit wheel commands.</p>
+        <label>Recording file<input id="replay-file" type="file" accept=".jsonl,application/json,application/x-ndjson"></label>
+        <div class="actions"><button id="replay-load" data-action="replay_start" data-control>Load replay</button><button id="replay-step" data-action="replay_step" disabled>Step one event</button></div>
+        <p class="metadata" id="replay-progress">No replay loaded.</p>
+        <p class="metadata replay-provenance" id="replay-provenance"></p>
       </section>
     </div>
   </main>`;
@@ -85,6 +99,7 @@ let session: Session | null = null;
 let current: View | null = null;
 let available = false;
 let submitting = false;
+let loadingReplay = false;
 let rendered = '';
 const controllerStorageKey = 'sherman-l-controller';
 let acquiringSession: Promise<Session> | null = null;
@@ -116,6 +131,9 @@ function setControls(): void {
     button.disabled = !available || !session?.controller || submitting || current?.mode !== 'simulator';
   });
   document.querySelector<HTMLButtonElement>('#advance')!.disabled ||= !document.querySelector<HTMLInputElement>('#controlled')!.checked;
+  document.querySelector<HTMLButtonElement>('#replay-load')!.disabled ||= loadingReplay;
+  document.querySelector<HTMLButtonElement>('#replay-step')!.disabled = !available || !session?.controller || submitting || current?.mode !== 'replay' || !current.replay || current.replay.finished;
+  document.querySelector<HTMLButtonElement>('#recording-download')!.disabled = !available || !session?.credential || !current?.recording;
 }
 
 function text(value: string, x: number, y: number, size: number, color = '#ffffff', align: CanvasTextAlign = 'left'): void {
@@ -138,6 +156,12 @@ function render(view: View | null): void {
   canvas.dataset.elapsed = String(view?.elapsed_s ?? 0);
   document.querySelector<HTMLElement>('#mode')!.textContent = view?.mode === 'simulator' ? 'SIMULATOR' : view?.mode === 'replay' ? 'READ-ONLY REPLAY' : view?.mode === 'live' ? 'LIVE WHEEL' : 'IDLE · NO WHEEL';
   if (view) document.querySelector<HTMLElement>('#diagnostics')!.textContent = `Session ${view.session} · Valid frames: ${view.diagnostics.valid_frames} · CRC/format rejects: ${view.diagnostics.rejected_frames} · Resume events: ${view.diagnostics.resume_events}`;
+  const recording = view?.recording;
+  document.querySelector<HTMLElement>('#recording-status')!.textContent = recording ? `${recording.closed ? 'Closed recording' : 'Recording'} · ${recording.written} events written · ${recording.queued} queued · ${recording.rejected} rejected${!available ? ' · last known status' : ''}` : 'Recording is not enabled for this application session.';
+  document.querySelector<HTMLElement>('#recording-error')!.textContent = recording?.error ? `Recording failure: ${recording.error}` : '';
+  const replay = view?.replay;
+  document.querySelector<HTMLElement>('#replay-progress')!.textContent = replay ? `${replay.finished ? 'Replay finished' : 'Read-only replay'} · ${replay.position} / ${replay.total} events · elapsed ${(view?.elapsed_s ?? 0).toFixed(2)} s` : 'No replay loaded.';
+  document.querySelector<HTMLElement>('#replay-provenance')!.textContent = replay ? `${replay.name} · Source: ${replay.source} · SHA-256: ${replay.sha256}` : '';
   if (!awake) {
     text('SCREEN ASLEEP', 120, 113, 16, '#777777', 'center');
     text('Press side button to wake', 120, 140, 12, '#777777', 'center');
@@ -273,6 +297,37 @@ document.querySelector('#advance')!.addEventListener('click', () => void action(
 document.querySelector('#disconnect')!.addEventListener('click', () => void action('disconnect'));
 document.querySelector('#connect')!.addEventListener('click', () => void action('connect', { mode: 'simulator', controlled: document.querySelector<HTMLInputElement>('#controlled')!.checked }));
 document.querySelector('#controlled')!.addEventListener('change', setControls);
+document.querySelector('#replay-step')!.addEventListener('click', () => void action('replay_step'));
+document.querySelector('#replay-load')!.addEventListener('click', async () => {
+  const file = document.querySelector<HTMLInputElement>('#replay-file')!.files?.[0];
+  if (!file) { message.textContent = 'Choose a JSONL recording before loading replay.'; return; }
+  loadingReplay = true;
+  setControls();
+  try {
+    const recording = await file.text();
+    await action('replay_start', { recording, name: file.name });
+  } catch (error) {
+    message.textContent = error instanceof Error ? error.message : 'Could not read the selected recording.';
+  } finally {
+    loadingReplay = false;
+    setControls();
+  }
+});
+document.querySelector('#recording-download')!.addEventListener('click', async () => {
+  if (!available || !session?.credential) return;
+  try {
+    const response = await fetch('/api/recording', { headers: { 'X-EucWatch-Key': session.credential }, cache: 'no-store', signal: AbortSignal.timeout(5000) });
+    if (!response.ok) throw new Error(`Recording download unavailable (${response.status}).`);
+    const url = URL.createObjectURL(await response.blob());
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'sherman-l-session.jsonl';
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (error) {
+    message.textContent = error instanceof Error ? error.message : 'Recording download failed.';
+  }
+});
 
 function watchPoint(event: PointerEvent): { x: number; y: number } {
   const bounds = canvas.getBoundingClientRect();

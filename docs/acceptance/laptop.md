@@ -68,3 +68,20 @@ after disconnection and waits for the rendered elapsed time before asserting awa
 Abandoned browser holds are released on lifecycle loss, with a two-second backend
 input lease as the fallback. The HTTP boundary verifies abandonment cannot become
 a prolonged recovery hold. Browser timing remains unrelated to telemetry/recording.
+
+### #24 — capture and replay
+
+Recordings are append-only schema-1 JSONL under the XDG data directory, with
+bounded queues and visible fatal overflow/storage errors. Raw ingress includes
+malformed input and late callbacks before parsing/session rejection. Wall time
+and suspend-aware host receipt time are separate from controlled simulator
+behavior time. Replay preserves bytes/boundaries/order, advances virtual behavior
+time, rejects command paths and treats outgoing evidence as inert.
+
+The real file-import/step flow runs the sanitized source fixture's 13 events and
+produces exactly three valid frames through the actual Application/parser. Final
+observed values are speed 0, PWM 2%, estimated battery 97%, average cell 4.09 V;
+simulator command input remains disabled. [Replay result](evidence/replay.json)
+retains fixture SHA256 and provenance. The recording HTTP boundary checks raw
+download, validated replay import and read-only rejection. External recording
+checks cover ordering, bounds and failures; no private raw capture is committed.

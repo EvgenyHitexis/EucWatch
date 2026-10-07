@@ -8,6 +8,7 @@ from typing import Any
 from .clock import Clock, ManualClock, SystemClock
 from .protocol import CHARACTERISTIC, Assembler, Telemetry, decode
 from .simulator import Simulator
+from .recording import Replay
 
 
 def rounded(value: float, places: int = 0) -> str:
@@ -57,6 +58,8 @@ class Application:
         self.established_connection = False
         self.event_sink = event_sink
         self.recording_error: str | None = None
+        self.replay: Replay | None = None
+        self.replay_source_session: int | str | None = None
 
     def _event(self, event: str, **values: Any) -> None:
         if self.event_sink is not None:
@@ -66,6 +69,7 @@ class Application:
                         "event": event,
                         "session": self.session,
                         "receipt_elapsed_s": self.host_clock.read()[0],
+                        "behavior_elapsed_s": self.elapsed(),
                         "source": self.mode,
                         **values,
                     }
@@ -78,8 +82,11 @@ class Application:
 
     def action(self, name: str, **payload: Any) -> dict[str, Any]:
         self.tick()
-        self._event("intent", action=name, payload=payload)
+        self._event("intent", action=name, payload={k:v for k,v in payload.items() if k != 'recording'})
+        if self.mode == 'replay' and name not in ('replay_start', 'replay_step', 'stop', 'simulator_start', 'swipe', 'sleep', 'button_down', 'button_up', 'button_hold', 'interact'):
+            raise ValueError('Replay is read-only; no wheel commands or simulator input')
         if name in ("connect", "simulator_start"):
+            self.replay = None
             mode = payload.get("mode", "simulator")
             if mode != "simulator":
                 raise ValueError("Only simulator connections are available")
@@ -115,6 +122,7 @@ class Application:
             self.simulating = False
             if name == "stop":
                 self.mode = "idle"
+                self.replay = None
             self._event(
                 "transport", transition="stopped" if name == "stop" else "disconnected"
             )
@@ -138,6 +146,60 @@ class Application:
                 )
             self.time_offset += seconds
             self.tick()
+        elif name == 'replay_start':
+            recording = payload.get('recording')
+            if not isinstance(recording, Replay):
+                raise ValueError('A validated wheel recording is required')
+            self.session += 1
+            self.mode = 'replay'
+            self.simulating = False
+            self.connected = False
+            self.last_valid = None
+            self.parser = Assembler()
+            first = recording.rows[0]
+            initial_time = first.get('behavior_elapsed_s', first['receipt_elapsed_s'])
+            self.clock = ManualClock(initial_time)
+            self.time_offset = 0
+            self.previous_clock = self.clock.read()
+            self.replay = recording
+            self.replay_source_session = None
+            self.screen = 'dashboard'
+            self.awake = True
+            self.last_interaction = initial_time
+            self.button_down = False
+            self.button_started = None
+            self.wake_cycle = False
+        elif name == 'replay_step':
+            if self.mode != 'replay' or self.replay is None:
+                raise ValueError('No replay is loaded')
+            row = self.replay.next_event()
+            if row is not None:
+                stamp = row.get('behavior_elapsed_s', row['receipt_elapsed_s'])
+                if not isinstance(self.clock, ManualClock):
+                    raise ValueError('Replay requires a virtual clock')
+                self.clock.elapsed = stamp
+                self.clock.monotonic = stamp
+                self.previous_clock = self.clock.read()
+                self.tick()
+                event = row['event']
+                if event == 'transport':
+                    self.session += 1
+                    self.parser = Assembler()
+                    self.last_valid = None
+                    self.replay_source_session = row['session']
+                    self.connected = row['transition'] in ('connected', 'resume')
+                    self.established_connection |= self.connected
+                    if self.connected:
+                        self.awake = True
+                        self.last_interaction = self.elapsed()
+                elif event == 'notification':
+                    if self.replay_source_session is None:
+                        self.replay_source_session = row['session']
+                        self.connected = True
+                        self.established_connection = True
+                    if row['session'] == self.replay_source_session:
+                        self.receive(self.session, bytes.fromhex(row['raw_hex']))
+                # Recorded intents/submissions/results are evidence, never actions.
         elif name == "swipe":
             direction = payload.get("direction")
             if direction not in ("left", "right", "down", "up"):
@@ -264,6 +326,7 @@ class Application:
             "established_connection": self.established_connection,
             "feedback": self.feedback,
             "recording_error": self.recording_error,
+            'replay': None if self.replay is None else self.replay.status(),
             "session": self.session,
             "connected": self.connected,
             "fresh": live,

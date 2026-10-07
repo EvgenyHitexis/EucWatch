@@ -43,6 +43,7 @@ input, select { display: block; margin-top: 7px; width: 100%; min-width: 0; bord
 .divider { height: 1px; background: #343b36; margin: 22px 0; }
 .metadata { color: #a0aba1; font-size: 12px; line-height: 1.7; }
 .metadata strong { color: #cbd3c6; font-weight: 500; }
+.replay-provenance { overflow-wrap: anywhere; font-size: 11px; }
 .messages { min-height: 20px; color: #ffb497; font-size: 12px; line-height: 1.5; }
 .screen-reader { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 @media (max-width: 730px) {

@@ -12,6 +12,7 @@ from aiohttp import ClientSession, web
 
 from eucwatch import Application, ManualClock
 from eucwatch.server import create_app
+from eucwatch.recording import Recorder
 
 
 class Browser:
@@ -54,8 +55,9 @@ class Browser:
 
 async def run():
     host_clock = ManualClock()
-    behavior = Application(clock=host_clock)
-    runner = web.AppRunner(create_app(behavior))
+    recorder = Recorder(Path('.test-output/ui-recording.jsonl'))
+    behavior = Application(clock=host_clock, event_sink=recorder.record)
+    runner = web.AppRunner(create_app(behavior, recorder=recorder))
     await runner.setup()
     sock = socket.socket()
     sock.bind(('127.0.0.1', 0))
@@ -152,7 +154,29 @@ async def run():
                         (output / 'dashboard.png').write_bytes(base64.b64decode(screenshot['data']))
                         (output / 'browser.json').write_text(json.dumps(report, indent=2) + '\n')
                         (output / 'navigation.json').write_text(json.dumps(navigation, indent=2) + '\n')
+                        before_replay = behavior.view()['diagnostics']['valid_frames']
+                        document = await cdp.call('DOM.getDocument', session=session)
+                        node = await cdp.call('DOM.querySelector', {'nodeId':document['root']['nodeId'], 'selector':'#replay-file'}, session)
+                        await cdp.call('DOM.setFileInputFiles', {'nodeId':node['nodeId'],
+                            'files':[str(Path('experiments/laptop-feasibility/evidence/fixture-recording.jsonl').resolve())]}, session)
+                        await cdp.wait("!document.querySelector('#replay-load').disabled", session)
+                        await cdp.evaluate("document.querySelector('#replay-load').click()", session)
+                        await cdp.wait("document.querySelector('#mode').textContent.includes('REPLAY')", session)
+                        for count in range(1,14):
+                            await cdp.wait("!document.querySelector('#replay-step').disabled", session)
+                            await cdp.evaluate("document.querySelector('#replay-step').click()", session)
+                            await cdp.wait(f"document.querySelector('#replay-progress').textContent.includes('{count} / 13')", session)
+                        await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('battery 97 percent')", session)
+                        replay_result = {'issue':24, 'provenance':'actual file import / Canvas / aiohttp / read-only replay',
+                            'expected':'13 preserved notifications; three valid source frames; final voltage-derived97% and avg4.09V',
+                            'observed':await cdp.evaluate("document.querySelector('canvas').getAttribute('aria-label')", session),
+                            'valid_frames':behavior.view()['diagnostics']['valid_frames']-before_replay,
+                            'recording':behavior.view()['replay']}
+                        assert replay_result['valid_frames'] == 3
+                        assert await cdp.evaluate("document.querySelector('[data-action=simulator_emit]').disabled",session)
+                        (output / 'replay.json').write_text(json.dumps(replay_result,indent=2)+'\n')
                         print(json.dumps(report, indent=2))
+                        print(json.dumps(replay_result, indent=2))
             finally:
                 browser.terminate()
                 try:
