@@ -1,0 +1,8 @@
+{
+  "issue": 28,
+  "provenance": "actual Canvas entry / HTML saved preview, choices, Cancel and Transfer / aiohttp / encoded simulated protocol",
+  "expected": "moving entry refused; stopped entry disconnects; Cancel preserves; verified saved copies; return requires fresh frame; no wheel commands",
+  "observed": "passed",
+  "endpoint": "Simulated watch",
+  "physical_transfer": "not attempted"
+}

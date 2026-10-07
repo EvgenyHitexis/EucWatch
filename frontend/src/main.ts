@@ -1,5 +1,6 @@
 import './style.css';
 import { mountBackup } from './backup';
+import { mountTransfer, type TransferView } from './transfer';
 
 interface Dashboard {
   speed: string;
@@ -53,7 +54,8 @@ interface View {
   elapsed_s: number;
   connected: boolean;
   fresh: boolean;
-  screen: 'dashboard' | 'presets' | 'settings';
+  screen: 'dashboard' | 'presets' | 'settings' | 'transfer';
+  transfer: TransferView;
   awake: boolean;
   button: { down: boolean; wake_cycle: boolean };
   recovery: boolean;
@@ -264,6 +266,7 @@ function setControls(): void {
   document.querySelector<HTMLButtonElement>('#live-disconnect')!.disabled ||= !current?.live || current.mode !== 'live';
   document.querySelector<HTMLSelectElement>('#live-device')!.disabled = !available || submitting || !current?.live?.devices.length;
   updateBackup(!submitting && available && !!session?.controller);
+  updateTransfer(!submitting && available && !!session?.controller);
 }
 
 function text(value: string, x: number, y: number, size: number, color = '#ffffff', align: CanvasTextAlign = 'left'): void {
@@ -285,7 +288,7 @@ function render(view: View | null): void {
   canvas.dataset.screen = screen;
   canvas.dataset.awake = String(awake);
   canvas.dataset.elapsed = String(view?.elapsed_s ?? 0);
-  document.querySelector<HTMLElement>('#mode')!.textContent = view?.mode === 'simulator' ? 'SIMULATOR' : view?.mode === 'replay' ? 'READ-ONLY REPLAY' : view?.mode === 'live' ? 'LIVE WHEEL' : 'IDLE · NO WHEEL';
+  document.querySelector<HTMLElement>('#mode')!.textContent = view?.mode === 'simulator' ? 'SIMULATOR' : view?.mode === 'replay' ? 'READ-ONLY REPLAY' : view?.mode === 'live' ? 'LIVE WHEEL' : view?.mode === 'transfer' ? 'SIMULATED WATCH TRANSFER' : 'IDLE · NO WHEEL';
   if (view) document.querySelector<HTMLElement>('#diagnostics')!.textContent = `Session ${view.session} · Valid frames: ${view.diagnostics.valid_frames} · CRC/format rejects: ${view.diagnostics.rejected_frames} · Resume events: ${view.diagnostics.resume_events}`;
   const outcome=view?.preset_attempt;
   document.querySelector<HTMLElement>('#preset-outcome')!.textContent=outcome ? `${outcome.name} · ${outcome.pending ? 'Applying' : outcome.status==='Confirmed' && !view?.confirmed_preset ? 'Previous result Confirmed; current confirmation lost' : outcome.status}${outcome.reason ? ` · ${outcome.reason}` : ''}${!outcome.pending && (outcome.status!=='Confirmed' || !view?.confirmed_preset) ? ' · Some settings may have changed; the previous preset is not assured.' : ''}` : 'No preset requested.';
@@ -363,6 +366,19 @@ function render(view: View | null): void {
     canvas.setAttribute('aria-label', 'Recovery mode. Wheel controls unavailable.');
     return;
   }
+  if (screen === 'transfer') {
+    text('CONFIGURATION',120,24,16,'#ffffff','center');
+    text('Simulated watch',120,49,15,'#ffffff','center');
+    text('Wheel disconnected',120,74,12,'#ffffff','center');
+    text(view?.transfer.status ?? 'idle',120,101,19,'#ffffff','center');
+    text(view?.transfer.preview?.candidate ? 'Reviewed candidate ready' : 'Review choices in panel',120,125,12,'#ffffff','center');
+    ctx.strokeStyle='#ffffff';ctx.strokeRect(12,144,216,32);
+    text('Transfer',120,166,16,view?.transfer.preview?.candidate ? '#ffffff' : '#777777','center');
+    ctx.strokeRect(12,182,104,42);ctx.strokeRect(124,182,104,42);
+    text('Cancel',64,208,14,'#ffffff','center');text('Return',176,208,14,'#ffffff','center');
+    canvas.setAttribute('aria-label',`Configuration transfer. Simulated watch. Wheel disconnected. ${view?.transfer.status}. Review saved content and alert choices in the separate panel. Transfer, Cancel or Return to riding.`);
+    return;
+  }
   if (screen !== 'dashboard') {
     if (screen === 'settings' && view?.alerts_draft) {
       renderWatchAlerts(view.alerts_draft);
@@ -385,11 +401,13 @@ function render(view: View | null): void {
       canvas.setAttribute('aria-label', `Preset menu. Four fixed slots: ${names}. ${view?.presets_menu?.some(slot=>slot.available) && available ? 'Tap one eligible slot to apply immediately.' : 'Application unavailable.'} Swipe right to return without applying.${view?.horn_feedback ? ` ${view.horn_feedback.message}` : ''}`);
     } else {
       ctx.strokeStyle = '#ffffff';
-      ctx.strokeRect(12, 71, 216, 60);
+      ctx.strokeRect(12, 60, 216, 50);
       text('Sleep screen', 120, 107, 20, '#ffffff', 'center');
-      ctx.strokeRect(12, 145, 216, 49);
-      text('Vibration alerts', 120, 175, 18, '#ffffff', 'center');
-      canvas.setAttribute('aria-label', 'Settings. Sleep screen. Vibration alerts. Swipe right to return without saving.'+(view?.horn_feedback ? ` ${view.horn_feedback.message}` : ''));
+      ctx.strokeRect(12, 120, 216, 50);
+      text('Vibration alerts', 120, 152, 18, '#ffffff', 'center');
+      ctx.strokeRect(12,180,216,44);
+      text('Transfer configuration',120,207,16,'#ffffff','center');
+      canvas.setAttribute('aria-label', 'Settings. Sleep screen. Vibration alerts. Transfer configuration. Swipe right to return without saving.'+(view?.horn_feedback ? ` ${view.horn_feedback.message}` : ''));
     }
     text(view?.horn_feedback?.message ?? '‹ Swipe right to return', 120, 228, 11, '#ffffff', 'center');
     return;
@@ -462,7 +480,7 @@ async function action(actionName: string, payload: Record<string, unknown> = {})
   try {
     const response = await fetch('/api/action', {
       method: 'POST',
-      signal: AbortSignal.timeout(actionName === 'live_discover' ? 10000 : actionName.startsWith('live_') ? 35000 : 1500),
+      signal: AbortSignal.timeout(actionName === 'live_discover' ? 10000 : (actionName.startsWith('live_') || actionName.startsWith('transfer_')) ? 35000 : 1500),
       headers: { 'Content-Type': 'application/json', 'X-EucWatch-Key': session.credential },
       body: JSON.stringify({ id: crypto.randomUUID(), controller: session.controller, action: actionName, ...payload }),
     });
@@ -704,8 +722,12 @@ canvas.addEventListener('pointerup', event => {
     enqueueWatch('swipe', { direction: 'down', from_top: start.y <= 45 });
   } else if (Math.abs(dx) < 12 && Math.abs(dy) < 12 && current?.screen === 'settings') {
     if (current.alerts_draft) watchAlertTap(end.x, end.y);
-    else if (end.x >= 12 && end.x <= 228 && end.y >= 71 && end.y <= 131) enqueueWatch('sleep');
-    else if (end.x >= 12 && end.x <= 228 && end.y >= 145 && end.y <= 194) { alertPage = 0; thresholdEntry = null; enqueueWatch('alerts_begin'); }
+    else if (end.x >= 12 && end.x <= 228 && end.y >= 60 && end.y <= 110) enqueueWatch('sleep');
+    else if (end.x >= 12 && end.x <= 228 && end.y >= 120 && end.y <= 170) { alertPage = 0; thresholdEntry = null; enqueueWatch('alerts_begin'); }
+    else if(end.x>=12 && end.x<=228 && end.y>=180 && end.y<=224) enqueueWatch('transfer_begin');
+  } else if(Math.abs(dx)<12 && Math.abs(dy)<12 && current?.screen==='transfer') {
+    if(end.y>=144 && end.y<=176 && current.transfer.preview?.candidate) enqueueWatch('transfer_send');
+    else if(end.y>=182 && end.y<=224) enqueueWatch(end.x<120 ? 'transfer_cancel' : 'transfer_return');
   } else if (Math.abs(dx)<12 && Math.abs(dy)<12 && current?.screen==='presets') {
     const column=end.x>=124 ? 1 : 0;
     const row=end.y>=124 ? 1 : 0;
@@ -724,6 +746,7 @@ let watchChain: Promise<unknown> = Promise.resolve();
 let holdTimer: number | null = null;
 let buttonCycleOpen = false;
 let inputGeneration = 0;
+const updateTransfer=mountTransfer(action,()=>current?.transfer);
 const updateBackup=mountBackup(action,()=>current,()=>JSON.stringify([inputGeneration,current?.session,current?.config.revision,session?.credential]));
 function enqueueWatch(actionName: string, payload: Record<string, unknown> = {}): Promise<unknown> {
   const wheelSession = current?.session;

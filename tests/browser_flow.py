@@ -116,7 +116,7 @@ async def run():
                             'observed':'passed', 'preset_menu':presets}
                         await cdp.pointer('#watch', (120,10), (120,110), session)
                         await cdp.wait("document.querySelector('canvas').dataset.screen==='settings'",session)
-                        await cdp.pointer('#watch', (120,175), (120,175), session)
+                        await cdp.pointer('#watch', (120,155), (120,155), session)
                         await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('Alert editor 1')",session)
                         await cdp.pointer('#watch',(120,88),(120,88),session)
                         await cdp.wait("document.querySelector('#alert-pwm-enabled').checked",session)
@@ -413,6 +413,47 @@ async def run():
                             'expected':'saved-only export, preview noactivation, Cancelpreserves, explicitrestore, unknownversionrefused, no commands',
                             'observed':'passed','migration':'Only existing schema1; compatible updates preserve meaning; unknown versions require review'}
                         (output/'backup.json').write_text(json.dumps(backup_result,indent=2)+'\n')
+                        await scenario(25,138,45)
+                        await cdp.wait("document.querySelector('canvas').dataset.fresh==='true'",session)
+                        await cdp.pointer('#watch',(120,10),(120,110),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='settings'",session)
+                        await cdp.pointer('#watch',(120,202),(120,202),session)
+                        await cdp.wait("document.querySelector('#message').textContent.includes('stopped')",session)
+                        assert behavior.view()['mode']=='simulator'
+                        await scenario(0,138,45)
+                        await cdp.pointer('#watch',(120,202),(120,202),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='transfer'",session)
+                        assert not behavior.view()['connected']
+                        commands_before_transfer=len(behavior.view()['command_events'])
+                        await cdp.wait("document.querySelector('#transfer-choices select')",session)
+                        while behavior.view()['transfer']['preview']['candidate'] is None:
+                            await cdp.wait("!document.querySelector('#transfer-review').disabled",session)
+                            await cdp.evaluate("(() => {const choice=[...document.querySelectorAll('#transfer-choices select')].find(s=>!s.value); choice.value='laptop'; choice.dispatchEvent(new Event('change'));})()",session)
+                            await cdp.wait("!document.querySelector('#transfer-review').disabled",session)
+                        await cdp.wait("!document.querySelector('#transfer-send').disabled",session)
+                        before_cancel=behavior.view()['transfer']['watch_config']
+                        await cdp.pointer('#watch',(64,208),(64,208),session)
+                        await cdp.wait("document.querySelector('#transfer-status').textContent.includes('cancelled')",session)
+                        assert behavior.view()['transfer']['watch_config']==before_cancel
+                        await cdp.wait("!document.querySelector('#transfer-review').disabled",session)
+                        await cdp.evaluate("document.querySelector('#transfer-review').click()",session)
+                        await cdp.wait("document.querySelector('#transfer-choices select')",session)
+                        while behavior.view()['transfer']['preview']['candidate'] is None:
+                            await cdp.wait("!document.querySelector('#transfer-review').disabled",session)
+                            await cdp.evaluate("(() => {const choice=[...document.querySelectorAll('#transfer-choices select')].find(s=>!s.value); choice.value='laptop'; choice.dispatchEvent(new Event('change'));})()",session)
+                            await cdp.wait("!document.querySelector('#transfer-review').disabled",session)
+                        await cdp.wait("!document.querySelector('#transfer-send').disabled",session)
+                        await cdp.pointer('#watch',(120,166),(120,166),session)
+                        await cdp.wait("document.querySelector('#transfer-status').textContent.includes('success')",session)
+                        assert behavior.view()['screen']=='dashboard' and not behavior.view()['fresh']
+                        assert behavior.view()['transfer']['watch_config']==behavior.view()['config']
+                        assert len(behavior.view()['command_events'])==commands_before_transfer
+                        await cdp.evaluate("document.querySelector('#emit').click()",session)
+                        await cdp.wait("document.querySelector('canvas').dataset.fresh==='true'",session)
+                        transfer_result={'issue':28,'provenance':'actual Canvas entry / HTML saved preview, choices, Cancel and Transfer / aiohttp / encoded simulated protocol',
+                            'expected':'moving entry refused; stopped entry disconnects; Cancel preserves; verified saved copies; return requires fresh frame; no wheel commands',
+                            'observed':'passed','endpoint':'Simulated watch','physical_transfer':'not attempted'}
+                        (output/'transfer.json').write_text(json.dumps(transfer_result,indent=2)+'\n')
                         print(json.dumps(report, indent=2))
                         print(json.dumps(replay_result, indent=2))
             finally:

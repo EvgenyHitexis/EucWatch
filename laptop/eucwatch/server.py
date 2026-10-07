@@ -88,12 +88,22 @@ def create_app(application=None, recorder=None, store=None, live=None):
                 elif name == 'live_disconnect':
                     await live.disconnect()
                     result = snapshot()
+                elif name == 'transfer_begin':
+                    # Validate the fresh stopped entry before ending the wheel link.
+                    behavior.action(name, **payload)
+                    await live.disconnect()
+                    result = snapshot()
                 else:
                     if name in ('simulator_start','connect','stop','disconnect','replay_start'):
                         await live.disconnect()
                     if name == 'replay_start':
                         payload['recording'] = Replay.from_text(payload['recording'], name=payload.pop('name', 'Imported recording'))
+                    if name.startswith('transfer_') and live.client is not None:
+                        raise ValueError('Wheel disconnect outcome is uncertain; complete disconnect before configuration transfer')
                     result = behavior.action(name, **payload)
+                    if name in ('transfer_send', 'transfer_return') and not behavior.transfer.active and behavior.mode == 'live' and live.selected:
+                        await live.connect(live.selected)
+                        result = snapshot()
                 results[key] = result
                 if len(results) > 2048:
                     del results[next(iter(results))]
