@@ -62,3 +62,9 @@ sleep and established-loss keep-awake match the backend. Observed: passed.
 frontend build pass. Back-navigation with an editable alert draft is collected
 with #20, where the actual editor becomes available; that acceptance remains open
 until the combined flow is verified.
+
+#19 review corrections: the rendered keep-awake check now advances 31 seconds
+after disconnection and waits for the rendered elapsed time before asserting awake.
+Abandoned browser holds are released on lifecycle loss, with a two-second backend
+input lease as the fallback. The HTTP boundary verifies abandonment cannot become
+a prolonged recovery hold. Browser timing remains unrelated to telemetry/recording.

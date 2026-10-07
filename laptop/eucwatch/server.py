@@ -4,6 +4,7 @@ import asyncio
 from contextlib import suppress
 from pathlib import Path
 import secrets
+import time
 
 from aiohttp import web
 
@@ -17,6 +18,7 @@ def create_app(application=None):
     credential = secrets.token_urlsafe(32)
     controllers = set()
     results = {}
+    last_ui_seen = time.monotonic()
 
     def local(request):
         expected = f'{request.scheme}://{request.host}'
@@ -30,10 +32,14 @@ def create_app(application=None):
             raise web.HTTPForbidden(text='Loopback host required')
 
     async def state(request):
+        nonlocal last_ui_seen
         local(request)
+        if request.query.get('controller') in controllers:
+            last_ui_seen = time.monotonic()
         return web.json_response(behavior.view())
 
     async def session(request):
+        nonlocal last_ui_seen
         local(request)
         controller = request.query.get('controller')
         if controller not in controllers:
@@ -42,10 +48,13 @@ def create_app(application=None):
             else:
                 controller = secrets.token_urlsafe(16)
                 controllers.add(controller)
+        if controller is not None:
+            last_ui_seen = time.monotonic()
         return web.json_response({'credential': credential, 'controller': controller},
             headers={'Cache-Control': 'no-store'})
 
     async def action(request):
+        nonlocal last_ui_seen
         local(request)
         if request.headers.get('Origin') != f'{request.scheme}://{request.host}':
             raise web.HTTPForbidden(text='Same-origin control required')
@@ -57,6 +66,7 @@ def create_app(application=None):
             name = payload.pop('action')
             if controller not in controllers or not isinstance(identity, str) or not identity or len(identity) > 128:
                 raise ValueError('Valid controller and request identity required')
+            last_ui_seen = time.monotonic()
             key = (controller, identity)
             if key in results:
                 return web.json_response(results[key])
@@ -90,6 +100,8 @@ def create_app(application=None):
     async def lifetime(app):
         async def run():
             while True:
+                if time.monotonic() - last_ui_seen > 2 and behavior.view()['button']['down']:
+                    behavior.action('button_up')
                 behavior.tick()
                 await asyncio.sleep(.02)
         task = asyncio.create_task(run())

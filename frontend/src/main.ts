@@ -13,6 +13,7 @@ interface Dashboard {
 interface View {
   mode: string;
   session: number;
+  elapsed_s: number;
   connected: boolean;
   fresh: boolean;
   screen: 'dashboard' | 'presets' | 'settings';
@@ -134,6 +135,7 @@ function render(view: View | null): void {
   const awake = view?.awake ?? true;
   canvas.dataset.screen = screen;
   canvas.dataset.awake = String(awake);
+  canvas.dataset.elapsed = String(view?.elapsed_s ?? 0);
   document.querySelector<HTMLElement>('#mode')!.textContent = view?.mode === 'simulator' ? 'SIMULATOR' : view?.mode === 'replay' ? 'READ-ONLY REPLAY' : view?.mode === 'live' ? 'LIVE WHEEL' : 'IDLE · NO WHEEL';
   if (view) document.querySelector<HTMLElement>('#diagnostics')!.textContent = `Session ${view.session} · Valid frames: ${view.diagnostics.valid_frames} · CRC/format rejects: ${view.diagnostics.rejected_frames} · Resume events: ${view.diagnostics.resume_events}`;
   if (!awake) {
@@ -208,7 +210,8 @@ async function read<T>(path: string): Promise<T> {
 async function refresh(): Promise<void> {
   try {
     if (!session) session = await acquireSession();
-    current = await read<View>('/api/state');
+    const query = session.controller && document.visibilityState === 'visible' ? `?controller=${encodeURIComponent(session.controller)}` : '';
+    current = await read<View>(`/api/state${query}`);
     available = true;
     status.textContent = session.controller ? 'Application ready' : 'Viewing only · another window controls this session';
     status.classList.remove('error');
@@ -303,18 +306,23 @@ const sideButton = document.querySelector<HTMLButtonElement>('#watch-button')!;
 let buttonPointer: number | null = null;
 let watchChain: Promise<unknown> = Promise.resolve();
 let holdTimer: number | null = null;
-function enqueueWatch(actionName: string, payload: Record<string, unknown> = {}): void {
+let buttonCycleOpen = false;
+let inputGeneration = 0;
+function enqueueWatch(actionName: string, payload: Record<string, unknown> = {}): Promise<unknown> {
   const wheelSession = current?.session;
   const controller = session?.controller;
+  const generation = inputGeneration;
   watchChain = watchChain.then(() => {
-    if (current?.session !== wheelSession || session?.controller !== controller) return false;
+    if (generation !== inputGeneration || current?.session !== wheelSession || session?.controller !== controller) return false;
     return action(actionName, payload);
   });
+  return watchChain;
 }
 sideButton.addEventListener('pointerdown', event => {
-  if (buttonPointer !== null || !available || !session?.controller || submitting) return;
+  if (buttonCycleOpen || !available || !session?.controller || submitting) return;
   event.preventDefault();
   buttonPointer = event.pointerId;
+  buttonCycleOpen = true;
   sideButton.setPointerCapture(event.pointerId);
   sideButton.classList.add('pressed');
   enqueueWatch('button_down');
@@ -326,10 +334,34 @@ function releaseButton(event: PointerEvent): void {
   holdTimer = null;
   buttonPointer = null;
   sideButton.classList.remove('pressed');
-  enqueueWatch('button_up');
+  void enqueueWatch('button_up').finally(() => { buttonCycleOpen = false; });
 }
 sideButton.addEventListener('pointerup', releaseButton);
 sideButton.addEventListener('pointercancel', releaseButton);
+
+function releaseForLifecycle(): void {
+  inputGeneration++;
+  gesture = null;
+  if (holdTimer !== null) window.clearTimeout(holdTimer);
+  holdTimer = null;
+  const pressed = buttonCycleOpen || !!current?.button.down;
+  buttonPointer = null;
+  buttonCycleOpen = false;
+  sideButton.classList.remove('pressed');
+  if (!pressed || !session?.controller) return;
+  // A release is safe even if its matching down was interrupted. Do not retry
+  // or submit any new press when the document loses its input lifecycle.
+  void fetch('/api/action', {
+    method: 'POST', keepalive: true,
+    headers: { 'Content-Type': 'application/json', 'X-EucWatch-Key': session.credential },
+    body: JSON.stringify({ id: crypto.randomUUID(), controller: session.controller, action: 'button_up' }),
+  }).catch(() => { /* The backend input lease also releases abandoned presses. */ });
+}
+window.addEventListener('pagehide', releaseForLifecycle);
+window.addEventListener('blur', releaseForLifecycle);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') releaseForLifecycle();
+});
 
 // A single awaited loop bounds requests and redraws to five per second,
 // including recovery after a slow response. Browser time never drives behavior.

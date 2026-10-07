@@ -132,8 +132,9 @@ async def run():
                         await cdp.evaluate("document.querySelector('[data-action=disconnect]').click()", session)
                         await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('Disconnected')", session)
                         disconnected = await cdp.evaluate("document.querySelector('canvas').getAttribute('aria-label')", session)
-                        await cdp.evaluate("document.querySelector('[data-action=advance]').click()", session)
-                        await cdp.wait("document.querySelector('canvas').dataset.awake === 'true'", session)
+                        behavior.action('advance', seconds=31)
+                        after_loss = behavior.view()['elapsed_s']
+                        await cdp.wait(f"Number(document.querySelector('canvas').dataset.elapsed) >= {after_loss} && document.querySelector('canvas').dataset.awake === 'true'", session)
                         navigation['keep_awake_after_loss'] = 'passed'
                         await cdp.wait("!document.querySelector('[data-action=connect]').disabled", session)
                         await cdp.evaluate("document.querySelector('[data-action=connect]').click()", session)

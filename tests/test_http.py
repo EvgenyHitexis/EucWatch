@@ -38,3 +38,15 @@ class LocalApplication(unittest.IsolatedAsyncioTestCase):
         self.assertIsNone(second['controller'])
         recovered = await (await self.client.get('/api/session', params={'controller': first['controller']})).json()
         self.assertEqual(recovered['controller'], first['controller'])
+
+    async def test_abandoned_browser_press_cannot_become_recovery_hold(self):
+        import asyncio
+        session = await (await self.client.get('/api/session')).json()
+        response = await self.client.post('/api/action',
+            headers={'Origin':self.origin, 'X-EucWatch-Key':session['credential']},
+            json={'controller':session['controller'], 'id':'down', 'action':'button_down'})
+        self.assertTrue((await response.json())['button']['down'])
+        await asyncio.sleep(2.1)
+        state = await (await self.client.get('/api/state')).json()
+        self.assertFalse(state['button']['down'])
+        self.assertFalse(state['recovery'])
