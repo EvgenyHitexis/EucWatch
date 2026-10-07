@@ -12,6 +12,7 @@ from eucwatch import Application
 from eucwatch.recording import Recorder, Replay
 from eucwatch.persistence import FileStore
 from eucwatch.live import LiveSession
+from eucwatch.live_control import LiveControl
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -19,6 +20,8 @@ ROOT = Path(__file__).resolve().parents[2]
 def create_app(application=None, recorder=None, store=None, live=None):
     behavior = application or Application(store=store,event_sink=None if recorder is None else recorder.record)
     live = live or LiveSession(behavior)
+    control = LiveControl(live, behavior)
+    behavior.live_command_output = control.submit
     credential = secrets.token_urlsafe(32)
     controllers = set()
     results = {}
@@ -72,6 +75,8 @@ def create_app(application=None, recorder=None, store=None, live=None):
             payload = await request.json()
             controller, identity = payload.pop('controller'), payload.pop('id')
             name = payload.pop('action')
+            if name in ('live_start', 'live_connected', 'live_disconnected', 'command_result', 'horn_result'):
+                raise ValueError('Transport callbacks are internal application inputs')
             if controller not in controllers or not isinstance(identity, str) or not identity or len(identity) > 128:
                 raise ValueError('Valid controller and request identity required')
             last_ui_seen = time.monotonic()
@@ -150,6 +155,7 @@ def create_app(application=None, recorder=None, store=None, live=None):
                     behavior.action('button_up')
                 behavior.tick()
                 live.tick()
+                control.tick()
                 await asyncio.sleep(.02)
         async def write_recording():
             assert recorder is not None
@@ -162,6 +168,8 @@ def create_app(application=None, recorder=None, store=None, live=None):
         task.cancel()
         with suppress(asyncio.CancelledError):
             await task
+        await control.close()
+        behavior.live_command_output = None
         await live.close()
         if writer is not None:
             writer.cancel()

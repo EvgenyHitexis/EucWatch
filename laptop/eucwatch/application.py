@@ -95,6 +95,7 @@ class Application:
         self.configuration_export: dict[str, Any] | None = None
         self.alerts = AlertScheduler(self.config["alerts"], output=vibration_output)
         self.command_output = command_output
+        self.live_command_output: Callable[[dict[str, Any]], None] | None = None
         self.command_events: list[dict[str, Any]] = []
         self.control = PresetControl(self._submit_control, self._control_event)
         self.simulated_receipts: list[dict[str, Any]] = []
@@ -106,6 +107,11 @@ class Application:
                                                shared_store or MemoryStore(), transfer_transport)
         self.horn = HornRequests(self._control_event)
 
+    def _command_adapter(self):
+        if self.mode == "live" and self.live_command_output is not None:
+            return self.live_command_output
+        return self.command_output
+
     def _request_horn(self) -> None:
         reason = None
         if self.recovery:
@@ -114,17 +120,18 @@ class Application:
             reason = "preset applying"
         elif not self.awake or not self.fresh() or self.mode not in ("simulator", "live"):
             reason = "connection unavailable"
-        elif self.mode == "live" and self.command_output is None:
+        elif self.mode == "live" and self._command_adapter() is None:
             reason = "live control transport unavailable"
         if reason:
             self.horn.show(f"Horn unavailable: {reason}", self.elapsed(), self.session)
         else:
             row = self.horn.request(self.elapsed(), self.session)
-            if self.command_output is None:
+            output = self._command_adapter()
+            if output is None:
                 self.horn.result(row["request"], row["session"], True, self.elapsed())
             else:
                 try:
-                    self.command_output(deepcopy(row))
+                    output(deepcopy(row))
                 except (OSError, ValueError) as exc:
                     self.horn.result(row["request"], row["session"], False, self.elapsed(), str(exc))
         if self.horn.feedback:
@@ -136,9 +143,10 @@ class Application:
         self._event(row["event"], **{key: value for key, value in row.items() if key != "event"})
 
     def _submit_control(self, row: dict[str, Any]) -> None:
-        if self.command_output is not None:
+        output = self._command_adapter()
+        if output is not None:
             try:
-                self.command_output(deepcopy(row))
+                output(deepcopy(row))
             except (OSError, ValueError) as exc:
                 self.control.result(row["attempt"], row["session"], row["index"], False, self.elapsed(), str(exc))
             return
@@ -411,7 +419,7 @@ class Application:
                 raise ValueError("Wake the screen before selecting a riding preset")
             if not self.fresh() or self.recovery or self.mode not in ("simulator", "live"):
                 raise ValueError("A healthy fresh wheel connection is required")
-            if self.mode == "live" and self.command_output is None:
+            if self.mode == "live" and self._command_adapter() is None:
                 raise ValueError("Live control transport is unavailable")
             self.screen = "dashboard"
             self.parser = Assembler()
@@ -731,7 +739,7 @@ class Application:
             "command_events": deepcopy(self.command_events),
             "horn_feedback": deepcopy(self.horn.feedback),
             "presets_menu": [{"id": preset["id"], "name": preset["name"],
-                              "configured": preset["configured"], "available": bool(preset["configured"] and live and not self.control.pending and not self.recovery and self.mode in ("simulator", "live") and (self.mode == "simulator" or self.command_output is not None)),
+                              "configured": preset["configured"], "available": bool(preset["configured"] and live and not self.control.pending and not self.recovery and self.mode in ("simulator", "live") and (self.mode == "simulator" or self._command_adapter() is not None)),
                               "revision": self.config["revision"]}
                              for preset in self.config["presets"]],
             "persistence_error": self.persistence_error,

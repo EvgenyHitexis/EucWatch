@@ -16,6 +16,8 @@ from eucwatch.server import create_app
 from eucwatch.recording import Recorder
 from eucwatch.live import LiveSession
 from test_live import Scanner, Clients, ADDRESS, SOURCE_FRAME
+from test_live_control import WritingClient
+from test_control import settings_frame
 
 
 class Browser:
@@ -62,7 +64,11 @@ async def run():
     recorder = Recorder(Path(f'.test-output/ui-recording-{run_id}.jsonl'))
     behavior = Application(clock=host_clock, event_sink=recorder.record)
     live_clients = Clients()
-    live = LiveSession(behavior,scanner=Scanner(),client_factory=live_clients,reconnect_delay=0)
+    def writing_client(*args,**options):
+        client=WritingClient(*args,**options)
+        live_clients.created.append(client)
+        return client
+    live = LiveSession(behavior,scanner=Scanner(),client_factory=writing_client,reconnect_delay=0)
     runner = web.AppRunner(create_app(behavior, recorder=recorder,live=live))
     await runner.setup()
     sock = socket.socket()
@@ -347,6 +353,28 @@ async def run():
                         assert not behavior.view()['fresh']
                         live_clients.created[0].emit(SOURCE_FRAME)
                         await cdp.wait("document.querySelector('canvas').dataset.fresh==='true' && document.querySelector('#live-status').textContent.includes('006.0.03')",session)
+                        await cdp.pointer('#watch',(215,120),(20,120),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='presets'",session)
+                        await cdp.pointer('#watch',(177,80),(177,80),session)
+                        await cdp.wait("document.querySelector('#preset-outcome').textContent.includes('Applying')",session)
+                        async with asyncio.timeout(2):
+                            while behavior.view()['preset_attempt']['status']!='confirming':
+                                await asyncio.sleep(.01)
+                        assert [len(data) for _,data,_ in live_clients.created[0].writes]==[15,20,11]
+                        host_clock.advance(.1)
+                        live_clients.created[0].emit(settings_frame(sensitivity=30,assist=20))
+                        assert behavior.view()['confirmed_preset'] is None
+                        host_clock.advance(.1)
+                        live_clients.created[0].emit(settings_frame(sensitivity=30,assist=20))
+                        await cdp.wait("document.querySelector('#preset-outcome').textContent==='Rain · Confirmed'",session)
+                        await cdp.pointer('#watch-button',(10,20),(10,20),session)
+                        await cdp.wait("document.querySelector('#watch-feedback').textContent==='Horn request sent'",session)
+                        assert [len(data) for _,data,_ in live_clients.created[0].writes]==[15,20,11,14]
+                        live_control_result={'issue':26,'provenance':'actual Canvas preset/button / aiohttp / selected fake Bleak telemetry connection',
+                            'expected':'serialized responseFalse15/20/11 bytes; two raw matching frames confirm; one14byteLkAp horn request; no physical operation',
+                            'observed':'passed','chunks':[len(data) for _,data,_ in live_clients.created[0].writes],
+                            'physical_mappings_ranges_persistence_movement_and_audible_horn':'unverified under #9/#31'}
+                        (output/'live-control.json').write_text(json.dumps(live_control_result,indent=2)+'\n')
                         first=live_clients.created[0]
                         first.lose_link()
                         assert not behavior.view()['fresh']
