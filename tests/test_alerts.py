@@ -380,5 +380,23 @@ class AlertTests(unittest.TestCase):
         )
 
 
+    def test_a_measurement_repeat_at_freshness_expiry_never_starts(self):
+        clock = ManualClock()
+        app = Application(clock=clock)
+        app.action("connect")
+        app.action("simulator_configure", pwm_percent=90)
+        app.action("simulator_emit")
+        self.enable(app, "pwm", 80)
+        for _ in range(2):
+            clock.advance(0.5)
+            app.action("simulator_emit")
+        clock.advance(1)
+        events = app.view()["vibration"]["events"]
+        starts = [e for e in events if e["phase"] == "start"]
+        self.assertFalse(any(e["alert"] == "pwm" and e["at_s"] >= 2 for e in starts))
+        self.assertEqual(starts[-1]["alert"], "lost")
+        self.assertEqual(starts[-1]["at_s"], 2)
+
+
 if __name__ == "__main__":
     unittest.main()

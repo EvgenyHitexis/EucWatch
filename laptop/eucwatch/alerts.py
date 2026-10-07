@@ -192,10 +192,13 @@ class AlertScheduler:
             self.next_repeat[name] = now + REPEATS[name]
         self._event("start", now)
 
-    def tick(self, now: float) -> None:
+    def tick(self, now: float, *, inclusive: bool = True) -> None:
         # Timed pattern phases are replayable output events. Actual resume calls
         # reset rather than replaying expired pulses.
-        while self.pattern is not None and now + EPSILON >= self.pattern["deadline"]:
+        def due(deadline: float) -> bool:
+            return now + EPSILON >= deadline if inclusive else now - EPSILON > deadline
+
+        while self.pattern is not None and due(self.pattern["deadline"]):
             deadline = self.pattern["deadline"]
             if self.pattern["on"]:
                 self._event("stop", deadline)
@@ -215,9 +218,12 @@ class AlertScheduler:
                 self._event("start", deadline)
         if self.fresh:
             for name, deadline in list(self.next_repeat.items()):
-                if self.active[name] and now + EPSILON >= deadline:
+                if self.active[name] and due(deadline):
                     self._enqueue(name)
-        self._start_next(now)
+        # A freshness boundary processes earlier edges only; stale evaluation
+        # cancels measurement work before anything can start at the boundary.
+        if inclusive:
+            self._start_next(now)
 
     def view(self) -> dict[str, Any]:
         current = None

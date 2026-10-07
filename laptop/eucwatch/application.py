@@ -89,7 +89,7 @@ class Application:
         # Resume takes a separate cancellation path and never replays pulses.
         if self.alerts.fresh and not self.fresh() and self.last_valid is not None:
             expiry = min(now, self.last_valid + 1)
-            self.alerts.tick(expiry)
+            self.alerts.tick(expiry, inclusive=False)
             self.alerts.evaluate(expiry, fresh=False)
         values = self.telemetry
         self.alerts.evaluate(
