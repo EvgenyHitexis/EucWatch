@@ -25,7 +25,7 @@ class TransferHTTPTests(unittest.IsolatedAsyncioTestCase):
                 nonlocal count
                 count += 1
                 response = await client.post('/api/action', headers=headers, json={
-                    'controller': session['controller'], 'id': str(count), 'action': name, **payload})
+                    'controller': session['controller'], 'id': str(count), 'action': name, 'epoch':app.session, **payload})
                 self.assertEqual(response.status, expected, await response.text())
                 return await response.json()
             await action('live_discover')

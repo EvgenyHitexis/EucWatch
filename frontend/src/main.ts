@@ -218,6 +218,7 @@ let discoveredDevices = '';
 let thresholdEntry: string | null = null;
 let rendered = '';
 const controllerStorageKey = 'sherman-l-controller';
+let readGeneration = 0;
 let acquiringSession: Promise<Session> | null = null;
 
 function storedController(): string | null {
@@ -452,14 +453,23 @@ async function read<T>(path: string): Promise<T> {
 }
 
 async function refresh(): Promise<void> {
+  const generation=++readGeneration;
   try {
-    if (!session) session = await acquireSession();
+    if (!session?.controller) {
+      const acquired=await acquireSession();
+      if(generation!==readGeneration) return;
+      session=acquired;
+    }
+    const owner=session;
     const query = session.controller && document.visibilityState === 'visible' ? `?controller=${encodeURIComponent(session.controller)}` : '';
-    current = await read<View>(`/api/state${query}`);
+    const view = await read<View>(`/api/state${query}`);
+    if(generation!==readGeneration || owner!==session) return;
+    current=view;
     available = true;
     status.textContent = session.controller ? 'Application ready' : 'Viewing only · another window controls this session';
     status.classList.remove('error');
   } catch {
+    if(generation!==readGeneration) return;
     available = false;
     session = null;
     status.textContent = 'Application unavailable · controls disabled';
@@ -482,7 +492,7 @@ async function action(actionName: string, payload: Record<string, unknown> = {})
       method: 'POST',
       signal: AbortSignal.timeout(actionName === 'live_discover' ? 10000 : (actionName.startsWith('live_') || actionName.startsWith('transfer_')) ? 35000 : 1500),
       headers: { 'Content-Type': 'application/json', 'X-EucWatch-Key': session.credential },
-      body: JSON.stringify({ id: crypto.randomUUID(), controller: session.controller, action: actionName, ...payload }),
+      body: JSON.stringify({ id: crypto.randomUUID(), controller: session.controller, action: actionName, epoch:current?.session, ...payload }),
     });
     if (!response.ok) {
       if (response.status === 403) {
@@ -795,7 +805,7 @@ function releaseForLifecycle(): void {
   void fetch('/api/action', {
     method: 'POST', keepalive: true,
     headers: { 'Content-Type': 'application/json', 'X-EucWatch-Key': session.credential },
-    body: JSON.stringify({ id: crypto.randomUUID(), controller: session.controller, action: 'button_up' }),
+    body: JSON.stringify({ id: crypto.randomUUID(), controller: session.controller, action: 'button_up', epoch:current?.session }),
   }).catch(() => { /* The backend input lease also releases abandoned presses. */ });
 }
 window.addEventListener('pagehide', releaseForLifecycle);
@@ -804,11 +814,11 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') releaseForLifecycle();
 });
 
-// A single awaited loop bounds requests and redraws to five per second,
-// including recovery after a slow response. Browser time never drives behavior.
+// Polling is sequential. Rendering has its own five-Hz limit so a slow poll
+// cannot hide authoritative state returned by a completed action.
 async function poll(): Promise<void> {
   await refresh();
-  render(current);
   window.setTimeout(() => void poll(), 200);
 }
+window.setInterval(()=>render(current),200);
 void poll();

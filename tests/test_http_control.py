@@ -32,7 +32,7 @@ class ControlHTTPTests(unittest.IsolatedAsyncioTestCase):
                 nonlocal count
                 count += 1
                 response = await http.post('/api/action', headers=headers, json={
-                    'controller':session['controller'], 'id':identity or str(count), 'action':action_name, **payload})
+                    'controller':session['controller'], 'id':identity or str(count), 'action':action_name, 'epoch':app.session, **payload})
                 self.assertEqual(response.status, expected, await response.text())
                 return await response.json()
             await action('preset_begin', slot=1)

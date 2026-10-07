@@ -24,12 +24,12 @@ class LocalApplication(unittest.IsolatedAsyncioTestCase):
         session = await response.json()
         headers = {'Origin': self.origin, 'X-EucWatch-Key': session['credential']}
         response = await self.client.post('/api/action', headers=headers,
-            json={'action': 'simulator_start', 'id': 'start', 'controller': session['controller']})
+            json={'action': 'simulator_start', 'id': 'start', 'controller': session['controller'], 'epoch':0})
         self.assertEqual(response.status, 200)
         self.assertEqual((await response.json())['mode'], 'simulator')
         headers['Origin'] = 'http://untrusted.example'
         response = await self.client.post('/api/action', headers=headers,
-            json={'action': 'disconnect', 'id': 'bad', 'controller': session['controller']})
+            json={'action': 'disconnect', 'id': 'bad', 'controller': session['controller'], 'epoch':0})
         self.assertEqual(response.status, 403)
 
     async def test_only_one_controller_can_acquire_control_and_reload_reuses_it(self):
@@ -44,7 +44,7 @@ class LocalApplication(unittest.IsolatedAsyncioTestCase):
         session = await (await self.client.get('/api/session')).json()
         response = await self.client.post('/api/action',
             headers={'Origin':self.origin, 'X-EucWatch-Key':session['credential']},
-            json={'controller':session['controller'], 'id':'down', 'action':'button_down'})
+            json={'controller':session['controller'], 'id':'down', 'action':'button_down','epoch':0})
         self.assertTrue((await response.json())['button']['down'])
         await asyncio.sleep(2.1)
         state = await (await self.client.get('/api/state')).json()

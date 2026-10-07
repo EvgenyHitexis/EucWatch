@@ -29,7 +29,7 @@ class LiveHTTPTests(unittest.IsolatedAsyncioTestCase):
         try:
             session=await (await client.get('/api/session')).json()
             headers={'Origin':str(client.make_url('/')).rstrip('/'),'X-EucWatch-Key':session['credential']}
-            common={'controller':session['controller']}
+            common={'controller':session['controller'],'epoch':app.session}
             await client.post('/api/action',headers=headers,json={**common,'id':'discover','action':'live_discover'})
             payload={**common,'id':'same-selection','action':'live_select','address':ADDRESS}
             requests.append(asyncio.create_task(client.post('/api/action',headers=headers,json=payload)))
@@ -63,7 +63,7 @@ class LiveHTTPTests(unittest.IsolatedAsyncioTestCase):
                 count += 1
                 response = await client.post('/api/action', headers={
                     'Origin':origin,'X-EucWatch-Key':session['credential']},json={
-                    'controller':session['controller'],'id':str(count),'action':name,**payload})
+                    'controller':session['controller'],'id':str(count),'action':name,'epoch':app.session,**payload})
                 self.assertEqual(response.status,200,await response.text())
                 return await response.json()
             state = await (await client.get('/api/state')).json()

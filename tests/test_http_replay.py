@@ -26,7 +26,7 @@ class RecordingUIBoundary(unittest.IsolatedAsyncioTestCase):
                 origin = str(client.make_url('/')).rstrip('/')
                 session = await (await client.get('/api/session')).json()
                 await client.post('/api/action',headers={'Origin':origin,'X-EucWatch-Key':session['credential']},
-                    json={'action':'simulator_start','id':'start','controller':session['controller']})
+                    json={'action':'simulator_start','id':'start','controller':session['controller'],'epoch':0})
                 async with asyncio.timeout(2):
                     while not entered.is_set():
                         await asyncio.sleep(.01)
@@ -47,9 +47,10 @@ class RecordingUIBoundary(unittest.IsolatedAsyncioTestCase):
                 session = await (await client.get('/api/session')).json()
                 headers = {'Origin':origin, 'X-EucWatch-Key':session['credential']}
                 async def action(name, **payload):
+                    state=await (await client.get('/api/state')).json()
                     return await client.post('/api/action',headers=headers,json={
                         'controller':session['controller'], 'id':name,
-                        'action':name, **payload})
+                        'action':name, 'epoch':state['session'], **payload})
                 await action('simulator_start', controlled=True)
                 response = await client.get('/api/recording',headers=headers)
                 self.assertEqual(response.status,200)
