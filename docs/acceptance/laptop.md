@@ -125,3 +125,25 @@ four-slot menu, cancels a staged clear and retains the definition after restart.
 [Preset result](evidence/presets.json). Editing emits no wheel commands and saves
 no wheel confirmation. Two-axis review: no material findings; two optional
 maintainability suggestions. Python typechecking and the frontend build pass.
+
+### #25 — explicit live telemetry adapter
+
+Thirteen controlled-transport checks exercise the real Application/parser and
+capture path: discovery/selection, FFE0/FFE1 validation, family/firmware decoding,
+CRC rejection and freshness, source loss, bounded reconnection, old callbacks,
+resume, failure/timeouts and cancellation-safe cleanup. Recorded live-shaped
+bytes replay to the same per-notification dashboard states. No real Bluetooth
+operation is executed by these checks.
+
+Two HTTP checks and the actual built HTML/Canvas flow demonstrate explicit scan
+and selection, identity pending until valid telemetry, disconnect invalidation,
+new-session/fresh recovery and mode-switch cleanup. Concurrent duplicate HTTP
+selection creates exactly one transport client. [Live result](evidence/live.json)
+labels controlled transport provenance and pending physical evidence. Discovery
+and connection run only on explicit UI actions through ordinary-user Bleak/BlueZ;
+no initialization command, root/Docker transport or MTU workaround is introduced.
+
+Both review axes identified awaited-request duplication and cancelled-child
+cleanup starvation. Corrected with serialized intents/deduplication and bounded
+uncertain-cleanup handling; regression checks pass. Actual application telemetry,
+cadence, owner firmware identity and reconnect evidence remain pending under #31.
