@@ -376,9 +376,9 @@ function render(view: View | null): void {
     text('Simulated watch',120,49,15,'#ffffff','center');
     text('Wheel disconnected',120,74,12,'#ffffff','center');
     text(view?.transfer.status ?? 'idle',120,101,19,'#ffffff','center');
-    text(view?.transfer.preview?.candidate ? 'Reviewed candidate ready' : 'Review choices in panel',120,125,12,'#ffffff','center');
+    text(view?.transfer.status==='unknown' ? 'Read back outcome in panel' : view?.transfer.preview?.candidate ? 'Reviewed candidate ready' : 'Review choices in panel',120,125,12,'#ffffff','center');
     ctx.strokeStyle='#ffffff';ctx.strokeRect(12,144,216,32);
-    text('Transfer',120,166,16,view?.transfer.preview?.candidate ? '#ffffff' : '#777777','center');
+    text('Transfer',120,166,16,view?.transfer.preview?.candidate && view.transfer.status!=='unknown' ? '#ffffff' : '#777777','center');
     ctx.strokeRect(12,182,104,42);ctx.strokeRect(124,182,104,42);
     text('Cancel',64,208,14,'#ffffff','center');text('Return',176,208,14,'#ffffff','center');
     canvas.setAttribute('aria-label',`Configuration transfer. Simulated watch. Wheel disconnected. ${view?.transfer.status}. Review saved content and alert choices in the separate panel. Transfer, Cancel or Return to riding.`);
@@ -740,7 +740,7 @@ canvas.addEventListener('pointerup', event => {
     else if (end.x >= 12 && end.x <= 228 && end.y >= 120 && end.y <= 170) { alertPage = 0; thresholdEntry = null; enqueueWatch('alerts_begin'); }
     else if(end.x>=12 && end.x<=228 && end.y>=180 && end.y<=224) enqueueWatch('transfer_begin');
   } else if(Math.abs(dx)<12 && Math.abs(dy)<12 && current?.screen==='transfer') {
-    if(end.y>=144 && end.y<=176 && current.transfer.preview?.candidate) enqueueWatch('transfer_send');
+    if(end.y>=144 && end.y<=176 && current.transfer.preview?.candidate && current.transfer.status!=='unknown') enqueueWatch('transfer_send');
     else if(end.y>=182 && end.y<=224) enqueueWatch(end.x<120 ? 'transfer_cancel' : 'transfer_return');
   } else if (Math.abs(dx)<12 && Math.abs(dy)<12 && current?.screen==='presets') {
     const column=end.x>=124 ? 1 : 0;

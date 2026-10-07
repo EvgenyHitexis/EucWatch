@@ -483,6 +483,50 @@ async def run():
                             'expected':'moving entry refused; stopped entry disconnects; Cancel preserves; verified saved copies; return requires fresh frame; no wheel commands',
                             'observed':'passed','endpoint':'Simulated watch','physical_transfer':'not attempted'}
                         (output/'transfer.json').write_text(json.dumps(transfer_result,indent=2)+'\n')
+                        await cdp.pointer('#watch',(120,10),(120,110),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='settings'",session)
+                        await cdp.pointer('#watch',(120,202),(120,202),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='transfer'",session)
+                        await cdp.wait("!document.querySelector('#transfer-watch-editor button').disabled",session)
+                        await cdp.evaluate("document.querySelector('#transfer-watch-enabled').checked=true;document.querySelector('#transfer-watch-threshold').value='75';document.querySelector('#transfer-watch-editor').requestSubmit()",session)
+                        await cdp.wait("!document.querySelector('#alerts-edit').disabled",session)
+                        await cdp.evaluate("document.querySelector('#alerts-edit').click()",session)
+                        await cdp.wait("!document.querySelector('#alert-pwm-threshold').disabled",session)
+                        await cdp.evaluate("document.querySelector('#alert-pwm-threshold').value='80';document.querySelector('#alert-pwm-threshold').dispatchEvent(new Event('change'))",session)
+                        await cdp.wait("!document.querySelector('#alerts-save').disabled",session)
+                        await cdp.evaluate("document.querySelector('#alerts-editor').requestSubmit()",session)
+                        await cdp.wait("document.querySelector('#alerts-status').textContent.includes('Saved')",session)
+                        await cdp.wait("!document.querySelector('#transfer-send').disabled",session)
+                        await cdp.pointer('#watch',(120,166),(120,166),session)
+                        await cdp.wait("document.querySelector('#transfer-error').textContent.includes('changed')",session)
+                        await cdp.wait("document.querySelector('#transfer-choices select[data-path=\"alerts.pwm.threshold\"]')",session)
+                        await cdp.evaluate("const choice=document.querySelector('#transfer-choices select');choice.value='watch';choice.dispatchEvent(new Event('change'))",session)
+                        await cdp.wait("!document.querySelector('#transfer-send').disabled",session)
+                        await cdp.pointer('#watch',(120,166),(120,166),session)
+                        await cdp.wait("document.querySelector('#transfer-status').textContent.includes('success')",session)
+                        assert behavior.view()['config']['alerts']['pwm']['threshold']==75
+                        await cdp.wait("!document.querySelector('#emit').disabled",session)
+                        await cdp.evaluate("document.querySelector('#emit').click()",session)
+                        await cdp.wait("document.querySelector('canvas').dataset.fresh==='true'",session)
+                        await cdp.pointer('#watch',(120,10),(120,110),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='settings'",session)
+                        await cdp.pointer('#watch',(120,202),(120,202),session)
+                        await cdp.wait("!document.querySelector('#transfer-scenario button').disabled",session)
+                        await cdp.evaluate("document.querySelector('#transfer-commit').value='lost_ack';document.querySelector('#transfer-scenario').requestSubmit()",session)
+                        await cdp.wait("!document.querySelector('#transfer-send').disabled",session)
+                        await cdp.pointer('#watch',(120,166),(120,166),session)
+                        await cdp.wait("document.querySelector('#transfer-status').textContent.includes('unknown')",session)
+                        assert behavior.view()['transfer']['active']
+                        assert await cdp.evaluate("document.querySelector('#transfer-send').disabled",session)
+                        await cdp.wait("!document.querySelector('#transfer-reconcile').disabled",session)
+                        await cdp.evaluate("document.querySelector('#transfer-reconcile').click()",session)
+                        await cdp.wait("document.querySelector('#transfer-status').textContent.includes('success')",session)
+                        assert behavior.view()['transfer']['watch_config']==behavior.view()['config']
+                        assert not behavior.view()['fresh']
+                        reconciliation_result={'issue':29,'provenance':'actual Canvas transfer / HTML local alert edits, simulated watch edits, stale preview, conflict choice, lost-ack injection and readback / aiohttp',
+                            'expected':'stale preview refreshes without overwriting edits; shared-base samefieldconflict choice preserved; unknown blocksretry; explicit readback verifies success; freshrequired',
+                            'observed':'passed','physical':'not attempted'}
+                        (output/'reconciliation.json').write_text(json.dumps(reconciliation_result,indent=2)+'\n')
                         await cdp.wait("!document.querySelector('#scenario-save').disabled",session)
                         await cdp.evaluate("document.querySelector('#scenario-name').value='Reproducible dashboard';document.querySelector('#scenario-save').click()",session)
                         await cdp.wait("document.querySelector('#scenario-status').textContent.includes('saved locally')",session)

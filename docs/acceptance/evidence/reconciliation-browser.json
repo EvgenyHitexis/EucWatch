@@ -1,0 +1,7 @@
+{
+  "issue": 29,
+  "provenance": "actual Canvas transfer / HTML local alert edits, simulated watch edits, stale preview, conflict choice, lost-ack injection and readback / aiohttp",
+  "expected": "stale preview refreshes without overwriting edits; shared-base samefieldconflict choice preserved; unknown blocksretry; explicit readback verifies success; freshrequired",
+  "observed": "passed",
+  "physical": "not attempted"
+}

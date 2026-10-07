@@ -24,6 +24,34 @@ MAX_MESSAGE_BYTES = 512
 CHUNK_BYTES = 64
 
 
+class ScenarioTransport:
+    """Explicit fault controls for the simulated watch byte protocol only."""
+
+    def __init__(self, endpoint: "SimulatedWatch"):
+        self.endpoint = endpoint
+        self.values = {"stage": "normal", "commit": "normal", "readback": "normal"}
+        self.committed = False
+
+    def configure(self, values: dict[str, Any]) -> None:
+        allowed = {"stage": ("normal", "interrupt"), "commit": ("normal", "lost_ack"), "readback": ("normal", "fail")}
+        if not values or set(values) - allowed.keys() or any(value not in allowed[key] for key, value in values.items()):
+            raise ValueError("Invalid simulated configuration-transfer scenario")
+        self.values.update(values)
+
+    def exchange(self, message: bytes) -> bytes:
+        row = decode(message)
+        if row["op"] == "chunk" and self.values["stage"] == "interrupt" and row["index"] >= 1:
+            raise OSError("Controlled staging interruption; prior active copy preserved")
+        if row["op"] == "read" and self.values["readback"] == "fail" and self.committed:
+            raise OSError("Controlled saved-content readback failure")
+        response = self.endpoint.exchange(message)
+        if row["op"] == "commit":
+            self.committed = True
+            if self.values["commit"] == "lost_ack":
+                raise OSError("Controlled activation acknowledgement loss")
+        return response
+
+
 def content_bytes(config: dict[str, Any]) -> bytes:
     data = json.dumps(
         validate_configuration(config),
@@ -254,7 +282,7 @@ class ConfigurationProtocol:
             raise ValueError("Saved configuration revision mismatch")
         return config
 
-    def upload(self, config: dict[str, Any], expected: dict[str, Any]) -> None:
+    def upload(self, config: dict[str, Any], expected: dict[str, Any], before_commit: Callable[[], None] | None = None) -> None:
         data = content_bytes(config)
         self.request(
             "stage",
@@ -266,4 +294,6 @@ class ConfigurationProtocol:
         for index, offset in enumerate(range(0, len(data), CHUNK_BYTES)):
             self.request("chunk", **chunk(data[offset : offset + CHUNK_BYTES], index))
         self.request("validate")
+        if before_commit is not None:
+            before_commit()
         self.request("commit")

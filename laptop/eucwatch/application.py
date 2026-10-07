@@ -455,6 +455,10 @@ class Application:
                     self.alerts_draft = None
         elif name == "alerts_begin":
             self.alerts_draft = deepcopy(self.config["alerts"])
+        elif name == "transfer_scenario":
+            self.transfer.configure_scenario(payload)
+        elif name == "transfer_watch_edit":
+            self.transfer.watch_edit(payload)
         elif name == "transfer_begin":
             if self.transfer.active:
                 raise ValueError("Configuration transfer is already active")
@@ -475,7 +479,7 @@ class Application:
             self._update_control()
             self._update_alerts()
             self.feedback = "Configuration transfer · wheel disconnected"
-        elif name in ("transfer_preview", "transfer_choose", "transfer_send", "transfer_cancel", "transfer_return"):
+        elif name in ("transfer_preview", "transfer_choose", "transfer_send", "transfer_reconcile", "transfer_cancel", "transfer_return"):
             if self.mode != "transfer" or not self.transfer.active:
                 raise ValueError("Enter configuration transfer on the watch first")
             if name == "transfer_preview":
@@ -485,8 +489,8 @@ class Application:
             elif name == "transfer_cancel":
                 self.transfer.cancel()
                 self.feedback = "Transfer cancelled · watch content unchanged"
-            elif name == "transfer_send":
-                committed = self.transfer.send(self.config)
+            elif name in ("transfer_send", "transfer_reconcile"):
+                committed = self.transfer.send(self.config) if name == "transfer_send" else self.transfer.reconcile(self.config)
                 if committed is not None:
                     self.config = committed
                     self.confirmed_preset = None
@@ -494,8 +498,12 @@ class Application:
                     self.persistence_error = None
                     self.feedback = "Configuration transferred · saved readback verified"
                 else:
+                    if self.transfer.local_saved is not None:
+                        self.config = deepcopy(self.transfer.local_saved)
+                        self.confirmed_preset = None
+                        self.alerts.configure(self.config["alerts"], self.elapsed())
                     self.feedback = self.transfer.error or "Configuration transfer failed"
-            if name == "transfer_return" or (name == "transfer_send" and self.transfer.status == "success"):
+            if name == "transfer_return" or (name in ("transfer_send", "transfer_reconcile") and self.transfer.status == "success"):
                 self.transfer.leave()
                 self.mode = self.transfer.previous_mode
                 self.screen = "dashboard"
