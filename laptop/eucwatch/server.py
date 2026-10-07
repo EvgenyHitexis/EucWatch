@@ -10,12 +10,13 @@ from aiohttp import web
 
 from eucwatch import Application
 from eucwatch.recording import Recorder, Replay
+from eucwatch.persistence import FileStore
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def create_app(application=None, recorder=None):
-    behavior = application or Application(event_sink=None if recorder is None else recorder.record)
+def create_app(application=None, recorder=None, store=None):
+    behavior = application or Application(store=store,event_sink=None if recorder is None else recorder.record)
     credential = secrets.token_urlsafe(32)
     controllers = set()
     results = {}
@@ -155,7 +156,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', type=int, default=8765)
     args = parser.parse_args()
-    web.run_app(create_app(recorder=Recorder()), host='127.0.0.1', port=args.port, print=None,
+    web.run_app(create_app(recorder=Recorder(),store=FileStore()), host='127.0.0.1', port=args.port, print=None,
         handle_signals=True)
 
 

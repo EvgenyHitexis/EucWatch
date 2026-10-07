@@ -2,13 +2,21 @@
 
 import math
 from collections.abc import Callable
+from copy import deepcopy
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
+from .alerts import AlertScheduler
 from .clock import Clock, ManualClock, SystemClock
+from .configuration import (
+    default_configuration,
+    validate_alerts,
+    validate_configuration,
+)
+from .persistence import ConfigStore, MemoryStore
 from .protocol import CHARACTERISTIC, Assembler, Telemetry, decode
-from .simulator import Simulator
 from .recording import Replay
+from .simulator import Simulator
 
 
 def rounded(value: float, places: int = 0) -> str:
@@ -30,6 +38,8 @@ class Application:
         self,
         clock: Clock | None = None,
         event_sink: Callable[[dict[str, Any]], None] | None = None,
+        store: ConfigStore | None = None,
+        vibration_output: Callable[[dict[str, Any]], None] | None = None,
     ):
         self.clock = clock or SystemClock()
         self.host_clock = self.clock
@@ -60,6 +70,35 @@ class Application:
         self.recording_error: str | None = None
         self.replay: Replay | None = None
         self.replay_source_session: int | str | None = None
+        self.store = store or MemoryStore()
+        self.persistence_error: str | None = None
+        self.config = default_configuration()
+        try:
+            loaded = self.store.load()
+            if loaded is not None:
+                self.config = validate_configuration(loaded)
+            self.persistence_error = self.store.warning
+        except (OSError, ValueError) as exc:
+            self.persistence_error = f"Saved configuration requires review: {exc}"
+        self.alerts_draft: dict[str, Any] | None = None
+        self.alerts = AlertScheduler(self.config["alerts"], output=vibration_output)
+
+    def _update_alerts(self) -> None:
+        now = self.elapsed()
+        # Process ordinary virtual-time gaps through the freshness deadline.
+        # Resume takes a separate cancellation path and never replays pulses.
+        if self.alerts.fresh and not self.fresh() and self.last_valid is not None:
+            expiry = min(now, self.last_valid + 1)
+            self.alerts.tick(expiry)
+            self.alerts.evaluate(expiry, fresh=False)
+        values = self.telemetry
+        self.alerts.evaluate(
+            now,
+            fresh=self.fresh(),
+            pwm=None if values is None else values.pwm_percent,
+            speed=None if values is None else abs(values.speed_kmh),
+            battery=None if values is None else battery_percent(values.voltage_V),
+        )
 
     def _event(self, event: str, **values: Any) -> None:
         if self.event_sink is not None:
@@ -82,9 +121,31 @@ class Application:
 
     def action(self, name: str, **payload: Any) -> dict[str, Any]:
         self.tick()
-        self._event("intent", action=name, payload={k:v for k,v in payload.items() if k != 'recording'})
-        if self.mode == 'replay' and name not in ('replay_start', 'replay_step', 'stop', 'simulator_start', 'swipe', 'sleep', 'button_down', 'button_up', 'button_hold', 'interact'):
-            raise ValueError('Replay is read-only; no wheel commands or simulator input')
+        self._event(
+            "intent",
+            action=name,
+            payload={k: v for k, v in payload.items() if k != "recording"},
+        )
+        if self.mode == "replay" and name not in (
+            "replay_start",
+            "replay_step",
+            "stop",
+            "simulator_start",
+            "swipe",
+            "sleep",
+            "button_down",
+            "button_up",
+            "button_hold",
+            "interact",
+            "alerts_begin",
+            "alerts_update",
+            "alerts_save",
+            "alerts_cancel",
+            "alert_test",
+        ):
+            raise ValueError(
+                "Replay is read-only; no wheel commands or simulator input"
+            )
         if name in ("connect", "simulator_start"):
             self.replay = None
             mode = payload.get("mode", "simulator")
@@ -95,6 +156,7 @@ class Application:
             )
             if type(controlled) is not bool:
                 raise ValueError("Controlled simulator time must be true or false")
+            self.alerts.reset(self.elapsed(), clear_trace=True)
             self.controlled = controlled
             self.clock = ManualClock() if controlled else self.host_clock
             self.time_offset = 0
@@ -146,63 +208,71 @@ class Application:
                 )
             self.time_offset += seconds
             self.tick()
-        elif name == 'replay_start':
-            recording = payload.get('recording')
+        elif name == "replay_start":
+            recording = payload.get("recording")
             if not isinstance(recording, Replay):
-                raise ValueError('A validated wheel recording is required')
+                raise ValueError("A validated wheel recording is required")
+            self.alerts.reset(self.elapsed(), clear_trace=True)
             self.session += 1
-            self.mode = 'replay'
+            self.mode = "replay"
             self.simulating = False
             self.connected = False
             self.last_valid = None
             self.parser = Assembler()
             first = recording.rows[0]
-            initial_time = first.get('behavior_elapsed_s', first['receipt_elapsed_s'])
+            initial_time = first.get("behavior_elapsed_s", first["receipt_elapsed_s"])
             self.clock = ManualClock(initial_time)
             self.time_offset = 0
             self.previous_clock = self.clock.read()
             self.replay = recording
             self.replay_source_session = None
-            self.screen = 'dashboard'
+            self.screen = "dashboard"
             self.awake = True
             self.last_interaction = initial_time
             self.button_down = False
             self.button_started = None
             self.wake_cycle = False
-        elif name == 'replay_step':
-            if self.mode != 'replay' or self.replay is None:
-                raise ValueError('No replay is loaded')
+        elif name == "replay_step":
+            if self.mode != "replay" or self.replay is None:
+                raise ValueError("No replay is loaded")
             row = self.replay.next_event()
             if row is not None:
-                stamp = row.get('behavior_elapsed_s', row['receipt_elapsed_s'])
+                stamp = row.get("behavior_elapsed_s", row["receipt_elapsed_s"])
                 if not isinstance(self.clock, ManualClock):
-                    raise ValueError('Replay requires a virtual clock')
+                    raise ValueError("Replay requires a virtual clock")
                 self.clock.elapsed = stamp
                 self.clock.monotonic = stamp
                 self.previous_clock = self.clock.read()
+                if row["event"] == "transport" and row["transition"] == "resume":
+                    had_fresh = self.alerts.had_fresh
+                    self.alerts.reset(self.elapsed())
+                    self.alerts.had_fresh = had_fresh
+                    self.last_valid = None
                 self.tick()
-                event = row['event']
-                if event == 'transport':
+                event = row["event"]
+                if event == "transport":
                     self.session += 1
                     self.parser = Assembler()
                     self.last_valid = None
-                    self.replay_source_session = row['session']
-                    if row['transition'] != 'resume':
-                        self.connected = row['transition'] == 'connected'
+                    self.replay_source_session = row["session"]
+                    if row["transition"] != "resume":
+                        self.connected = row["transition"] == "connected"
                     self.button_down = False
                     self.wake_cycle = False
                     self.button_started = None
                     self.established_connection |= self.connected
+                    if row["transition"] == "connected":
+                        self.alerts.reset(self.elapsed())
                     if self.connected:
                         self.awake = True
                         self.last_interaction = self.elapsed()
-                elif event == 'notification':
+                elif event == "notification":
                     if self.replay_source_session is None:
-                        self.replay_source_session = row['session']
+                        self.replay_source_session = row["session"]
                         self.connected = True
                         self.established_connection = True
-                    if row['session'] == self.replay_source_session:
-                        self.receive(self.session, bytes.fromhex(row['raw_hex']))
+                    if row["session"] == self.replay_source_session:
+                        self.receive(self.session, bytes.fromhex(row["raw_hex"]))
                 # Recorded intents/submissions/results are evidence, never actions.
         elif name == "swipe":
             direction = payload.get("direction")
@@ -215,6 +285,46 @@ class Application:
                     self.screen = "settings"
                 elif direction == "right" and self.screen != "dashboard":
                     self.screen = "dashboard"
+                    self.alerts_draft = None
+        elif name == "alerts_begin":
+            self.alerts_draft = deepcopy(self.config["alerts"])
+        elif name == "alerts_update":
+            alert = payload.pop("alert", None)
+            if self.alerts_draft is None:
+                raise ValueError("Open the alert editor before editing")
+            if (
+                alert not in self.alerts_draft
+                or not payload
+                or set(payload)
+                - ({"enabled"} if alert == "lost" else {"enabled", "threshold"})
+            ):
+                raise ValueError("Invalid alert draft field")
+            self.alerts_draft[alert].update(payload)
+        elif name == "alerts_save":
+            if self.alerts_draft is None:
+                raise ValueError("No alert draft is open")
+            alerts = validate_alerts(self.alerts_draft)
+            proposed = deepcopy(self.config)
+            proposed["alerts"] = alerts
+            proposed["revision"] += 1
+            proposed = validate_configuration(proposed)
+            try:
+                self.store.save(proposed)
+            except (OSError, ValueError) as exc:
+                self.persistence_error = f"Configuration save failed: {exc}"
+            else:
+                self.config = proposed
+                self.alerts_draft = None
+                self.persistence_error = None
+                self.alerts.configure(alerts, self.elapsed())
+                self._update_alerts()
+        elif name == "alerts_cancel":
+            self.alerts_draft = None
+        elif name == "alert_test":
+            alert = payload.get("alert")
+            if not isinstance(alert, str):
+                raise ValueError("An alert pattern is required")
+            self.alerts.test(alert, self.elapsed())
         elif name == "sleep":
             if not self.awake or self.screen != "settings":
                 raise ValueError("Sleep screen is available inside Settings")
@@ -258,6 +368,7 @@ class Application:
             and not self.established_connection
             and not self.button_down
             and not self.recovery
+            and self.alerts_draft is None
             and self.elapsed() - self.last_interaction >= 30 - 1e-9
         ):
             self.awake = False
@@ -268,6 +379,7 @@ class Application:
             and self.simulator.values["traffic"] != "paused"
         ):
             self._emit()
+        self._update_alerts()
 
     def _check_resume(self) -> None:
         boot, mono = self.clock.read()
@@ -283,6 +395,9 @@ class Application:
             self.button_down = False
             self.wake_cycle = False
             self.button_started = None
+            had_fresh = self.alerts.had_fresh
+            self.alerts.reset(self.elapsed())
+            self.alerts.had_fresh = had_fresh
             self._event("transport", transition="resume")
 
     def _emit(self) -> None:
@@ -301,12 +416,14 @@ class Application:
         )
         if session != self.session or not self.connected:
             return
+        self._update_alerts()
         for frame in self.parser.feed(raw):
             telemetry = decode(frame)
             if telemetry is not None:
                 self.telemetry = telemetry
                 self.last_valid = self.elapsed()
                 self.valid_frames += 1
+                self._update_alerts()
             else:
                 self.parser.rejected += 1
 
@@ -330,7 +447,11 @@ class Application:
             "established_connection": self.established_connection,
             "feedback": self.feedback,
             "recording_error": self.recording_error,
-            'replay': None if self.replay is None else self.replay.status(),
+            "config": deepcopy(self.config),
+            "alerts_draft": deepcopy(self.alerts_draft),
+            "persistence_error": self.persistence_error,
+            "vibration": self.alerts.view(),
+            "replay": None if self.replay is None else self.replay.status(),
             "session": self.session,
             "connected": self.connected,
             "fresh": live,
