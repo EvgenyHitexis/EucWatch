@@ -27,6 +27,22 @@ interface Preset {
   pedal_dip_compensation?: number;
 }
 interface PresetMenuSlot { id: number; name: string; configured: boolean; available: boolean; revision: number }
+interface LiveStatus {
+  devices: { address: string; name: string; rssi: number; service_uuids: string[] }[];
+  selected: string | null;
+  link: string;
+  error: string | null;
+  firmware: string | null;
+  notifications: number;
+  valid_frames: number;
+  rejected_frames: number;
+  disconnects: number;
+  reconnections: number;
+  notification_rate_hz: number | null;
+  maximum_notification_gap_s: number;
+  maximum_frame_gap_s: number;
+  provenance: string;
+}
 const alertNames: AlertName[] = ['pwm', 'speed', 'battery', 'lost'];
 const alertLabels: Record<AlertName, string> = { pwm: 'High PWM', speed: 'High speed', battery: 'Low wheel battery', lost: 'Lost telemetry' };
 const alertUnits: Record<AlertName, string> = { pwm: '%', speed: 'km/h', battery: '%', lost: '' };
@@ -47,6 +63,7 @@ interface View {
   alerts_draft: AlertSettings | null;
   preset_draft: Preset | null;
   presets_menu: PresetMenuSlot[];
+  live: LiveStatus | null;
   persistence_error: string | null;
   vibration: {
     simulated: boolean;
@@ -119,6 +136,16 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <p class="metadata" id="replay-progress">No replay loaded.</p>
         <p class="metadata replay-provenance" id="replay-provenance"></p>
         <div class="divider"></div>
+        <h2>Live Sherman L connection</h2>
+        <p class="intro">Discover Bluetooth devices explicitly, then select your wheel. The backend uses ordinary-user BlueZ/Bleak; this panel does not use browser Bluetooth.</p>
+        <button id="live-discover" data-action="live_discover" data-control>Discover devices</button>
+        <label style="margin-top:16px">Discovered device<select id="live-device"><option value="">Discover devices first</option></select></label>
+        <div class="actions"><button id="live-select" data-action="live_select" data-control>Connect selected wheel</button><button id="live-disconnect" data-action="live_disconnect" data-control>Disconnect live wheel</button></div>
+        <p class="metadata" id="live-status">Live transport is not active.</p>
+        <p class="messages" id="live-error" role="alert"></p>
+        <p class="metadata" id="live-diagnostics"></p>
+        <p class="metadata" id="live-provenance">Physical live evidence remains pending until observed.</p>
+        <div class="divider"></div>
         <h2>Vibration alerts</h2>
         <p class="intro">Edit the saved alert settings here or in watch Settings. Changes require Save; Cancel and watch back-navigation discard the draft.</p>
         <button id="alerts-edit" data-action="alerts_begin" data-control>Edit alerts</button>
@@ -165,6 +192,8 @@ let replayLoadGeneration = 0;
 let alertPage = 0;
 let watchError = '';
 let presetError = '';
+let liveError = '';
+let discoveredDevices = '';
 let thresholdEntry: string | null = null;
 let rendered = '';
 const controllerStorageKey = 'sherman-l-controller';
@@ -211,6 +240,10 @@ function setControls(): void {
   document.querySelector<HTMLSelectElement>('#preset-slot')!.disabled = !!current?.preset_draft || !available || submitting;
   document.querySelector<HTMLButtonElement>('#preset-edit')!.disabled ||= !!current?.preset_draft;
   document.querySelector<HTMLButtonElement>('#preset-clear')!.disabled ||= !!current?.preset_draft;
+  document.querySelector<HTMLButtonElement>('#live-discover')!.disabled ||= !current?.live || (current?.mode === 'live' && current.connected);
+  document.querySelector<HTMLButtonElement>('#live-select')!.disabled ||= !current?.live || !document.querySelector<HTMLSelectElement>('#live-device')!.value;
+  document.querySelector<HTMLButtonElement>('#live-disconnect')!.disabled ||= !current?.live || current.mode !== 'live';
+  document.querySelector<HTMLSelectElement>('#live-device')!.disabled = !available || submitting || !current?.live?.devices.length;
 }
 
 function text(value: string, x: number, y: number, size: number, color = '#ffffff', align: CanvasTextAlign = 'left'): void {
@@ -221,7 +254,7 @@ function text(value: string, x: number, y: number, size: number, color = '#fffff
 }
 
 function render(view: View | null): void {
-  const key = JSON.stringify([view, available, alertPage, watchError, thresholdEntry, presetError]);
+  const key = JSON.stringify([view, available, alertPage, watchError, thresholdEntry, presetError, liveError]);
   if (key === rendered) return;
   rendered = key;
   ctx.fillStyle = '#000000';
@@ -239,6 +272,22 @@ function render(view: View | null): void {
   const replay = view?.replay;
   document.querySelector<HTMLElement>('#replay-progress')!.textContent = replay ? `${replay.finished ? 'Replay finished' : 'Read-only replay'} · ${replay.position} / ${replay.total} events · elapsed ${(view?.elapsed_s ?? 0).toFixed(2)} s` : 'No replay loaded.';
   document.querySelector<HTMLElement>('#replay-provenance')!.textContent = replay ? `${replay.name} · Source: ${replay.source} · SHA-256: ${replay.sha256}` : '';
+  const live = view?.live;
+  const devices = JSON.stringify(live?.devices ?? []);
+  if (devices !== discoveredDevices) {
+    discoveredDevices = devices;
+    const select = document.querySelector<HTMLSelectElement>('#live-device')!;
+    const selected = select.value;
+    select.replaceChildren(new Option(live?.devices.length ? 'Select your wheel' : 'No discovered devices', ''));
+    for (const device of live?.devices ?? []) select.add(new Option(`${device.name} · ${device.address} · ${device.rssi} dBm`, device.address));
+    if (Array.from(select.options).some(option => option.value === selected)) select.value = selected;
+    else if (live?.selected && Array.from(select.options).some(option => option.value === live.selected)) select.value = live.selected;
+    setControls();
+  }
+  document.querySelector<HTMLElement>('#live-status')!.textContent = live ? `Live transport: ${live.link}${live.selected ? ` · ${live.selected}` : ''} · ${live.firmware ? `CRC-valid Sherman L telemetry · firmware ${live.firmware}` : 'Wheel identity pending valid telemetry'}` : 'Live transport is unavailable in this application session.';
+  document.querySelector<HTMLElement>('#live-error')!.textContent = liveError || live?.error || '';
+  document.querySelector<HTMLElement>('#live-diagnostics')!.textContent = live ? `${live.notifications} notifications · ${live.valid_frames} valid frames · ${live.rejected_frames} rejects · ${live.notification_rate_hz === null ? 'Cadence pending' : `${live.notification_rate_hz.toFixed(2)} notifications/s`} · max notification gap ${live.maximum_notification_gap_s.toFixed(3)} s · max frame gap ${live.maximum_frame_gap_s.toFixed(3)} s · ${live.disconnects} disconnects · ${live.reconnections} reconnections` : '';
+  document.querySelector<HTMLElement>('#live-provenance')!.textContent = live?.provenance ?? 'Physical live evidence remains pending until observed.';
   const alerts = view?.alerts_draft ?? view?.config?.alerts;
   if (alerts) {
     for (const name of alertNames) {
@@ -374,16 +423,17 @@ async function refresh(): Promise<void> {
 
 async function action(actionName: string, payload: Record<string, unknown> = {}): Promise<boolean> {
   if (!available || !session?.controller || submitting) return false;
-  if (['simulator_start', 'stop', 'connect', 'replay_start'].includes(actionName)) replayLoadGeneration++;
+  if (['simulator_start', 'stop', 'connect', 'replay_start', 'live_select', 'live_disconnect'].includes(actionName)) replayLoadGeneration++;
   submitting = true;
   setControls();
   message.textContent = '';
   if (actionName.startsWith('alerts_')) watchError = '';
   if (actionName.startsWith('preset_')) presetError = '';
+  if (actionName.startsWith('live_')) liveError = '';
   try {
     const response = await fetch('/api/action', {
       method: 'POST',
-      signal: AbortSignal.timeout(1500),
+      signal: AbortSignal.timeout(actionName === 'live_discover' ? 10000 : actionName.startsWith('live_') ? 35000 : 1500),
       headers: { 'Content-Type': 'application/json', 'X-EucWatch-Key': session.credential },
       body: JSON.stringify({ id: crypto.randomUUID(), controller: session.controller, action: actionName, ...payload }),
     });
@@ -401,6 +451,7 @@ async function action(actionName: string, payload: Record<string, unknown> = {})
     message.textContent = error instanceof Error ? error.message : 'Action could not be sent';
     if (actionName.startsWith('alerts_')) watchError = message.textContent;
     if (actionName.startsWith('preset_')) presetError = message.textContent;
+    if (actionName.startsWith('live_')) liveError = message.textContent;
     return false;
   } finally {
     submitting = false;
@@ -555,6 +606,10 @@ document.querySelector('#advance')!.addEventListener('click', () => void action(
 document.querySelector('#disconnect')!.addEventListener('click', () => void action('disconnect'));
 document.querySelector('#connect')!.addEventListener('click', () => void action('connect', { mode: 'simulator', controlled: document.querySelector<HTMLInputElement>('#controlled')!.checked }));
 document.querySelector('#controlled')!.addEventListener('change', setControls);
+document.querySelector('#live-discover')!.addEventListener('click', () => void action('live_discover'));
+document.querySelector('#live-select')!.addEventListener('click', () => void action('live_select', { address: document.querySelector<HTMLSelectElement>('#live-device')!.value }));
+document.querySelector('#live-disconnect')!.addEventListener('click', () => void action('live_disconnect'));
+document.querySelector('#live-device')!.addEventListener('change', setControls);
 document.querySelector('#replay-step')!.addEventListener('click', () => void action('replay_step'));
 document.querySelector('#replay-load')!.addEventListener('click', async () => {
   const file = document.querySelector<HTMLInputElement>('#replay-file')!.files?.[0];

@@ -13,6 +13,8 @@ from aiohttp import ClientSession, web
 from eucwatch import Application, ManualClock
 from eucwatch.server import create_app
 from eucwatch.recording import Recorder
+from eucwatch.live import LiveSession
+from test_live import Scanner, Clients, ADDRESS, SOURCE_FRAME
 
 
 class Browser:
@@ -57,7 +59,9 @@ async def run():
     host_clock = ManualClock()
     recorder = Recorder(Path('.test-output/ui-recording.jsonl'))
     behavior = Application(clock=host_clock, event_sink=recorder.record)
-    runner = web.AppRunner(create_app(behavior, recorder=recorder))
+    live_clients = Clients()
+    live = LiveSession(behavior,scanner=Scanner(),client_factory=live_clients,reconnect_delay=0)
+    runner = web.AppRunner(create_app(behavior, recorder=recorder,live=live))
     await runner.setup()
     sock = socket.socket()
     sock.bind(('127.0.0.1', 0))
@@ -249,6 +253,34 @@ async def run():
                         assert behavior.view()['mode']=='simulator' and behavior.view()['session']==newer_session
                         replay_result['delayed_file_after_new_session']='discarded'
                         (output / 'replay.json').write_text(json.dumps(replay_result,indent=2)+'\n')
+                        await cdp.wait("!document.querySelector('#live-discover').disabled",session)
+                        await cdp.evaluate("document.querySelector('#live-discover').click()",session)
+                        await cdp.wait("document.querySelector('#live-device').options.length===2 && !document.querySelector('#live-device').disabled",session)
+                        assert live_clients.created==[]
+                        await cdp.evaluate(f"document.querySelector('#live-device').value={json.dumps(ADDRESS)}; document.querySelector('#live-device').dispatchEvent(new Event('change'))",session)
+                        await cdp.wait("!document.querySelector('#live-select').disabled",session)
+                        await cdp.evaluate("document.querySelector('#live-select').click()",session)
+                        await cdp.wait("document.querySelector('#mode').textContent==='LIVE WHEEL' && document.querySelector('#live-status').textContent.includes('subscribed')",session)
+                        assert not behavior.view()['fresh']
+                        live_clients.created[0].emit(SOURCE_FRAME)
+                        await cdp.wait("document.querySelector('canvas').dataset.fresh==='true' && document.querySelector('#live-status').textContent.includes('006.0.03')",session)
+                        first=live_clients.created[0]
+                        first.lose_link()
+                        assert not behavior.view()['fresh']
+                        await cdp.wait("document.querySelector('#live-diagnostics').textContent.includes('1 reconnections')",session)
+                        assert not behavior.view()['fresh']
+                        first.emit(SOURCE_FRAME)
+                        assert not behavior.view()['fresh']
+                        live_clients.created[1].emit(SOURCE_FRAME)
+                        await cdp.wait("document.querySelector('canvas').dataset.fresh==='true'",session)
+                        await cdp.wait("!document.querySelector('[data-action=simulator_start]').disabled",session)
+                        await cdp.evaluate("document.querySelector('[data-action=simulator_start]').click()",session)
+                        await cdp.wait("document.querySelector('#mode').textContent==='SIMULATOR'",session)
+                        assert not live_clients.created[1].is_connected
+                        live_result={'issue':25,'provenance':'actual HTML discovery/select / Canvas / aiohttp / controlled Bleak-compatible transports',
+                            'expected':'explicitscanonly, livefreshidentity, loss/newsession/freshrecovery, oldcallbackinert, simulatorcloseslive',
+                            'observed':'passed','physical_evidence':'pending owner authorization'}
+                        (output/'live.json').write_text(json.dumps(live_result,indent=2)+'\n')
                         print(json.dumps(report, indent=2))
                         print(json.dumps(replay_result, indent=2))
             finally:

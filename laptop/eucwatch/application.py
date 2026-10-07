@@ -135,6 +135,7 @@ class Application:
             "replay_step",
             "stop",
             "simulator_start",
+            "live_start",
             "swipe",
             "sleep",
             "button_down",
@@ -151,7 +152,37 @@ class Application:
             raise ValueError(
                 "Replay is read-only; no wheel commands or simulator input"
             )
-        if name in ("connect", "simulator_start"):
+        if name == "live_start":
+            self.alerts.reset(self.elapsed(), clear_trace=True)
+            self.replay = None
+            self.simulating = False
+            self.controlled = False
+            self.clock = self.host_clock
+            self.time_offset = 0
+            self.previous_clock = self.clock.read()
+            self.mode = "live"
+            self.session += 1
+            self.connected = False
+            self.last_valid = None
+            self.parser = Assembler()
+            self.button_down = False
+            self.button_started = None
+            self.wake_cycle = False
+            self._event("transport", transition="connecting")
+        elif name == "live_connected":
+            if self.mode == "live" and payload.get("session") == self.session:
+                self.connected = True
+                self.established_connection = True
+                self.awake = True
+                self._event("transport", transition="connected")
+        elif name == "live_disconnected":
+            if self.mode == "live" and payload.get("session") == self.session:
+                self.connected = False
+                self.session += 1
+                self.last_valid = None
+                self.parser = Assembler()
+                self._event("transport", transition="disconnected", reason=payload.get("reason"))
+        elif name in ("connect", "simulator_start"):
             self.replay = None
             mode = payload.get("mode", "simulator")
             if mode != "simulator":

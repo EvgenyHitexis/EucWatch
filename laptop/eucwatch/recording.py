@@ -181,7 +181,7 @@ class Replay:
                 if not isinstance(characteristic, str) or not characteristic or len(characteristic) > 256:
                     raise ValueError("Invalid notification characteristic")
             if event == "transport" and row.get("transition") not in (
-                    "connected", "disconnected", "stopped", "resume"):
+                    "connecting", "connected", "disconnected", "stopped", "resume"):
                 raise ValueError("Unknown transport transition")
             previous_time = receipt
             previous_sequence = sequence

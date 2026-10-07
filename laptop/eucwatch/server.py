@@ -11,19 +11,21 @@ from aiohttp import web
 from eucwatch import Application
 from eucwatch.recording import Recorder, Replay
 from eucwatch.persistence import FileStore
+from eucwatch.live import LiveSession
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def create_app(application=None, recorder=None, store=None):
+def create_app(application=None, recorder=None, store=None, live=None):
     behavior = application or Application(store=store,event_sink=None if recorder is None else recorder.record)
+    live = live or LiveSession(behavior)
     credential = secrets.token_urlsafe(32)
     controllers = set()
     results = {}
     last_ui_seen = time.monotonic()
 
     def snapshot():
-        return {**behavior.view(), 'recording': None if recorder is None else recorder.status()}
+        return {**behavior.view(), 'recording': None if recorder is None else recorder.status(), 'live':live.status()}
 
     def local(request):
         expected = f'{request.scheme}://{request.host}'
@@ -75,9 +77,21 @@ def create_app(application=None, recorder=None, store=None):
             key = (controller, identity)
             if key in results:
                 return web.json_response(results[key])
-            if name == 'replay_start':
-                payload['recording'] = Replay.from_text(payload['recording'], name=payload.pop('name', 'Imported recording'))
-            result = behavior.action(name, **payload)
+            if name == 'live_discover':
+                await live.discover()
+                result = snapshot()
+            elif name == 'live_select':
+                await live.connect(payload['address'])
+                result = snapshot()
+            elif name == 'live_disconnect':
+                await live.disconnect()
+                result = snapshot()
+            else:
+                if name in ('simulator_start','connect','stop','disconnect','replay_start'):
+                    await live.disconnect()
+                if name == 'replay_start':
+                    payload['recording'] = Replay.from_text(payload['recording'], name=payload.pop('name', 'Imported recording'))
+                result = behavior.action(name, **payload)
             results[key] = result
             if len(results) > 2048:
                 del results[next(iter(results))]
@@ -123,6 +137,7 @@ def create_app(application=None, recorder=None, store=None):
                 if time.monotonic() - last_ui_seen > 2 and behavior.view()['button']['down']:
                     behavior.action('button_up')
                 behavior.tick()
+                live.tick()
                 await asyncio.sleep(.02)
         async def write_recording():
             assert recorder is not None
@@ -135,6 +150,7 @@ def create_app(application=None, recorder=None, store=None):
         task.cancel()
         with suppress(asyncio.CancelledError):
             await task
+        await live.close()
         if writer is not None:
             writer.cancel()
             with suppress(asyncio.CancelledError):
