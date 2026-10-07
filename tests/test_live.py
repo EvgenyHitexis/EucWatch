@@ -2,6 +2,9 @@
 
 import asyncio
 import json
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 import zlib
@@ -92,6 +95,56 @@ class Clients:
 
 
 class LiveTests(unittest.IsolatedAsyncioTestCase):
+    async def test_transport_cancelled_cleanup_exits_and_retains_uncertain_client(self):
+        # A broken cancellation loop can starve asyncio's own timeout. Isolate
+        # this public lifecycle flow in a bounded subprocess to detect that fault.
+        script = """
+import asyncio, json
+from test_live import Application, ManualClock, Clients, Scanner, LiveSession, ADDRESS
+
+async def run():
+    clients = Clients()
+    live = LiveSession(Application(clock=ManualClock()), scanner=Scanner(), client_factory=clients)
+    await live.discover()
+    await live.connect(ADDRESS)
+    async def cancelled_disconnect():
+        raise asyncio.CancelledError
+    clients.created[0].disconnect = cancelled_disconnect
+    await live.disconnect()
+    failed = live.status()
+    await live.connect(ADDRESS)
+    print(json.dumps({'status': failed, 'clients': len(clients.created),
+                      'client_connected': clients.created[0].is_connected}))
+    await live.close()
+
+asyncio.run(run())
+"""
+        root = Path(__file__).resolve().parents[1]
+        try:
+            result = await asyncio.to_thread(
+                subprocess.run,
+                [sys.executable, "-c", script],
+                env={
+                    **os.environ,
+                    "PYTHONPATH": os.pathsep.join(
+                        (str(root / "laptop"), str(root / "tests"))
+                    ),
+                },
+                capture_output=True,
+                text=True,
+                timeout=2,
+            )
+        except subprocess.TimeoutExpired:
+            self.fail(
+                "Cancelled transport cleanup did not terminate within two seconds"
+            )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        observed = json.loads(result.stdout)
+        self.assertEqual(observed["status"]["link"], "failed")
+        self.assertIn("cancelled", observed["status"]["error"])
+        self.assertTrue(observed["client_connected"])
+        self.assertEqual(observed["clients"], 1)
+
     async def test_resume_invalidates_old_transport_token_and_recovers_only_with_fresh_bytes(
         self,
     ):

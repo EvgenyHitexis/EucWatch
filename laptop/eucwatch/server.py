@@ -22,6 +22,7 @@ def create_app(application=None, recorder=None, store=None, live=None):
     credential = secrets.token_urlsafe(32)
     controllers = set()
     results = {}
+    intent_lock = asyncio.Lock()
     last_ui_seen = time.monotonic()
 
     def snapshot():
@@ -75,27 +76,28 @@ def create_app(application=None, recorder=None, store=None, live=None):
                 raise ValueError('Valid controller and request identity required')
             last_ui_seen = time.monotonic()
             key = (controller, identity)
-            if key in results:
-                return web.json_response(results[key])
-            if name == 'live_discover':
-                await live.discover()
-                result = snapshot()
-            elif name == 'live_select':
-                await live.connect(payload['address'])
-                result = snapshot()
-            elif name == 'live_disconnect':
-                await live.disconnect()
-                result = snapshot()
-            else:
-                if name in ('simulator_start','connect','stop','disconnect','replay_start'):
+            async with intent_lock:
+                if key in results:
+                    return web.json_response(results[key])
+                if name == 'live_discover':
+                    await live.discover()
+                    result = snapshot()
+                elif name == 'live_select':
+                    await live.connect(payload['address'])
+                    result = snapshot()
+                elif name == 'live_disconnect':
                     await live.disconnect()
-                if name == 'replay_start':
-                    payload['recording'] = Replay.from_text(payload['recording'], name=payload.pop('name', 'Imported recording'))
-                result = behavior.action(name, **payload)
-            results[key] = result
-            if len(results) > 2048:
-                del results[next(iter(results))]
-            return web.json_response(result)
+                    result = snapshot()
+                else:
+                    if name in ('simulator_start','connect','stop','disconnect','replay_start'):
+                        await live.disconnect()
+                    if name == 'replay_start':
+                        payload['recording'] = Replay.from_text(payload['recording'], name=payload.pop('name', 'Imported recording'))
+                    result = behavior.action(name, **payload)
+                results[key] = result
+                if len(results) > 2048:
+                    del results[next(iter(results))]
+                return web.json_response(result)
         except (KeyError, TypeError, ValueError) as exc:
             return web.json_response({'error': str(exc)}, status=400)
 

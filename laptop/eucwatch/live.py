@@ -193,6 +193,14 @@ class LiveSession:
                 result = await asyncio.shield(cleanup)
                 break
             except asyncio.CancelledError:
+                if cleanup.cancelled():
+                    self.error = (
+                        "Bluetooth cleanup failed: transport cleanup was cancelled; "
+                        "connection state is unknown"
+                    )
+                    self.link = "failed"
+                    self.desired = False
+                    return False
                 cancelled = True
         if cancelled:
             raise asyncio.CancelledError

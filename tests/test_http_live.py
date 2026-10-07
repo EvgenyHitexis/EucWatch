@@ -1,5 +1,6 @@
 """Live UI/backend boundary with controlled transport, no Bluetooth operations."""
 import unittest
+import asyncio
 from aiohttp.test_utils import TestClient, TestServer
 from eucwatch import Application, ManualClock
 from eucwatch.live import LiveSession
@@ -8,6 +9,45 @@ from test_live import Scanner, Clients, ADDRESS, SOURCE_FRAME
 
 
 class LiveHTTPTests(unittest.IsolatedAsyncioTestCase):
+    async def test_concurrent_duplicate_selection_has_one_transport_effect(self):
+        app = Application(clock=ManualClock())
+        clients = Clients()
+        entered,release=asyncio.Event(),asyncio.Event()
+        def factory(device,**options):
+            client=clients(device,**options)
+            original=client.start_notify
+            async def subscribe(*args,**kwargs):
+                entered.set()
+                await release.wait()
+                await original(*args,**kwargs)
+            client.start_notify=subscribe
+            return client
+        live=LiveSession(app,scanner=Scanner(),client_factory=factory)
+        client=TestClient(TestServer(create_app(app,live=live)))
+        await client.start_server()
+        requests=[]
+        try:
+            session=await (await client.get('/api/session')).json()
+            headers={'Origin':str(client.make_url('/')).rstrip('/'),'X-EucWatch-Key':session['credential']}
+            common={'controller':session['controller']}
+            await client.post('/api/action',headers=headers,json={**common,'id':'discover','action':'live_discover'})
+            payload={**common,'id':'same-selection','action':'live_select','address':ADDRESS}
+            requests.append(asyncio.create_task(client.post('/api/action',headers=headers,json=payload)))
+            await asyncio.wait_for(entered.wait(),1)
+            requests.append(asyncio.create_task(client.post('/api/action',headers=headers,json=payload)))
+            await asyncio.sleep(.03)
+            self.assertEqual(len(clients.created),1)
+            release.set()
+            responses=await asyncio.gather(*requests)
+            self.assertTrue(all(response.status==200 for response in responses))
+            states=[await response.json() for response in responses]
+            self.assertEqual(states[0],states[1])
+            self.assertEqual(len(clients.created),1)
+        finally:
+            release.set()
+            await asyncio.gather(*requests,return_exceptions=True)
+            await client.close()
+
     async def test_explicit_live_selection_and_mode_switch_close_owned_transport(self):
         app = Application(clock=ManualClock())
         clients = Clients()
