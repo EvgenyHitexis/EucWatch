@@ -95,7 +95,7 @@ autonomous simulator frames continue without browser polling. Observed: passed.
 
 ### #20 — vibration alerts and durable configuration
 
-Seventeen Application-boundary alert checks cover exact pulse lengths, repeat
+Eighteen Application-boundary alert checks cover exact pulse lengths, repeat
 intervals, hysteresis, battery rearming, interruption latching, priority and no
 overlap, stale input, resume cancellation, Save/Cancel and restart recovery. The
 default PWM/speed/battery alerts remain disabled with no invented thresholds;
@@ -108,3 +108,20 @@ setting, and the Test action emits three 150 ms simulated pulses separated by
 150 ms. [Alert result](evidence/alerts.json). Watch editing includes explicit
 Save/Cancel, switch controls, threshold adjustments and a numeric keypad. Pattern
 output is simulated; physical vibration/timing acceptance remains pending.
+
+Two-axis review found no hard standards violations. Its material spec finding,
+a measurement repeat launching at the exact freshness expiry, is fixed and
+covered at that exact deadline; earlier pulse phases still finish in order.
+
+### #21 — four fixed preset definitions
+
+Eight Application-boundary checks cover defaults, required whole percentages,
+optional dip omission, Save/Cancel, staged clearing, stable identities, watch
+editing refusal, persistence failure and FileStore restart. Source-backed 0–100
+validation does not establish full physical ranges; #9 remains open. The actual
+HTML editor/Canvas/aiohttp flow rejects a missing required field, saves slot 2
+as Rain with sensitivity 30/assist 20 and no dip field, shows the name in the
+four-slot menu, cancels a staged clear and retains the definition after restart.
+[Preset result](evidence/presets.json). Editing emits no wheel commands and saves
+no wheel confirmation. Two-axis review: no material findings; two optional
+maintainability suggestions. Python typechecking and the frontend build pass.
