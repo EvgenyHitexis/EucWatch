@@ -48,7 +48,7 @@ The installed contracts are documented in
 [sanitized device evidence](../docs/research/p22-device-evidence.json) and
 [backup/recovery research](../docs/research/p22-backup-recovery.md): touch reset
 D10, deep sleep register E5, I2C D7/D6, interrupt D28, button supply D15/BTN1,
-charger D19, vibration idle D16, and battery analog input D31. Charger debounce
+charger D19, active-high vibration D16 (idle 0), and battery analog input D31. Charger debounce
 is 500 ms. Sampling reads 7.1×analogRead(D31), then disconnects its pin input
 using the installed PIN_CNF register write. Percentage clamps at 3.5/4.19 V
 and truncates the intervening linear percentage. These are installed driver
