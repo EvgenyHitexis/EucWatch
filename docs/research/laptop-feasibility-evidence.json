@@ -1,0 +1,126 @@
+{
+  "environment": {
+    "python": "3.12.3",
+    "kernel": "7.0.0-38-generic",
+    "uid": 1000,
+    "packages": {
+      "bleak": "3.0.2",
+      "dbus-fast": "5.2.0",
+      "aiohttp": "3.14.4"
+    },
+    "boottime_available": true
+  },
+  "scan": {
+    "status": "pass",
+    "duration_s": 5.090661577996798,
+    "advertisement_callbacks": 171,
+    "unique_devices": 35,
+    "backend": "BleakBackend.BLUEZ_DBUS",
+    "connected": false,
+    "identities_retained": false
+  },
+  "offline": {
+    "status": "pass",
+    "fixture": {
+      "firmware_word": 6003,
+      "voltage_V": 147.14,
+      "speed_kmh": -0.2,
+      "pwm_percent": 1.8
+    },
+    "split_positions": 86,
+    "single_bit_corruption_recovery_cases": 696,
+    "recorded_notifications": 13,
+    "replayed_valid_frames": 3,
+    "raw_bytes_boundaries_timestamps_preserved": true,
+    "replay_state_equivalent": true,
+    "synthetic_suspend_stale_and_intent_cancel": true,
+    "synthetic_disconnect_late_callback_and_dedup": true,
+    "actual_system_suspend_tested": false
+  },
+  "browser": {
+    "source": "synthetic",
+    "headless": false,
+    "display": "Xvfb",
+    "driver": "direct CDP",
+    "chrome_args": [
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-sync",
+      "--disable-background-networking",
+      "--remote-debugging-port=0"
+    ],
+    "focus_emulation": false,
+    "background_throttling_disabled": false,
+    "actual_system_suspend_tested": false,
+    "browser_version": "Chrome/154.0.8037.92",
+    "hidden": {
+      "visibility": "hidden",
+      "seconds": 3,
+      "additional_frames": 29
+    },
+    "forced_freeze": {
+      "seconds": 2,
+      "additional_frames": 20,
+      "events": [
+        {
+          "name": "visibilitychange",
+          "visibility": "hidden",
+          "at": 275.3999999985099,
+          "polls": 1
+        },
+        {
+          "name": "freeze",
+          "visibility": "hidden",
+          "at": 3320,
+          "polls": 4
+        },
+        {
+          "name": "resume",
+          "visibility": "hidden",
+          "at": 5321,
+          "polls": 4
+        },
+        {
+          "name": "visibilitychange",
+          "visibility": "visible",
+          "at": 5323.29999999702,
+          "polls": 4
+        }
+      ],
+      "frontend_polls_stopped": true
+    },
+    "reload": {
+      "same_session": true,
+      "frames_before": 56,
+      "frames_after": 58
+    },
+    "paused_feed": {
+      "session": "browser-probe",
+      "frames": 59,
+      "notifications": 298,
+      "fresh": false,
+      "values": {
+        "firmware_word": 6003,
+        "voltage_V": 147.14,
+        "speed_kmh": -0.2,
+        "pwm_percent": 1.8
+      }
+    },
+    "resumed_feed_fresh": true,
+    "probe_pages_closed": {
+      "additional_frames": 10
+    },
+    "status": "pass",
+    "notifications": 355,
+    "valid_frames": 71,
+    "recording_order_and_bytes_verified": true,
+    "recording_sha256": "20cefe394f0cd528c6ec76f247af2870afb45ccab27cccfc2bcc5b7c3cad71f9",
+    "total_duration_s": 8.215240801000618
+  },
+  "scope": {
+    "live_wheel_tested": false,
+    "application_level_ble_writes": 0,
+    "actual_system_suspend_tested": false,
+    "verdict": "partial pass; live wheel and physical suspend evidence pending"
+  }
+}
