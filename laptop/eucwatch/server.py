@@ -13,13 +13,15 @@ from eucwatch.recording import Recorder, Replay
 from eucwatch.persistence import FileStore
 from eucwatch.live import LiveSession
 from eucwatch.live_control import LiveControl
+from eucwatch.scenarios import ScenarioLibrary, FileScenarioStore
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def create_app(application=None, recorder=None, store=None, live=None, *, controller_timeout=10.0, result_limit=2048):
+def create_app(application=None, recorder=None, store=None, live=None, *, controller_timeout=10.0, result_limit=2048, scenario_store=None):
     behavior = application or Application(store=store,event_sink=None if recorder is None else recorder.record)
     live = live or LiveSession(behavior)
+    scenarios = ScenarioLibrary(scenario_store)
     control = LiveControl(live, behavior)
     behavior.live_command_output = control.submit
     credential = secrets.token_urlsafe(32)
@@ -38,7 +40,7 @@ def create_app(application=None, recorder=None, store=None, live=None, *, contro
                 behavior.action('button_up')
 
     def snapshot():
-        return {**behavior.view(), 'recording': None if recorder is None else recorder.status(), 'live':live.status()}
+        return {**behavior.view(), 'recording': None if recorder is None else recorder.status(), 'live':live.status(), 'scenario':scenarios.view()}
 
     def local(request):
         expected = f'{request.scheme}://{request.host}'
@@ -107,7 +109,25 @@ def create_app(application=None, recorder=None, store=None, live=None, *, contro
                 epoch = payload.pop('epoch', None)
                 if type(epoch) is not int or epoch != behavior.session:
                     return web.json_response({'error':'Application session changed; refresh before acting'}, status=409)
-                if name == 'live_discover':
+                if name.startswith('scenario_'):
+                    if name == 'scenario_save':
+                        scenarios.save_current(behavior.simulator.values, payload.get('name'), payload.get('steps'))
+                    elif name == 'scenario_review':
+                        scenarios.review(payload.get('content'))
+                    elif name == 'scenario_export':
+                        scenarios.export()
+                    elif name == 'scenario_start':
+                        scenarios.export()  # Validate a complete definition before disconnecting.
+                        if behavior.transfer.active:
+                            raise ValueError('Return from transfer before starting a scenario')
+                        await live.disconnect()
+                        scenarios.start(behavior)
+                    elif name == 'scenario_step':
+                        scenarios.step(behavior)
+                    else:
+                        raise ValueError('Unknown scenario action')
+                    result = snapshot()
+                elif name == 'live_discover':
                     await live.discover()
                     result = snapshot()
                 elif name == 'live_select':
@@ -129,7 +149,7 @@ def create_app(application=None, recorder=None, store=None, live=None, *, contro
                     if name.startswith('transfer_') and live.client is not None:
                         raise ValueError('Wheel disconnect outcome is uncertain; complete disconnect before configuration transfer')
                     result = behavior.action(name, **payload)
-                    if name in ('transfer_send', 'transfer_return') and not behavior.transfer.active and behavior.mode == 'live' and live.selected:
+                    if name in ('transfer_send', 'transfer_return', 'transfer_reconcile') and not behavior.transfer.active and behavior.mode == 'live' and live.selected:
                         await live.connect(live.selected)
                         result = snapshot()
                 results[key] = result
@@ -217,7 +237,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', type=int, default=8765)
     args = parser.parse_args()
-    web.run_app(create_app(recorder=Recorder(),store=FileStore()), host='127.0.0.1', port=args.port, print=None,
+    web.run_app(create_app(recorder=Recorder(),store=FileStore(),scenario_store=FileScenarioStore()), host='127.0.0.1', port=args.port, print=None,
         handle_signals=True)
 
 

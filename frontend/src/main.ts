@@ -1,4 +1,5 @@
 import './style.css';
+import { mountScenarios, type ScenarioView } from './scenarios';
 import { mountBackup } from './backup';
 import { mountTransfer, type TransferView } from './transfer';
 
@@ -50,12 +51,14 @@ const alertLabels: Record<AlertName, string> = { pwm: 'High PWM', speed: 'High s
 const alertUnits: Record<AlertName, string> = { pwm: '%', speed: 'km/h', battery: '%', lost: '' };
 interface View {
   mode: string;
+  controlled: boolean;
   session: number;
   elapsed_s: number;
   connected: boolean;
   fresh: boolean;
   screen: 'dashboard' | 'presets' | 'settings' | 'transfer';
   transfer: TransferView;
+  scenario: ScenarioView;
   awake: boolean;
   button: { down: boolean; wake_cycle: boolean };
   recovery: boolean;
@@ -247,7 +250,7 @@ function setControls(): void {
   document.querySelectorAll<HTMLButtonElement>('[data-simulator]').forEach(button => {
     button.disabled = !available || !session?.controller || submitting || current?.mode !== 'simulator';
   });
-  document.querySelector<HTMLButtonElement>('#advance')!.disabled ||= !document.querySelector<HTMLInputElement>('#controlled')!.checked;
+  document.querySelector<HTMLButtonElement>('#advance')!.disabled = !available || !session?.controller || submitting || !current?.controlled || !['simulator','transfer'].includes(current.mode);
   document.querySelector<HTMLButtonElement>('#replay-load')!.disabled ||= loadingReplay;
   document.querySelector<HTMLButtonElement>('#replay-step')!.disabled = !available || !session?.controller || submitting || current?.mode !== 'replay' || !current.replay || current.replay.finished;
   document.querySelector<HTMLButtonElement>('#recording-download')!.disabled = !available || !session?.credential || !current?.recording;
@@ -267,6 +270,7 @@ function setControls(): void {
   document.querySelector<HTMLButtonElement>('#live-disconnect')!.disabled ||= !current?.live || current.mode !== 'live';
   document.querySelector<HTMLSelectElement>('#live-device')!.disabled = !available || submitting || !current?.live?.devices.length;
   updateBackup(!submitting && available && !!session?.controller);
+  updateScenarios(!submitting && available && !!session?.controller);
   updateTransfer(!submitting && available && !!session?.controller);
 }
 
@@ -756,6 +760,7 @@ let watchChain: Promise<unknown> = Promise.resolve();
 let holdTimer: number | null = null;
 let buttonCycleOpen = false;
 let inputGeneration = 0;
+const updateScenarios=mountScenarios(action,()=>current?.scenario ?? null,()=>JSON.stringify([inputGeneration,current?.session,session?.credential]));
 const updateTransfer=mountTransfer(action,()=>current?.transfer);
 const updateBackup=mountBackup(action,()=>current,()=>JSON.stringify([inputGeneration,current?.session,current?.config.revision,session?.credential]));
 function enqueueWatch(actionName: string, payload: Record<string, unknown> = {}): Promise<unknown> {
