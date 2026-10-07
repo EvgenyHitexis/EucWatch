@@ -1,6 +1,6 @@
 # Offline watch implementation evidence
 
-This records #32 software verification for the original P22 Espruino 2v14
+This records #32/#33 software verification for the original P22 Espruino 2v14
 application. It is not watch deployment or hardware acceptance. The installed
 Espruino runtime, SoftDevice and bootloader remain unchanged.
 
@@ -10,6 +10,9 @@ generator uses Node's built-in CRC32):
 ```sh
 node watch/tests/offline.cjs
 node watch/tests/runtime.cjs
+node watch/tests/alerts.cjs
+node watch/tests/alerts-runtime.cjs
+node watch/tests/compare-alerts.cjs
 ```
 
 The first harness drives the production application's public actions, session
@@ -21,6 +24,18 @@ with fake pins, I2C, native calls, BLE and timers. It regenerates
 Graphics draw operations using host fonts; it does not assert exact Espruino
 glyphs or physical pixels. The native-transfer calls are faked, while the real
 Graphics allocation is checked for a 7,200-byte framebuffer.
+
+The alert comparison uses the exercised Python 3.12 environment at
+`experiments/laptop-feasibility/.venv/bin/python`; install the existing locked
+environment using the repository launcher first, or set `EUCWATCH_TEST_PYTHON`
+to another Python 3.12 interpreter. All comparison operations are offline.
+[Alert evidence](../../watch/evidence/alerts.json) records the reproducible raw
+packets/actions, expected and observed pulse events, 322 matching public states,
+and source fingerprints. It compares newly emitted pulse events because laptop
+mode transitions clear diagnostic history while the watch keeps bounded
+history. [The physical-editor SVG](../../watch/evidence/alerts-editor.svg) is a
+host-font rendering of actual Graphics operations, with the same limits as the
+dashboard artifact.
 
 | Scenario | Expected result | Observed offline result | Provenance |
 | --- | --- | --- | --- |
@@ -36,6 +51,11 @@ Graphics allocation is checked for a 7,200-byte framebuffer.
 | Direct connection and cleanup | Explicit discovery/selection, FFE0/FFE1 subscribe, bounded operations, no wheel writes; failed cleanup blocks replacement connection | Passed | Actual direct adapter with fake Promise-returning 2v14 GATT |
 | Startup vibration and reconnect retry | D16 idle 0; first failed reconnect can recover on a later attempt; stop after three retries; initial selection failure stays terminal | Passed | Actual hardware/transport with fake pins and delayed wheel availability |
 | Independent recovery | Held startup button bypasses app imports; failed startup leaves console recovery/watchdog | Passed | Production boot code in fake runtime, no device boot attempted |
+| Alert defaults/editing | Lost enabled; measurement alerts disabled with null thresholds; independent switches, decimal keypad, explicit Save/Cancel, validation and back discard | Passed | Public core and raw touch through the actual entry |
+| Alert patterns/repeat/rearm | Lost 1×150 ms per interruption; PWM 3×150 ms/2 s; speed 2×150 ms/5 s; battery 500 ms once per crossing and +3/5 s continuous-fresh rearm | Passed | Controlled raw packets; laptop/watch pulse comparison |
+| Alert competition/freshness | Lost>PWM>speed>battery, no overlap, every valid frame evaluated; stale cancels measurements, no overdue bursts | Passed | Public-core source-derived packets and controlled clocks |
+| Watch Storage | Explicit Save survives restart; refused staging/partial activation keep old copy; interrupted first Save has validated default backup; missing/corrupt active copy recovers good backup | Passed | Actual main/store adapter with fake Storage failures; not a claim of atomic Storage |
+| Vibration output | Installed D16 active-high start1/stop0, independent 150/500 ms output deadline; shutdown cannot reactivate output | Passed | Actual motor/hardware with fake pins/timers; no physical motor operation |
 
 `watch/app.js` owns parsing, freshness, calculations, navigation and clocks.
 `watch/main.js` composes narrow adapters; its public `start(options)` returns
@@ -52,6 +72,16 @@ and last/maximum paint duration. The runtime harness explicitly labels its
 memory values as simulated; neither source size nor the host process proves
 actual P22 memory fit.
 
+Alert and motor diagnostics each retain at most 32 events plus a total count.
+They distinguish requested pattern duration, scheduler calls and independent
+output-deadline stops. Software pin-call timestamps do not measure physical
+motor onset. The ordinary 50 ms behavior tick evaluates independently of
+rendering; raw frames also evaluate immediately. Missed pattern phases are
+discarded after a long clock gap. Save stages/read-verifies complete version1
+configuration and writes a validated old/default backup before active
+replacement. This is a usable persistence foundation; #35 still owns transfer,
+revision reconciliation and uncertain commit acknowledgement behavior.
+
 Production sources use ES5-compatible syntax and Storage module names `sw-*`.
 The eventual installation bundle must rewrite those module references to its
 verified versioned names before activation; merely changing the entry filename
@@ -65,7 +95,8 @@ after laptop acceptance and separately authorized installation, measure actual
 memory fit, frame receipt/display timing, display/native palette behavior,
 touch origin/rotation, full wake button cycles, charger/ADC indication, and a
 10-minute stationary live session with loss/recovery. Owner review must cover
-readability indoors/daylight and physical controls. Watch alerts, presets/horn
-and durable configuration retain their own subsequent tickets and physical
-checks. No firmware replacement, riding experiment, deployment, radio scan,
+readability indoors/daylight and physical controls. Alert software is
+implemented; physical vibration and owner pattern recognition remain pending.
+Presets/horn and configuration transfer retain subsequent implementation and
+physical checks. No firmware replacement, riding experiment, deployment, radio scan,
 physical connection or horn operation was performed for this evidence.

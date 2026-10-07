@@ -5,6 +5,7 @@ exports.draw = function (g, state) {
     g.setColor(1); g.setFont('Vector', size); g.setFontAlign(align || 0, -1);
     g.drawString(String(value), x, y);
   }
+  function controls(){require('sw-controls').targets(state).forEach(function(target){var r=target.rect;g.setColor(1);g.drawRect(r[0],r[1],r[2],r[3]);text(target.label,(r[0]+r[2])/2,(r[1]+r[3])/2-7,target.label.length>12?13:15);});}
   g.clear();
   if (!state.awake) return;
   if (state.recovery) { text('RECOVERY',120,90,24); text('Wheel controls unavailable',120,125,12); g.flip(); return; }
@@ -19,10 +20,21 @@ exports.draw = function (g, state) {
     text('Swipe right to return',120,216,11);
   } else if (state.screen === 'settings') {
     text('SETTINGS',120,10,15);
-    g.setColor(1); g.drawRect(12,71,228,131);
-    text('Sleep screen',120,91,20);
-    g.drawRect(12,145,228,194);text(state.transport&&(state.transport.active||state.transport.connected)?'Disconnect wheel':'Connect wheel',120,160,18);
+    controls();
+    if(state.persistence_error)text('Configuration needs review',120,188,12);
     text('Swipe right to return',120,216,11);
+  }else if(state.screen==='alerts'){
+    var name=['pwm','speed','battery','lost'][state.alert_page];
+    text('VIBRATION ALERTS '+(state.alert_page+1)+'/4',120,9,14);
+    text({pwm:'High PWM',speed:'High speed',battery:'Low wheel battery',lost:'Lost telemetry'}[name],12,41,13,-1);
+    controls();
+    if(name==='lost')text('One short pulse',120,90,14);
+    else text(name==='speed'?'km/h':'%',120,114,10);
+    if(state.validation_error||state.persistence_error)text((state.validation_error||state.persistence_error).replace(/^Error: /,'').slice(0,35),120,153,11);
+    else if(state.vibration.output_error)text('Vibration output unavailable',120,153,11);
+  }else if(state.screen==='threshold'){
+    text(state.threshold_input.text||'Enter threshold',120,9,18);controls();
+    if(state.validation_error)text('Invalid threshold',120,27,11);
   } else if(state.screen==='connection'){
     text('SELECT WHEEL',120,10,15);
     if(!state.devices.length)text(state.transport&&state.transport.error?'Discovery failed':'Discovering...',120,90,14);

@@ -4,7 +4,7 @@ exports.create=function(options){
   var generation=0,desired=false,busy=false,gatt=null,selected=null,devices=[],recovering=false;
   var error='',link='idle',retry=null,attempts=0,token=null,cleanupPending=false,cleanupGeneration=0,scanTimer=null;
   function publish(){app.tick();}
-  function owned(value){var state=app.view();return value===generation&&desired&&token===state.session&&!state.recovery;}
+  function owned(value){var state=app.ownership();return value===generation&&desired&&token===state.session&&!state.recovery;}
   function rawBytes(value){
     var bytes=[],i;
     for(i=0;i<value.byteLength;i++)bytes.push(value.getUint8(i));
@@ -91,7 +91,7 @@ exports.create=function(options){
     });
   }
   var adapter={status:function(){return {link:link,error:error,selected:selected,active:desired,busy:busy||cleanupPending,connected:!!gatt};},
-    tick:function(){var state=app.view();if(desired&&(state.recovery||(token!==null&&token!==state.session)))adapter.disconnect();},
+    tick:function(){var state=app.ownership();if(desired&&(state.recovery||(token!==null&&token!==state.session)))adapter.disconnect();},
     discover:function(){
       if(busy||gatt){error='Disconnect the wheel before discovery';publish();return;}
       if(scanTimer!==null)timers.clearTimeout(scanTimer);

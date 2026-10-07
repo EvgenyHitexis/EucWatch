@@ -5,6 +5,7 @@ exports.create=function(options){
   var awake=true, touchWatch=null, onAction=function(){}, onTap=function(){}, touchStart=null;
   D15.write(1); // Installed button supply enable.
   D16.write(0); // Installed vibration active level is 1; keep startup inactive.
+  var motor=require('sw-motor').create({write:function(value){D16.write(value);},now:getTime,timers:{setTimeout:setTimeout,clearTimeout:clearTimeout}});
   i2c.setup({scl:D7,sda:D6,bitrate:100000});
   function readBattery(){
     var voltage=7.1*analogRead(D31), percent;
@@ -37,7 +38,7 @@ exports.create=function(options){
     },200);
   }
   startTouch();
-  return {graphics:g,readBattery:readBattery,
+  return {graphics:g,readBattery:readBattery,vibrationOutput:motor.output,vibrationStatus:motor.view,
     bind:function(action,tap){
       onAction=action;onTap=tap;
       watches.push(setWatch(function(event){onAction(event.state?'button_down':'button_up');},BTN1,{repeat:true,edge:'both',debounce:50}));
@@ -52,6 +53,7 @@ exports.create=function(options){
     stop:function(){
       watches.forEach(function(id){clearWatch(id);});if(touchTimer!==null)clearTimeout(touchTimer);
       if(touchWatch!==null)clearWatch(touchWatch);
+      motor.stop();
       g.off();
     }
   };

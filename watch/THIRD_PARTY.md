@@ -58,6 +58,12 @@ The measured E5/D10 configuration supersedes generic CST816 reset/sleep
 settings. Physical gesture-origin reporting, display rotation, charging level,
 and reset/deep-sleep behavior require actual-device acceptance.
 
+`motor.js` is an original bounded output adapter using the installed D16
+`buzzlevel: 1` contract from the backup/recovery evidence. It keeps the pin at
+0 when inactive and after shutdown. Pulse counts, 150/500 ms durations and
+150 ms gaps come from the accepted #17 behavior; neither driver availability
+nor offline timer calls prove physical vibration onset or effectiveness.
+
 ## Direct BLE API
 
 The direct adapter targets the

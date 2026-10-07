@@ -2,7 +2,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.resolve(__dirname,'..');
 function environment(){
-  let now=0,next=1,voltage=3.85,adc=0,disconnectFails=false,disconnectDelay=0,subscribeFails=false,scanHangs=false,connectFailures=0,connectCalls=0;
+  let now=0,next=1,voltage=3.85,adc=0,disconnectFails=false,disconnectDelay=0,subscribeFails=false,scanHangs=false,connectFailures=0,connectCalls=0,failedStorageKey=null,partialStorage=false;
   const pending=new Map(),watches=new Map(),pins={},writes=[],registers=[],commands=[];
   const context={module:{exports:{}},Uint8Array,Uint16Array,ArrayBuffer,Promise,Math,JSON,isFinite,
     print:()=>{},reset:()=>{context.resets++;},resets:0,global:{},
@@ -43,7 +43,7 @@ function environment(){
   const modules={};context.imports=[];
   context.require=name=>{
     context.imports.push(name);
-    if(name==='Storage')return{read:key=>storage[key],readJSON:key=>storage[key]?JSON.parse(storage[key]):undefined,write:(key,value)=>storage[key]=value,erase:key=>delete storage[key]};
+    if(name==='Storage')return{read:key=>storage[key],readJSON:key=>storage[key]?JSON.parse(storage[key]):undefined,write:(key,value)=>{if(key===failedStorageKey){if(partialStorage)storage[key]='{"partial"';return false;}storage[key]=value;},erase:key=>delete storage[key]};
     if(modules[name])return modules[name];
     const module={exports:{}};const sandbox={...context,module,exports:module.exports};
     vm.runInNewContext(fs.readFileSync(path.join(root,name.replace(/^sw-/,'')+'.js'),'utf8'),sandbox);
@@ -57,11 +57,12 @@ function environment(){
         assert.equal(uuid,'ffe1');return Promise.resolve({on:(name,callback)=>{assert.equal(name,'characteristicvaluechanged');notification=callback;},startNotifications:()=>subscribeFails?Promise.reject(Error('notification subscription failed')):Promise.resolve()});
       }});}});}};
   return {context,timers,watches,registers,commands,
-    start:()=>context.require('sw-main').start({clock:{now:context.getTime},radio:context.NRF,timers}),
+    start:(options={})=>context.require('sw-main').start({clock:{now:context.getTime},radio:context.NRF,timers,...options}),
     voltage:value=>{voltage=value;},adc:()=>adc,
     disconnectFailure:value=>{disconnectFails=value;},
     disconnectDelay:value=>{disconnectDelay=value;},subscriptionFailure:value=>{subscribeFails=value;},scanHang:value=>{scanHangs=value;},
     connectFailureCount:value=>{connectFailures=value;},connectCalls:()=>connectCalls,
+    storageFailure:(key,partial=false)=>{failedStorageKey=key;partialStorage=partial;},
     advance:time=>{while(true){const entry=[...pending].sort((a,b)=>a[1].at-b[1].at)[0];if(!entry||entry[1].at>time)break;now=entry[1].at;if(entry[1].period)entry[1].at+=entry[1].period;else pending.delete(entry[0]);entry[1].fn();}now=time;},
     button:down=>[...watches.values()].find(w=>w.pin===context.BTN1).callback({state:down}),
     touch:(gesture,x,y,fingers=1)=>{context.touchBytes=Uint8Array.from([0,gesture,fingers,x>>8,x&255,y>>8,y&255]);[...watches.values()].find(w=>w.pin===pins.D28).callback();},
@@ -71,7 +72,8 @@ function environment(){
   };
 }
 const flush=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
-(async()=>{
+exports.environment=environment;exports.flush=flush;
+if(require.main===module)(async()=>{
   const env=environment(),running=env.start();env.advance(200);
   assert.equal(env.context.D16.state,0,'installed active-high vibration must remain inactive at startup');
   assert.equal(env.context.graphics.buffer.byteLength,7200);
@@ -88,7 +90,7 @@ const flush=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};
   env.touch(5,120,100);assert.equal(running.core.view().awake,false);
   assert.ok(env.context.i2cWrites.some(row=>row[1]===0xE5&&row[2]===3));
   env.button(true);env.button(false);env.advance(30900);
-  env.touch(5,120,170);assert.equal(running.core.view().screen,'connection');
+  env.touch(5,120,40);assert.equal(running.core.view().screen,'connection');
   env.advance(31200);env.touch(5,120,55);await flush();
   assert.equal(running.transport.status().link,'subscribed');assert.equal(running.core.view().fresh,false);
   const rows=fs.readFileSync(path.resolve(root,'../experiments/laptop-feasibility/evidence/fixture-recording.jsonl'),'utf8').trim().split('\n').map(JSON.parse);
