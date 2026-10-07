@@ -1,0 +1,10 @@
+{
+  "issue": 18,
+  "provenance": "actual built UI / deterministic simulator",
+  "browser": "Chrome/154.0.8037.92",
+  "expected": "idle launch; battery boundaries; stale dashes/dimming; CRC rejection; disconnect; fresh recovery",
+  "high_boundary": "Speed 25 km/h; PWM 45 percent; estimated wheel battery 100 percent; average cell voltage 4.11 volts; simulated watch battery 80 percent; Connected",
+  "stale": "Speed \u2014 km/h; PWM \u2014 percent; estimated wheel battery 65 percent; average cell voltage 3.83 volts; simulated watch battery 80 percent; Telemetry lost; wheel battery dimmed",
+  "disconnected": "Speed \u2014 km/h; PWM \u2014 percent; estimated wheel battery 65 percent; average cell voltage 3.83 volts; simulated watch battery 80 percent; Disconnected; wheel battery dimmed",
+  "observed": "Speed 25 km/h; PWM 45 percent; estimated wheel battery 65 percent; average cell voltage 3.83 volts; simulated watch battery 80 percent; Connected"
+}

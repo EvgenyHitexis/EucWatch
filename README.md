@@ -1,0 +1,23 @@
+# Sherman L riding application
+
+The Ubuntu laptop application establishes the watch experience using a 240×240
+Canvas interface and a separate scenario/editor panel. Python owns telemetry,
+behavior and time. Normal launch is idle and performs no Bluetooth operations.
+
+Install Python 3.12, uv, Node/npm and a browser, then run:
+
+```bash
+./scripts/setup.sh
+./scripts/launch.sh
+```
+
+The launcher opens the browser after readiness and stops the backend on Ctrl-C.
+After setup, the same launch command works offline; it uses the exercised locked
+Python environment and already-built frontend assets. Set `EUCWATCH_NO_BROWSER=1`
+for terminal-only operation and `EUCWATCH_PORT=8766` to choose another loopback port.
+Do not run as root. Simulator controls send protocol-shaped traffic through the
+same parser used by the application. Synthetic results establish software behavior.
+
+Run checks with `./scripts/check.sh`. Acceptance scenarios and evidence are in
+[docs/acceptance/laptop.md](docs/acceptance/laptop.md). Physical acceptance remains
+separate: no live horn, riding experiment or watch deployment is authorized here.
