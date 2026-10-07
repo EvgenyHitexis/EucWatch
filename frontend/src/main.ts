@@ -57,6 +57,7 @@ interface View {
   awake: boolean;
   button: { down: boolean; wake_cycle: boolean };
   recovery: boolean;
+  horn_feedback: null | {message:string};
   established_connection: boolean;
   recording: { path: string; queued: number; written: number; rejected: number; error: string | null; closed: boolean } | null;
   replay: { name: string; sha256: string; source: string; total: number; position: number; finished: boolean } | null;
@@ -101,6 +102,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <div class="watch"><canvas id="watch" width="240" height="240" role="img" aria-label="Connecting to application"></canvas><button class="side-button" id="watch-button" aria-label="Watch physical button" disabled></button></div>
         <p class="watch-caption">Riding dashboard · 240 × 240</p>
         <p class="watch-note">Swipe left for presets, down from the top for Settings.<br>Swipe right to go back. Side button wakes the screen.<br>Watch battery is simulated.</p>
+        <p id="watch-feedback" role="status"></p>
       </section>
       <section class="panel" aria-labelledby="scenario-title">
         <h2 id="scenario-title">Wheel simulator</h2>
@@ -278,6 +280,7 @@ function render(view: View | null): void {
   ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, 240, 240);
   const screen = view?.screen ?? 'dashboard';
+  document.querySelector<HTMLElement>('#watch-feedback')!.textContent=view?.horn_feedback?.message ?? '';
   const awake = view?.awake ?? true;
   canvas.dataset.screen = screen;
   canvas.dataset.awake = String(awake);
@@ -379,16 +382,16 @@ function render(view: View | null): void {
         text(preset?.configured ? (eligible ? 'Tap to apply' : 'Unavailable') : 'Unconfigured', x + 53, y + 60, 10, color, 'center');
       }
       const names = (view?.config?.presets ?? [1, 2, 3, 4].map(id => ({ id, name: `Preset ${id}`, configured: false }))).map(preset => `slot ${preset.id}: ${preset.name}, ${preset.configured ? 'configured' : 'unconfigured'}`).join('; ');
-      canvas.setAttribute('aria-label', `Preset menu. Four fixed slots: ${names}. ${view?.presets_menu?.some(slot=>slot.available) && available ? 'Tap one eligible slot to apply immediately.' : 'Application unavailable.'} Swipe right to return without applying.`);
+      canvas.setAttribute('aria-label', `Preset menu. Four fixed slots: ${names}. ${view?.presets_menu?.some(slot=>slot.available) && available ? 'Tap one eligible slot to apply immediately.' : 'Application unavailable.'} Swipe right to return without applying.${view?.horn_feedback ? ` ${view.horn_feedback.message}` : ''}`);
     } else {
       ctx.strokeStyle = '#ffffff';
       ctx.strokeRect(12, 71, 216, 60);
       text('Sleep screen', 120, 107, 20, '#ffffff', 'center');
       ctx.strokeRect(12, 145, 216, 49);
       text('Vibration alerts', 120, 175, 18, '#ffffff', 'center');
-      canvas.setAttribute('aria-label', 'Settings. Sleep screen. Vibration alerts. Swipe right to return without saving.');
+      canvas.setAttribute('aria-label', 'Settings. Sleep screen. Vibration alerts. Swipe right to return without saving.'+(view?.horn_feedback ? ` ${view.horn_feedback.message}` : ''));
     }
-    text('‹ Swipe right to return', 120, 228, 11, '#ffffff', 'center');
+    text(view?.horn_feedback?.message ?? '‹ Swipe right to return', 120, 228, 11, '#ffffff', 'center');
     return;
   }
   const d = view?.dashboard;
@@ -406,7 +409,8 @@ function render(view: View | null): void {
   text('km/h', 120, 121, 12, '#ffffff', 'center');
   const attempt=view?.preset_attempt;
   const presetFeedback=attempt ? `${attempt.name} · ${attempt.pending ? 'Applying' : attempt.status==='Confirmed' && !view?.confirmed_preset ? 'Unconfirmed' : attempt.status}` : '';
-  if(presetFeedback) text(presetFeedback,120,139,11,'#ffffff','center');
+  if(view?.horn_feedback)text(view.horn_feedback.message,120,139,11,'#ffffff','center');
+  else if(presetFeedback) text(presetFeedback,120,139,11,'#ffffff','center');
   text('PWM', 13, 161, 13);
   text(`${pwm}%`, 228, 164, 33, '#ffffff', 'right');
   ctx.fillStyle = '#777777';
@@ -418,7 +422,7 @@ function render(view: View | null): void {
   if (!connected) { ctx.strokeStyle = '#ffffff'; ctx.strokeRect(8, 210, 224, 23); }
   text(connection, 120, 226, 12, '#ffffff', 'center');
   const summary = `Speed ${speed} km/h; PWM ${pwm} percent; estimated wheel battery ${d?.wheel_battery_percent ?? '—'} percent; average cell voltage ${d?.average_cell_voltage ?? '—'} volts; simulated watch battery ${d?.watch_battery_percent ?? '—'} percent; ${connection}${d?.wheel_battery_dimmed ? '; wheel battery dimmed' : ''}`;
-  canvas.setAttribute('aria-label', summary+(presetFeedback ? `; ${presetFeedback}` : ''));
+  canvas.setAttribute('aria-label', summary+(presetFeedback ? `; ${presetFeedback}` : '')+(view?.horn_feedback ? `; ${view.horn_feedback.message}` : ''));
   canvas.dataset.fresh = String(connected);
   canvas.dataset.batteryDimmed = String(!!d?.wheel_battery_dimmed || !available);
 }

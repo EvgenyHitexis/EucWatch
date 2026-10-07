@@ -202,6 +202,27 @@ async def run():
                         control_result={'issue':22,'provenance':'actual Canvas one-tap / aiohttp / actual settings-frame parser / moving simulator',
                             'expected':'Rain onetap immediately dashboard Applying while speed25; two matching fresh settings frames Confirmed',
                             'observed':'passed','attempt':behavior.view()['preset_attempt']}
+                        def horn_count():
+                            return sum(row.get('kind')=='horn' and row['event']=='submission' for row in behavior.view()['command_events'])
+                        before_horn=horn_count()
+                        await cdp.pointer('#watch-button',(10,20),(10,20),session)
+                        await cdp.wait("document.querySelector('#watch-feedback').textContent==='Horn request sent'",session)
+                        assert horn_count()==before_horn+1
+                        await cdp.pointer('#watch',(120,10),(120,110),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='settings'",session)
+                        await cdp.pointer('#watch',(120,100),(120,100),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.awake==='false'",session)
+                        await cdp.pointer('#watch-button',(10,20),(10,20),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.awake==='true'",session)
+                        assert horn_count()==before_horn+1
+                        await cdp.pointer('#watch-button',(10,20),(10,20),session)
+                        await cdp.wait("document.querySelector('#watch-feedback').textContent==='Horn request sent'",session)
+                        assert horn_count()==before_horn+2
+                        await cdp.pointer('#watch',(20,120),(215,120),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard'",session)
+                        horn_result={'issue':23,'provenance':'actual modeled sidebutton / Canvas / aiohttp / simulator command outputs',
+                            'expected':'awakepressone LkAp request, wholeSleepwakecycle no horn, freshpressrequired; pending/stale pressesdiscarded',
+                            'observed':'passed','physical_audible_evidence':'pending #9; sent request only'}
                         control_result['failure_scenarios']=[]
                         async def advance_control(seconds=.5):
                             elapsed=behavior.view()['elapsed_s']
@@ -218,6 +239,11 @@ async def run():
                             await cdp.pointer('#watch',(177,80),(177,80),session)
                             await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard'",session)
                             assert behavior.view()['preset_attempt']['id']>previous_id
+                            if behavior.view()['preset_attempt']['pending']:
+                                blocked_count=horn_count()
+                                await cdp.pointer('#watch-button',(10,20),(10,20),session)
+                                await cdp.wait("document.querySelector('#watch-feedback').textContent==='Horn unavailable: preset applying'",session)
+                                assert horn_count()==blocked_count
                             for _ in range(22):
                                 if not behavior.view()['preset_attempt']['pending']:break
                                 await advance_control()
@@ -245,6 +271,10 @@ async def run():
                         stale = await cdp.evaluate("document.querySelector('canvas').getAttribute('aria-label')", session)
                         assert 'Speed —' in stale and 'wheel battery dimmed' in stale
                         assert 'Rain · Confirmed' not in stale
+                        blocked_count=horn_count()
+                        await cdp.pointer('#watch-button',(10,20),(10,20),session)
+                        await cdp.wait("document.querySelector('#watch-feedback').textContent==='Horn unavailable: connection unavailable'",session)
+                        assert horn_count()==blocked_count
                         await scenario(99, 138, 99, 'corrupt')
                         await cdp.wait("document.querySelector('canvas').dataset.fresh === 'false'", session)
                         await scenario(25, 138, 45)
@@ -275,6 +305,7 @@ async def run():
                         (output / 'alerts.json').write_text(json.dumps(alert_result, indent=2) + '\n')
                         (output / 'presets.json').write_text(json.dumps(preset_result, indent=2) + '\n')
                         (output / 'control.json').write_text(json.dumps(control_result, indent=2) + '\n')
+                        (output / 'horn.json').write_text(json.dumps(horn_result, indent=2) + '\n')
                         before_replay = behavior.view()['diagnostics']['valid_frames']
                         document = await cdp.call('DOM.getDocument', session=session)
                         node = await cdp.call('DOM.querySelector', {'nodeId':document['root']['nodeId'], 'selector':'#replay-file'}, session)

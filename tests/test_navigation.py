@@ -41,7 +41,7 @@ class NavigationTests(unittest.TestCase):
         self.assertFalse(state["button"]["wake_cycle"])
         self.assertEqual(state["feedback"], "Wake only")
         self.assertEqual(
-            app.action("button_down")["feedback"], "Horn control not implemented"
+            app.action("button_down")["feedback"], "Horn unavailable: connection unavailable"
         )
 
     def test_initial_idle_sleeps_at_thirty_seconds_and_watch_taps_reset_idle(self):
@@ -81,7 +81,7 @@ class NavigationTests(unittest.TestCase):
         self.assertEqual(state["feedback"], "Recovery mode")
         app.action("button_up")
         self.assertEqual(
-            app.action("button_down")["feedback"], "Horn unavailable in recovery"
+            app.action("button_down")["feedback"], "Horn unavailable: recovery mode"
         )
 
     def test_resume_discards_retained_button_hold_without_entering_recovery(self):

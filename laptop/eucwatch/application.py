@@ -9,6 +9,7 @@ from typing import Any
 from .alerts import AlertScheduler
 from .clock import Clock, ManualClock, SystemClock
 from .control import PresetControl
+from .horn import HornRequests
 from .configuration import (
     default_configuration,
     validate_alerts,
@@ -94,6 +95,31 @@ class Application:
         self.control = PresetControl(self._submit_control, self._control_event)
         self.simulated_receipts: list[dict[str, Any]] = []
         self.control_status: tuple[int, str] | None = None
+        self.horn = HornRequests(self._control_event)
+
+    def _request_horn(self) -> None:
+        reason = None
+        if self.recovery:
+            reason = "recovery mode"
+        elif self.control.pending:
+            reason = "preset applying"
+        elif not self.awake or not self.fresh() or self.mode not in ("simulator", "live"):
+            reason = "connection unavailable"
+        elif self.mode == "live" and self.command_output is None:
+            reason = "live control transport unavailable"
+        if reason:
+            self.horn.show(f"Horn unavailable: {reason}", self.elapsed(), self.session)
+        else:
+            row = self.horn.request(self.elapsed(), self.session)
+            if self.command_output is None:
+                self.horn.result(row["request"], row["session"], True, self.elapsed())
+            else:
+                try:
+                    self.command_output(deepcopy(row))
+                except (OSError, ValueError) as exc:
+                    self.horn.result(row["request"], row["session"], False, self.elapsed(), str(exc))
+        if self.horn.feedback:
+            self.feedback = self.horn.feedback["message"]
 
     def _control_event(self, row: dict[str, Any]) -> None:
         self.command_events.append(deepcopy(row))
@@ -389,6 +415,15 @@ class Application:
                     or not isinstance(payload.get("error", ""), str)):
                 raise ValueError("An explicit command result is required")
             self._control_result(payload)
+        elif name == "horn_result":
+            if (type(payload.get("success")) is not bool
+                    or type(payload.get("request")) is not int or payload["request"] < 1
+                    or type(payload.get("session")) is not int or payload["session"] < 0
+                    or not isinstance(payload.get("error", ""), str)):
+                raise ValueError("An explicit horn transport result is required")
+            self.horn.result(payload["request"], payload["session"], payload["success"], self.elapsed(), payload.get("error", ""))
+            if self.horn.feedback:
+                self.feedback = self.horn.feedback["message"]
         elif name == "swipe":
             direction = payload.get("direction")
             if direction not in ("left", "right", "down", "up"):
@@ -500,10 +535,8 @@ class Application:
                 self.awake = True
                 if self.wake_cycle:
                     self.feedback = "Wake only"
-                elif self.recovery:
-                    self.feedback = "Horn unavailable in recovery"
                 else:
-                    self.feedback = "Horn control not implemented"
+                    self._request_horn()
         elif name == "button_up":
             self.button_down = False
             self.wake_cycle = False
@@ -518,6 +551,10 @@ class Application:
 
     def tick(self) -> None:
         self._check_resume()
+        previous_horn = self.horn.feedback
+        self.horn.tick(self.elapsed(), self.session)
+        if previous_horn and self.horn.feedback is None and self.feedback == previous_horn["message"]:
+            self.feedback = ""
         self._update_control()
         if (
             self.button_down
@@ -628,6 +665,7 @@ class Application:
             "preset_attempt": self.control.view(),
             "actual_settings": deepcopy(self.control.actual),
             "command_events": deepcopy(self.command_events),
+            "horn_feedback": deepcopy(self.horn.feedback),
             "presets_menu": [{"id": preset["id"], "name": preset["name"],
                               "configured": preset["configured"], "available": bool(preset["configured"] and live and not self.control.pending and not self.recovery and self.mode in ("simulator", "live") and (self.mode == "simulator" or self.command_output is not None)),
                               "revision": self.config["revision"]}
