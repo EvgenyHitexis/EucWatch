@@ -5,6 +5,7 @@ exports.start=function(options){
   var renderer=require('sw-render'),transport=null,stopped=false;
   var core=require('sw-app').create({clock:options.clock||{now:getTime},battery:hardware.readBattery,
     store:options.store||require('sw-store').create(),
+    command_output:function(row){if(!transport)throw new Error('Wheel transport not ready');transport.submit(row);},
     vibration_output:hardware.vibrationOutput,vibration_status:hardware.vibrationStatus,
     memory:function(){return process.memory();},
     transportStatus:function(){return transport?transport.status():null;},

@@ -1,8 +1,40 @@
-/* Direct Espruino 2v14 NRF/GATT session. No writes or initialization commands. */
+/* Direct Espruino 2v14 NRF/GATT session; explicit guarded control writes only. */
 exports.create=function(options){
   var radio=options.radio,app=options.app,timers=options.timers;
   var generation=0,desired=false,busy=false,gatt=null,selected=null,devices=[],recovering=false;
   var error='',link='idle',retry=null,attempts=0,token=null,cleanupPending=false,cleanupGeneration=0,scanTimer=null;
+  var wheelCharacteristic=null,write=null;
+  function writeResult(row,success,reason){app.action(row.kind==='horn'?'horn_result':'command_result',{attempt:row.attempt,request:row.request,session:row.session,index:row.index,success:success,error:reason||''});}
+  function writeOwned(operation){return !operation.cancelled&&operation.generation===generation&&operation.client===gatt&&gatt&&gatt.connected!==false&&(!gatt.device||gatt.device.connected!==false)&&operation.characteristic.properties&&operation.characteristic.properties.writeWithoutResponse===true&&owned(operation.generation)&&link==='subscribed'&&app.commandEligible(operation.row);}
+  function cancelWrite(reason){
+    if(!write||write.cancelled)return;
+    write.cancelled=true;if(write.timeout!==null){timers.clearTimeout(write.timeout);write.timeout=null;}
+    writeResult(write.row,false,reason);
+    // A timed-out native BLE task still owns its writer until settlement/disconnect.
+  }
+  function settledDisconnect(candidate){if(write&&write.client===candidate){cancelWrite('Wheel session disconnected; no retry');write=null;}}
+  function sendChunk(operation){
+    if(!writeOwned(operation)){cancelWrite('Command session ended or telemetry stale; no retry');return;}
+    var limit=operation.row.kind==='horn'?operation.row.at_s+3:app.view().preset_attempt.requested_s+5;
+    var remaining=limit-app.view().elapsed_s;
+    if(remaining<=0){cancelWrite('Command submission timeout; no retry');return;}
+    operation.timeout=timers.setTimeout(function(){if(write===operation)cancelWrite('Command submission timeout; no retry');},Math.min(3,remaining)*1000);
+    var result;
+    try{result=operation.characteristic.writeValue(new Uint8Array(operation.bytes.slice(operation.offset,operation.offset+20)));if(!result||typeof result.then!=='function')throw new Error('writeValue did not return a 2v14 Promise');}
+    catch(exception){timers.clearTimeout(operation.timeout);operation.timeout=null;write=null;writeResult(operation.row,false,String(exception));return;}
+    result.then(function(){
+      if(operation.timeout!==null){timers.clearTimeout(operation.timeout);operation.timeout=null;}
+      if(write!==operation)return;
+      if(!writeOwned(operation)){cancelWrite('Command ended during write; no retry');write=null;return;}
+      operation.offset+=20;
+      if(operation.offset<operation.bytes.length){sendChunk(operation);return;}
+      write=null;writeResult(operation.row,true);
+    },function(exception){
+      if(operation.timeout!==null){timers.clearTimeout(operation.timeout);operation.timeout=null;}
+      if(write!==operation)return;
+      write=null;if(!operation.cancelled)writeResult(operation.row,false,String(exception));
+    });
+  }
   function publish(){app.tick();}
   function owned(value){var state=app.ownership();return value===generation&&desired&&token===state.session&&!state.recovery;}
   function rawBytes(value){
@@ -24,6 +56,7 @@ exports.create=function(options){
       if(cleanupToken!==cleanupGeneration)return;
       if(candidate.connected===true||(candidate.device&&candidate.device.connected===true)){failed('Connection remains active');return;}
       if(gatt===candidate)gatt=null;
+      settledDisconnect(candidate);wheelCharacteristic=null;
       cleanupPending=false;
       if(reconnecting&&desired){link='reconnecting';schedule();}
       else if(!desired)link=terminal?'failed':'disconnected';
@@ -48,7 +81,7 @@ exports.create=function(options){
   function lost(value){
     if(!owned(value))return;
     app.action('disconnect',{session:token});generation++;token=null;
-    error='Wheel disconnected';link='reconnecting';recovering=true;gatt=null;publish();schedule();
+    settledDisconnect(gatt);wheelCharacteristic=null;error='Wheel disconnected';link='reconnecting';recovering=true;gatt=null;publish();schedule();
   }
   function connect(){
     if(busy){error='Previous Bluetooth operation is still pending';publish();return;}
@@ -71,6 +104,7 @@ exports.create=function(options){
       return server.getPrimaryService('ffe0');
     }).then(function(service){ensure();return service.getCharacteristic('ffe1');}).then(function(characteristic){
       ensure();app.action('connected',{session:token});
+      wheelCharacteristic=characteristic;
       var currentToken=token;
       characteristic.on('characteristicvaluechanged',function(event){if(owned(value))app.receive(currentToken,rawBytes(event.target?event.target.value:event.value));});
       return characteristic.startNotifications();
@@ -90,8 +124,18 @@ exports.create=function(options){
       close(candidate);publish();
     });
   }
-  var adapter={status:function(){return {link:link,error:error,selected:selected,active:desired,busy:busy||cleanupPending,connected:!!gatt};},
-    tick:function(){var state=app.ownership();if(desired&&(state.recovery||(token!==null&&token!==state.session)))adapter.disconnect();},
+  var adapter={status:function(){return {link:link,error:error,selected:selected,active:desired,busy:busy||cleanupPending,connected:!!gatt,control_busy:!!write};},
+    submit:function(row){
+      if(!row||typeof row!=='object')throw new Error('Invalid command intent');
+      row=JSON.parse(JSON.stringify(row));
+      if(write)throw new Error('Control writer busy; request discarded');
+      if(!owned(generation)||link!=='subscribed'||!gatt||gatt.connected===false||(gatt.device&&gatt.device.connected===false)||!wheelCharacteristic||!app.commandEligible(row))throw new Error('Control connection unavailable or stale');
+      if(!wheelCharacteristic.properties||wheelCharacteristic.properties.writeWithoutResponse!==true)throw new Error('FFE1 write-without-response property required');
+      if(typeof row.packet_hex!=='string'||!/^([0-9a-f]{2})+$/.test(row.packet_hex))throw new Error('Invalid command packet');
+      var bytes=[];for(var i=0;i<row.packet_hex.length;i+=2)bytes.push(parseInt(row.packet_hex.slice(i,i+2),16));
+      write={row:row,bytes:bytes,offset:0,client:gatt,characteristic:wheelCharacteristic,generation:generation,timeout:null,cancelled:false};sendChunk(write);
+    },
+    tick:function(){var state=app.ownership();if(write&&!writeOwned(write))cancelWrite('Command no longer eligible; no retry');if(desired&&(state.recovery||(token!==null&&token!==state.session)))adapter.disconnect();},
     discover:function(){
       if(busy||gatt){error='Disconnect the wheel before discovery';publish();return;}
       if(scanTimer!==null)timers.clearTimeout(scanTimer);
@@ -116,6 +160,7 @@ exports.create=function(options){
       selected=id;desired=true;recovering=false;attempts=0;app.action('swipe',{direction:'right'});connect();
     },
     disconnect:function(){
+      cancelWrite('Wheel disconnect requested; no retry');
       desired=false;recovering=false;generation++;
       if(scanTimer!==null){timers.clearTimeout(scanTimer);scanTimer=null;}
       if(retry!==null){timers.clearTimeout(retry);retry=null;}

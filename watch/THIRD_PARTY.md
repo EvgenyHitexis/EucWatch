@@ -69,6 +69,14 @@ nor offline timer calls prove physical vibration onset or effectiveness.
 The direct adapter targets the
 [Espruino RELEASE_2V14 Bluetooth implementation](https://github.com/espruino/Espruino/blob/RELEASE_2V14/libs/bluetooth/jswrap_bluetooth.c),
 including its Promise-returning GATT disconnect. Explicit discovery selects an
-FFE0/FFE1 source. There are no initialization, MTU or wheel-control writes in
-this slice. Protocol provenance remains in
+FFE0/FFE1 source. There are no initialization or MTU writes. Explicit eligible
+control writes use the same subscribed FFE1 characteristic. In the pinned
+[2v14 data-only writeValue API](https://github.com/espruino/Espruino/blob/RELEASE_2V14/libs/bluetooth/jswrap_bluetooth.c#L3911-L3957),
+the returned Promise reports transport submission, not wheel readback. The
+[nRF write implementation](https://github.com/espruino/Espruino/blob/RELEASE_2V14/targets/nrf5x/bluetooth.c#L3275-L3305)
+selects write-command semantics from `properties.writeWithoutResponse`.
+The adapter requires that property and serializes <=20-byte chunks without
+inventing browser response options. Control and horn evidence boundaries are
+documented in [watch control evidence](../docs/acceptance/watch-controls.md).
+Protocol provenance remains in
 [Sherman L research](../docs/research/sherman-l-protocol.md).

@@ -22,6 +22,8 @@ exports.targets=function(state){
       target([12,204,110,236],'Cancel','threshold_cancel'),target([130,204,228,236],'Done','threshold_done')]);
   }
   if(state.screen==='connection')return state.devices.map(function(device,index){return target([8,40+index*38,232,74+index*38],device.name,'device_select',{id:device.id});});
+  if(state.screen==='presets')return state.presets.map(function(preset,index){var x=9+(index%2)*115,y=43+Math.floor(index/2)*81;
+    return {rect:[x,y,x+105,y+71],label:preset.name,action:'preset_apply',payload:{slot:preset.id},disabled:!state.presets_menu[index].available};});
   return [];
 };
-exports.hit=function(state,x,y){var targets=exports.targets(state),i,r;for(i=0;i<targets.length;i++){r=targets[i].rect;if(x>=r[0]&&x<=r[2]&&y>=r[1]&&y<=r[3])return targets[i];}return null;};
+exports.hit=function(state,x,y){var targets=exports.targets(state),i,r;for(i=0;i<targets.length;i++){r=targets[i].rect;if(!targets[i].disabled&&x>=r[0]&&x<=r[2]&&y>=r[1]&&y<=r[3])return targets[i];}return null;};

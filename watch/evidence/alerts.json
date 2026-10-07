@@ -2,9 +2,9 @@
   "issue": 33,
   "provenance": "Same explicit actions, synthetic CRC-valid source-derived notifications and 50ms controlled clock enter laptop and actual watch public applications; compares newly emitted pulse events (laptop mode resets diagnostic history; watch retains bounded history); no physical outputs",
   "fingerprints": {
-    "laptop/eucwatch/application.py": "05183c24f0b6c562643ab9eb68782d501eedef31f21efec5de7fb04ce5dfe4a4",
+    "laptop/eucwatch/application.py": "9f370b2cce92570767e3082559e0ce69e0739ef49c4088d582765d1701a9aa60",
     "laptop/eucwatch/alerts.py": "142e3d81cd810b15667ffd8b6bfbec3d54e2a28ff01a5313bc0c28f7bccd24d8",
-    "watch/app.js": "953031db7a576185af79055a49079c14836a07eea98f8a9663ed101aa9118dd3",
+    "watch/app.js": "b2470593df34d110880f3b6cb3a5d8048b5b67973f838078f1bdf5f65b2c1b84",
     "watch/alerts.js": "37e778e87f1cf7c4224a3b87a1dd4982a84095cf5d24f0378aab162f3edd0e99",
     "experiments/laptop-feasibility/evidence/fixture-recording.jsonl": "869d9c7a05189c8d808cdddd68ef8ff03df1265afbe8aefab324f43d39e797f5"
   },

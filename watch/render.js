@@ -11,13 +11,22 @@ exports.draw = function (g, state) {
   if (state.recovery) { text('RECOVERY',120,90,24); text('Wheel controls unavailable',120,125,12); g.flip(); return; }
   if (state.screen === 'presets') {
     text('RIDING PRESETS',120,10,15);
+    var result=state.preset_attempt;
+    if(result&&!result.pending)text('At attempt: actual/requested · now = fresh value',120,28,8);
     for (i=0;i<4;i++) {
       x=9+(i%2)*115; y=43+Math.floor(i/2)*81;
       g.setColor(1); g.drawRect(x,y,x+105,y+71);
       text(state.presets[i].name,x+53,y+22,14);
-      text('Unconfigured',x+53,y+48,10);
+      text(state.presets[i].configured?(state.presets_menu[i].available?'Tap to apply':'Unavailable'):'Unconfigured',x+53,y+48,10);
     }
-    text('Swipe right to return',120,216,11);
+    if(result&&!result.pending&&!state.horn_feedback){
+      var labels={pedal_sensitivity:'Sensitivity',dynamic_assist:'Assist',pedal_dip_compensation:'Dip'};
+      Object.keys(result.fields).forEach(function(name,index){var field=result.fields[name],line=labels[name]+' '+(field.actual===null?'?':field.actual)+'/'+field.requested+' '+field.state;
+        var current=state.fresh&&state.actual_settings?state.actual_settings[name]:null;
+        if(current!==null&&current!==field.actual)line+=' now '+current;
+        text(line,120,200+index*12,9);
+      });
+    }else text(state.horn_feedback?state.horn_feedback.message:'Swipe right to return',120,216,11);
   } else if (state.screen === 'settings') {
     text('SETTINGS',120,10,15);
     controls();
@@ -50,6 +59,8 @@ exports.draw = function (g, state) {
     g.setColor(1); g.drawRect(179,8,189,20); g.fillRect(182,5,186,7);
     if (d.charging) text('+',173,7,13,1);
     text(d.speed,120,33,69); text('km/h',120,110,12);
+    if(state.horn_feedback)text(state.horn_feedback.message,120,121,10);
+    else if(state.preset_attempt){var attempt=state.preset_attempt;text(attempt.name+' · '+(attempt.pending?'Applying':attempt.status==='Confirmed'&&!state.confirmed_preset?'Unconfirmed':attempt.status),120,121,10);}
     text('PWM',13,145,13,-1); text(d.pwm+'%',228,132,33,1);
     g.setColor(1); g.drawLine(12,176,228,176);
     text(d.wheel_battery_percent+'% est.',12,182,18,-1);

@@ -1,0 +1,794 @@
+{
+  "issue": 34,
+  "provenance": "Original production ES5 watch modules in Node VM; controlled clock/store/NRF, synthetic settings and movement derived from the sanitized WheelLog fixture; no physical operations",
+  "fixture": "experiments/laptop-feasibility/evidence/fixture-recording.jsonl",
+  "hardware_acceptance": "Pending owner-authorized actual-device controls, BLE writes, audible horn and recovery coexistence; #9/#31 remain open",
+  "parity": {
+    "traces": [
+      [
+        {
+          "at": 0,
+          "action": "preset_apply",
+          "slot": 1
+        },
+        {
+          "at": 0.1,
+          "result": 0
+        },
+        {
+          "at": 0.2,
+          "result": 1
+        },
+        {
+          "at": 0.3,
+          "raw": "dc5a5c53397a00fa0aa400000df10000000a0b3d0e0e0000037a035217730064000e00b480c80000808080808080088080801f80800ff30ff50ff50ff50ff50fef0f1a0f0a0ff30ff30ff30fed0ff30ff40ff53745b5db"
+        },
+        {
+          "at": 0.4,
+          "raw": "dc5a5c53397a00fa0aa400000df10000000a0b3d0e0e0000037a035217730064000e00b480c80000808080808080088080801f80800ff30ff50ff50ff50ff50fef0f1a0f0a0ff30ff30ff30fed0ff30ff40ff53745b5db"
+        }
+      ],
+      [
+        {
+          "at": 0,
+          "action": "preset_apply",
+          "slot": 1
+        },
+        {
+          "at": 0.1,
+          "result": 0
+        },
+        {
+          "at": 0.2,
+          "raw": "dc5a5c53397a00fa0aa400000df10000000a0b3d0e0e0000037a035217730064000e00b480c80000808080808080088080801f80800ff30ff50ff50ff50ff50fef0f1a0f0a0ff30ff30ff30fed0ff30ff40ff53745b5db"
+        },
+        {
+          "at": 0.3,
+          "raw": "dc5a5c53397a00fa0aa400000df10000000a0b3d0e0e0000037a035217730064000e00b480c80000808080808080088080801f80800ff30ff50ff50ff50ff50fef0f1a0f0a0ff30ff30ff30fed0ff30ff40ff53745b5db"
+        },
+        {
+          "at": 0.4,
+          "result": 1,
+          "success": false
+        },
+        {
+          "at": 0.5,
+          "raw": "dc5a5c53397a00fa0aa400000df10000000a0b3d0e0e0000037a035217730064000e00b480c80000808080808080088080801f80800ff30ff50ff50ff50ff50fef0f1a0f0a0ff30ff30ff30fed0ff30ff40ff53745b5db"
+        }
+      ],
+      [
+        {
+          "at": 0,
+          "action": "preset_apply",
+          "slot": 1
+        },
+        {
+          "at": 1.1,
+          "raw": "dc5a5c53397a00fa0aa400000df10000000a0b3d0e0e0000037a035217730064000e00b480c80000808080808080088080801f80800ff30ff50ff50ff50ff50fef0f1a0f0a0ff30ff30ff30fed0ff30ff40ff53745b5db"
+        },
+        {
+          "at": 1.2,
+          "result": 0
+        }
+      ]
+    ],
+    "expected_laptop": [
+      [
+        {
+          "speed": "25",
+          "status": "submitting",
+          "pending": true,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "submitting",
+          "pending": true,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": 0.1,
+              "matches": 0
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "confirming",
+          "pending": true,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": 0.1,
+              "matches": 0
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": 0.2,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "confirming",
+          "pending": true,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": 31,
+              "state": "unknown",
+              "submitted_s": 0.1,
+              "matches": 1
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": 26,
+              "state": "unknown",
+              "submitted_s": 0.2,
+              "matches": 1
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "Confirmed",
+          "pending": false,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": 31,
+              "state": "confirmed",
+              "submitted_s": 0.1,
+              "matches": 2
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": 26,
+              "state": "confirmed",
+              "submitted_s": 0.2,
+              "matches": 2
+            }
+          },
+          "confirmed": "Road"
+        }
+      ],
+      [
+        {
+          "speed": "25",
+          "status": "submitting",
+          "pending": true,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "submitting",
+          "pending": true,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": 0.1,
+              "matches": 0
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "submitting",
+          "pending": true,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": 31,
+              "state": "unknown",
+              "submitted_s": 0.1,
+              "matches": 1
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": 26,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "submitting",
+          "pending": true,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": 31,
+              "state": "confirmed",
+              "submitted_s": 0.1,
+              "matches": 2
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": 26,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "Partially applied",
+          "pending": false,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": 31,
+              "state": "confirmed",
+              "submitted_s": 0.1,
+              "matches": 2
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": 26,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "Partially applied",
+          "pending": false,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": 31,
+              "state": "confirmed",
+              "submitted_s": 0.1,
+              "matches": 2
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": 26,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        }
+      ],
+      [
+        {
+          "speed": "25",
+          "status": "submitting",
+          "pending": true,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "Not confirmed",
+          "pending": false,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "Not confirmed",
+          "pending": false,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        }
+      ]
+    ],
+    "observed_watch": [
+      [
+        {
+          "speed": "25",
+          "status": "submitting",
+          "pending": true,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "submitting",
+          "pending": true,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": 0.1,
+              "matches": 0
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "confirming",
+          "pending": true,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": 0.1,
+              "matches": 0
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": 0.2,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "confirming",
+          "pending": true,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": 31,
+              "state": "unknown",
+              "submitted_s": 0.1,
+              "matches": 1
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": 26,
+              "state": "unknown",
+              "submitted_s": 0.2,
+              "matches": 1
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "Confirmed",
+          "pending": false,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": 31,
+              "state": "confirmed",
+              "submitted_s": 0.1,
+              "matches": 2
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": 26,
+              "state": "confirmed",
+              "submitted_s": 0.2,
+              "matches": 2
+            }
+          },
+          "confirmed": "Road"
+        }
+      ],
+      [
+        {
+          "speed": "25",
+          "status": "submitting",
+          "pending": true,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "submitting",
+          "pending": true,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": 0.1,
+              "matches": 0
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "submitting",
+          "pending": true,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": 31,
+              "state": "unknown",
+              "submitted_s": 0.1,
+              "matches": 1
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": 26,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "submitting",
+          "pending": true,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": 31,
+              "state": "confirmed",
+              "submitted_s": 0.1,
+              "matches": 2
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": 26,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "Partially applied",
+          "pending": false,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": 31,
+              "state": "confirmed",
+              "submitted_s": 0.1,
+              "matches": 2
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": 26,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "Partially applied",
+          "pending": false,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": 31,
+              "state": "confirmed",
+              "submitted_s": 0.1,
+              "matches": 2
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": 26,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        }
+      ],
+      [
+        {
+          "speed": "25",
+          "status": "submitting",
+          "pending": true,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "Not confirmed",
+          "pending": false,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        },
+        {
+          "speed": "25",
+          "status": "Not confirmed",
+          "pending": false,
+          "fields": {
+            "pedal_sensitivity": {
+              "requested": 31,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            },
+            "dynamic_assist": {
+              "requested": 26,
+              "actual": null,
+              "state": "unknown",
+              "submitted_s": null,
+              "matches": 0
+            }
+          },
+          "confirmed": null
+        }
+      ]
+    ]
+  },
+  "writer": {
+    "chunk_hex": [
+      "4c6441700f01028080801ff753d033",
+      "4c6441701f010280808080808080808080808080",
+      "8080808080801aba3c7b2f",
+      "4c6b41700e0080808001ca87e66f",
+      "4c6441700f01028080801ff753d033",
+      "4c6441701f010280808080808080808080808080",
+      "8080808080801aba3c7b2f",
+      "4c6441700f01028080801ff753d033"
+    ],
+    "timeout_result": {
+      "id": 3,
+      "slot": 1,
+      "name": "Road",
+      "revision": 0,
+      "session": 2,
+      "status": "Not confirmed",
+      "pending": false,
+      "requested_s": 0.2,
+      "submitted_s": null,
+      "finished_s": 3.2,
+      "reason": "Command submission timeout; no retry",
+      "fields": {
+        "pedal_sensitivity": {
+          "requested": 31,
+          "actual": 31,
+          "state": "unknown",
+          "submitted_s": null,
+          "matches": 0
+        },
+        "dynamic_assist": {
+          "requested": 26,
+          "actual": 26,
+          "state": "unknown",
+          "submitted_s": null,
+          "matches": 0
+        },
+        "pedal_dip_compensation": {
+          "requested": 11,
+          "actual": 10,
+          "state": "unknown",
+          "submitted_s": null,
+          "matches": 0
+        }
+      },
+      "readbacks": [
+        0.3,
+        0.4,
+        0.5,
+        0.6,
+        0.7,
+        0.8,
+        0.9,
+        1,
+        1.1,
+        1.2,
+        1.3,
+        1.4,
+        1.5,
+        1.6,
+        1.7,
+        1.8,
+        1.9,
+        2,
+        2.1,
+        2.2,
+        2.3,
+        2.4,
+        2.5,
+        2.6,
+        2.7,
+        2.8,
+        2.9,
+        3,
+        3.1,
+        3.2
+      ],
+      "matching_frames": 0,
+      "next_index": 0,
+      "awaiting": null
+    },
+    "expected": "serialized <=20-byte writes, unsent dip stopped on rejection; fresh-telemetry timeout; no queued retry or remaining late chunks",
+    "observed": "assertions passed",
+    "native_writer_released_after_settlement": true
+  }
+}

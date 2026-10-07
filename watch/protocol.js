@@ -38,3 +38,8 @@ exports.crc = function (bytes, length) {
   }
   return (crc ^ -1) >>> 0;
 };
+exports.settings=function(frame){
+  if(!frame||frame[46]!==8)return null;
+  var values={};[['pedal_sensitivity',50],['dynamic_assist',66],['pedal_dip_compensation',68]].forEach(function(field){var value=frame[field[1]];values[field[0]]=field[1]<frame.length-4&&value<=100?value:null;});
+  return values;
+};
