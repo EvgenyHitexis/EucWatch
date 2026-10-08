@@ -477,6 +477,7 @@ async def run():
                         assert behavior.view()['screen']=='dashboard' and not behavior.view()['fresh']
                         assert behavior.view()['transfer']['watch_config']==behavior.view()['config']
                         assert len(behavior.view()['command_events'])==commands_before_transfer
+                        await cdp.wait("!document.querySelector('#emit').disabled",session)
                         await cdp.evaluate("document.querySelector('#emit').click()",session)
                         await cdp.wait("document.querySelector('canvas').dataset.fresh==='true'",session)
                         transfer_result={'issue':28,'provenance':'actual Canvas entry / HTML saved preview, choices, Cancel and Transfer / aiohttp / encoded simulated protocol',

@@ -1,7 +1,7 @@
 import './style.css';
 import { mountScenarios, type ScenarioView } from './scenarios';
 import { mountBackup } from './backup';
-import { mountTransfer, type TransferView } from './transfer';
+import { mountTransfer, type TransferView, type NordicView } from './transfer';
 
 interface Dashboard {
   speed: string;
@@ -58,6 +58,7 @@ interface View {
   fresh: boolean;
   screen: 'dashboard' | 'presets' | 'settings' | 'transfer';
   transfer: TransferView;
+  nordic: NordicView;
   scenario: ScenarioView;
   awake: boolean;
   button: { down: boolean; wake_cycle: boolean };
@@ -265,9 +266,12 @@ function setControls(): void {
   document.querySelector<HTMLSelectElement>('#preset-slot')!.disabled = !!current?.preset_draft || !available || submitting;
   document.querySelector<HTMLButtonElement>('#preset-edit')!.disabled ||= !!current?.preset_draft;
   document.querySelector<HTMLButtonElement>('#preset-clear')!.disabled ||= !!current?.preset_draft;
-  document.querySelector<HTMLButtonElement>('#live-discover')!.disabled ||= !current?.live || (current?.mode === 'live' && current.connected);
-  document.querySelector<HTMLButtonElement>('#live-select')!.disabled ||= !current?.live || !document.querySelector<HTMLSelectElement>('#live-device')!.value;
+  document.querySelector<HTMLButtonElement>('#live-discover')!.disabled ||= !current?.live || current?.transfer.active || (current?.mode === 'live' && current.connected);
+  document.querySelector<HTMLButtonElement>('#live-select')!.disabled ||= !current?.live || current?.transfer.active || !document.querySelector<HTMLSelectElement>('#live-device')!.value;
   document.querySelector<HTMLButtonElement>('#live-disconnect')!.disabled ||= !current?.live || current.mode !== 'live';
+  if (current?.transfer.active) {
+    document.querySelectorAll<HTMLButtonElement>('#start,#stop,#replay-load,#live-discover,#live-select').forEach(button=>button.disabled=true);
+  }
   document.querySelector<HTMLSelectElement>('#live-device')!.disabled = !available || submitting || !current?.live?.devices.length;
   updateBackup(!submitting && available && !!session?.controller);
   updateScenarios(!submitting && available && !!session?.controller);
@@ -292,8 +296,9 @@ function render(view: View | null): void {
   const awake = view?.awake ?? true;
   canvas.dataset.screen = screen;
   canvas.dataset.awake = String(awake);
+  canvas.dataset.fresh = String(!!view?.fresh && available);
   canvas.dataset.elapsed = String(view?.elapsed_s ?? 0);
-  document.querySelector<HTMLElement>('#mode')!.textContent = view?.mode === 'simulator' ? 'SIMULATOR' : view?.mode === 'replay' ? 'READ-ONLY REPLAY' : view?.mode === 'live' ? 'LIVE WHEEL' : view?.mode === 'transfer' ? 'SIMULATED WATCH TRANSFER' : 'IDLE · NO WHEEL';
+  document.querySelector<HTMLElement>('#mode')!.textContent = view?.mode === 'simulator' ? 'SIMULATOR' : view?.mode === 'replay' ? 'READ-ONLY REPLAY' : view?.mode === 'live' ? 'LIVE WHEEL' : view?.mode === 'transfer' ? (view.transfer.scenario ? 'SIMULATED WATCH TRANSFER' : 'WATCH CONFIGURATION TRANSFER') : 'IDLE · NO WHEEL';
   if (view) document.querySelector<HTMLElement>('#diagnostics')!.textContent = `Session ${view.session} · Valid frames: ${view.diagnostics.valid_frames} · CRC/format rejects: ${view.diagnostics.rejected_frames} · Resume events: ${view.diagnostics.resume_events}`;
   const outcome=view?.preset_attempt;
   document.querySelector<HTMLElement>('#preset-outcome')!.textContent=outcome ? `${outcome.name} · ${outcome.pending ? 'Applying' : outcome.status==='Confirmed' && !view?.confirmed_preset ? 'Previous result Confirmed; current confirmation lost' : outcome.status}${outcome.reason ? ` · ${outcome.reason}` : ''}${!outcome.pending && (outcome.status!=='Confirmed' || !view?.confirmed_preset) ? ' · Some settings may have changed; the previous preset is not assured.' : ''}` : 'No preset requested.';
@@ -373,7 +378,7 @@ function render(view: View | null): void {
   }
   if (screen === 'transfer') {
     text('CONFIGURATION',120,24,16,'#ffffff','center');
-    text('Simulated watch',120,49,15,'#ffffff','center');
+    text(view?.transfer.scenario ? 'Simulated watch' : 'Selected BLE watch',120,49,15,'#ffffff','center');
     text('Wheel disconnected',120,74,12,'#ffffff','center');
     text(view?.transfer.status ?? 'idle',120,101,19,'#ffffff','center');
     text(view?.transfer.status==='unknown' ? 'Read back outcome in panel' : view?.transfer.preview?.candidate ? 'Reviewed candidate ready' : 'Review choices in panel',120,125,12,'#ffffff','center');
@@ -381,7 +386,7 @@ function render(view: View | null): void {
     text('Transfer',120,166,16,view?.transfer.preview?.candidate && view.transfer.status!=='unknown' ? '#ffffff' : '#777777','center');
     ctx.strokeRect(12,182,104,42);ctx.strokeRect(124,182,104,42);
     text('Cancel',64,208,14,'#ffffff','center');text('Return',176,208,14,'#ffffff','center');
-    canvas.setAttribute('aria-label',`Configuration transfer. Simulated watch. Wheel disconnected. ${view?.transfer.status}. Review saved content and alert choices in the separate panel. Transfer, Cancel or Return to riding.`);
+    canvas.setAttribute('aria-label',`Configuration transfer. ${view?.transfer.endpoint ?? 'Watch'}. Wheel disconnected. ${view?.transfer.status}. Review saved content and alert choices in the separate panel. Transfer, Cancel or Return to riding.`);
     return;
   }
   if (screen !== 'dashboard') {
@@ -494,7 +499,7 @@ async function action(actionName: string, payload: Record<string, unknown> = {})
   try {
     const response = await fetch('/api/action', {
       method: 'POST',
-      signal: AbortSignal.timeout(actionName === 'live_discover' ? 10000 : (actionName.startsWith('live_') || actionName.startsWith('transfer_')) ? 35000 : 1500),
+      signal: AbortSignal.timeout(actionName === 'live_discover' ? 10000 : (actionName.startsWith('live_') || actionName.startsWith('transfer_') || actionName.startsWith('nordic_')) ? 35000 : 1500),
       headers: { 'Content-Type': 'application/json', 'X-EucWatch-Key': session.credential },
       body: JSON.stringify({ id: crypto.randomUUID(), controller: session.controller, action: actionName, epoch:current?.session, ...payload }),
     });
@@ -761,7 +766,7 @@ let holdTimer: number | null = null;
 let buttonCycleOpen = false;
 let inputGeneration = 0;
 const updateScenarios=mountScenarios(action,()=>current?.scenario ?? null,()=>JSON.stringify([inputGeneration,current?.session,session?.credential]));
-const updateTransfer=mountTransfer(action,()=>current?.transfer);
+const updateTransfer=mountTransfer(action,()=>current?.transfer,()=>current?.nordic);
 const updateBackup=mountBackup(action,()=>current,()=>JSON.stringify([inputGeneration,current?.session,current?.config.revision,session?.credential]));
 function enqueueWatch(actionName: string, payload: Record<string, unknown> = {}): Promise<unknown> {
   const wheelSession = current?.session;

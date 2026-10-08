@@ -29,3 +29,19 @@ safe to use for reproducible parser/replay checks.
 Run checks with `./scripts/check.sh`. Acceptance scenarios and evidence are in
 [docs/acceptance/laptop.md](docs/acceptance/laptop.md). Physical acceptance remains
 separate: no live horn, riding experiment or watch deployment is authorized here.
+
+The panel includes four saved presets, alert editing, configuration backup and
+review, reusable controlled scenarios, and explicit wheel/watch discovery.
+Saved configuration uses the XDG configuration directory. Configuration transfer
+starts with the wheel disconnected and requires explicit review and Transfer;
+uncertain activation requires saved-content readback. The simulated watch and
+each selected real watch retain separate reconciliation histories. Live wheel
+control requires a fresh selected session; replay always remains read-only.
+
+The original P22 Espruino 2v14 application lives in [watch/](watch/).
+Its 240×240 monochrome interface, bounded control and alert behavior, native
+Storage adapter and Nordic UART endpoint are exercised offline. Follow
+[installation preparation](docs/acceptance/installation.md) to build and rehearse
+a local versioned bundle; deployment requires later acceptance and authorization.
+For real Chrome flows using fake transports, run
+`EUCWATCH_BROWSER_CHECKS=1 ./scripts/check.sh` (Chrome must be installed).

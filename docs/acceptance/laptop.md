@@ -195,3 +195,52 @@ Two-axis review: #22/#27 have no material spec or hard standards findings;
 #23 has no material spec or hard standards findings. Optional maintainability
 suggestions remain separate from acceptance criteria. Watch #32 review corrections
 and remaining physical evidence are recorded in the watch register.
+
+### #34/#35 — watch controls and configuration exchange
+
+The watch implements one-tap presets and bounded horn requests; its offline
+control traces match the laptop application. Python owns the Nordic UART client;
+the watch endpoint implements bounded JSONL, complete saved-content validation,
+staging, verified activation and last-known-good recovery. Each selected watch
+has independent shared-base and uncertain-commit evidence. See
+[watch controls](watch-controls.md), [configuration transfer](watch-transfer.md)
+and [the two-axis review](review-34-35.md).
+
+The actual Chrome Canvas/HTML → aiohttp → Python Nordic client → original watch
+JavaScript/Storage flow uses a **fake BLE transport**. It verifies explicit
+Settings entry, discovery/selection, reviewed transfer, complete disconnect
+before return, lost commit acknowledgement, explicit reconnect/readback after
+watch restart and laptop restart persistence. Two activations were submitted;
+readback reconciliation did not submit another activation. Configuration
+exchange emitted no wheel commands or wheel confirmation.
+[Browser transfer result](evidence/watch-transfer-browser.json).
+
+Final verification on 2026-10-08: `EUCWATCH_BROWSER_CHECKS=1 ./scripts/check.sh`
+passed 192 Python tests, TypeScript checking/Vite production build, all eight
+watch suites, and all three Chrome flows (complete behavior, lifecycle and
+watch transfer). Python `ty` passes against the exercised Python 3.12 virtual
+environment. The complete version `20261008` watch bundle contains 17 files
+and 93,050 bytes; local staging/activation rehearsal passed using synthetic
+Storage only. This does not establish actual-device capacity or memory fit.
+
+Review regressions preserve the sole validated backup during subsequent saves
+after recovery, and bind staging to the exact freshly read watch byte digest
+when Python/Espruino numeric JSON formatting differs. These establish software
+behavior, not physical flash atomicity or real BLE reliability.
+
+### Remaining laptop acceptance
+
+#31 and #9 remain open. Existing source, simulator, replay, controlled transport
+and earlier owner-wheel observations retain their recorded scope. Completion
+still requires live evidence through this application for telemetry/cadence,
+included setting ranges/readback, assist/dip persistence, complete multi-setting
+and partial/disconnect behavior, and implementation behavior while riding.
+Audible horn result, variant, latency/duration, repeated presses and alarm
+coexistence remain deferred until separately authorized. Explicit owner review
+must cover the complete watch-sized flows, not only the desktop editors.
+
+Run `./scripts/launch.sh` for owner review. The simulator, recording replay and
+controlled scenarios support review while physical evidence remains pending.
+Unknown checks remain incomplete. Watch installation (#37) follows full laptop
+acceptance and separate authorization; physical watch acceptance (#38) follows
+installation. Software verification does not grant either hardware permission.

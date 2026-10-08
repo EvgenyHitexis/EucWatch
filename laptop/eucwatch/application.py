@@ -6,17 +6,18 @@ from copy import deepcopy
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
+from . import backup, presets
 from .alerts import AlertScheduler
+from .async_transfer import AsyncConfigurationTransfer
 from .clock import Clock, ManualClock, SystemClock
-from .control import PresetControl
-from .horn import HornRequests
 from .configuration import (
     default_configuration,
     validate_alerts,
     validate_configuration,
 )
+from .control import PresetControl
+from .horn import HornRequests
 from .persistence import ConfigStore, FileStore, MemoryStore
-from . import backup, presets
 from .protocol import CHARACTERISTIC, Assembler, Telemetry, decode, decode_settings
 from .recording import Replay
 from .simulator import Simulator
@@ -102,10 +103,20 @@ class Application:
         self.simulated_receipts: list[dict[str, Any]] = []
         self.control_status: tuple[int, str] | None = None
         if isinstance(self.store, FileStore):
-            watch_store = watch_store or FileStore(self.store.path.with_name("simulated_watch.json"))
-            shared_store = shared_store or FileStore(self.store.path.with_name("shared_configuration.json"))
-        self.transfer = ConfigurationTransfer(self.store, watch_store or MemoryStore(),
-                                               shared_store or MemoryStore(), transfer_transport)
+            watch_store = watch_store or FileStore(
+                self.store.path.with_name("simulated_watch.json")
+            )
+            shared_store = shared_store or FileStore(
+                self.store.path.with_name("shared_configuration.json")
+            )
+        self.transfer: ConfigurationTransfer | AsyncConfigurationTransfer = (
+            ConfigurationTransfer(
+                self.store,
+                watch_store or MemoryStore(),
+                shared_store or MemoryStore(),
+                transfer_transport,
+            )
+        )
         self.horn = HornRequests(self._control_event)
 
     def _command_adapter(self):
@@ -119,7 +130,9 @@ class Application:
             reason = "recovery mode"
         elif self.control.pending:
             reason = "preset applying"
-        elif not self.awake or not self.fresh() or self.mode not in ("simulator", "live"):
+        elif (
+            not self.awake or not self.fresh() or self.mode not in ("simulator", "live")
+        ):
             reason = "connection unavailable"
         elif self.mode == "live" and self._command_adapter() is None:
             reason = "live control transport unavailable"
@@ -134,14 +147,18 @@ class Application:
                 try:
                     output(deepcopy(row))
                 except (OSError, ValueError) as exc:
-                    self.horn.result(row["request"], row["session"], False, self.elapsed(), str(exc))
+                    self.horn.result(
+                        row["request"], row["session"], False, self.elapsed(), str(exc)
+                    )
         if self.horn.feedback:
             self.feedback = self.horn.feedback["message"]
 
     def _control_event(self, row: dict[str, Any]) -> None:
         self.command_events.append(deepcopy(row))
         del self.command_events[:-128]
-        self._event(row["event"], **{key: value for key, value in row.items() if key != "event"})
+        self._event(
+            row["event"], **{key: value for key, value in row.items() if key != "event"}
+        )
 
     def _submit_control(self, row: dict[str, Any]) -> None:
         output = self._command_adapter()
@@ -149,12 +166,26 @@ class Application:
             try:
                 output(deepcopy(row))
             except (OSError, ValueError) as exc:
-                self.control.result(row["attempt"], row["session"], row["index"], False, self.elapsed(), str(exc))
+                self.control.result(
+                    row["attempt"],
+                    row["session"],
+                    row["index"],
+                    False,
+                    self.elapsed(),
+                    str(exc),
+                )
             return
-        status = self.simulator.submit(bytes.fromhex(row["packet_hex"]), row["index"], self.elapsed())
+        status = self.simulator.submit(
+            bytes.fromhex(row["packet_hex"]), row["index"], self.elapsed()
+        )
         if status == "pending":
             return
-        receipt = {**row, "due_s": self.elapsed() + self.simulator.values["control_submission_delay_s"], "success": status == "accepted"}
+        receipt = {
+            **row,
+            "due_s": self.elapsed()
+            + self.simulator.values["control_submission_delay_s"],
+            "success": status == "accepted",
+        }
         if receipt["due_s"] <= self.elapsed():
             self._control_result(receipt)
         else:
@@ -162,19 +193,48 @@ class Application:
 
     def _control_result(self, receipt: dict[str, Any]) -> None:
         before = self.control.attempt["status"] if self.control.attempt else None
-        self.control.result(receipt["attempt"], receipt["session"], receipt["index"], receipt["success"], self.elapsed(), receipt.get("error", ""))
-        if before == "submitting" and self.control.pending and self.control.attempt and self.control.attempt["status"] == "confirming":
+        self.control.result(
+            receipt["attempt"],
+            receipt["session"],
+            receipt["index"],
+            receipt["success"],
+            self.elapsed(),
+            receipt.get("error", ""),
+        )
+        if (
+            before == "submitting"
+            and self.control.pending
+            and self.control.attempt
+            and self.control.attempt["status"] == "confirming"
+        ):
             # A frame begun before submission completion is not fresh evidence.
             self.parser = Assembler()
 
     def _update_control(self) -> None:
-        self.control.tick(self.elapsed(), fresh=self.fresh(), session=self.session, revision=self.config["revision"])
-        due = [row for row in self.simulated_receipts if row["due_s"] <= self.elapsed() + 1e-9]
-        self.simulated_receipts = [row for row in self.simulated_receipts if row["due_s"] > self.elapsed() + 1e-9]
+        self.control.tick(
+            self.elapsed(),
+            fresh=self.fresh(),
+            session=self.session,
+            revision=self.config["revision"],
+        )
+        due = [
+            row
+            for row in self.simulated_receipts
+            if row["due_s"] <= self.elapsed() + 1e-9
+        ]
+        self.simulated_receipts = [
+            row
+            for row in self.simulated_receipts
+            if row["due_s"] > self.elapsed() + 1e-9
+        ]
         for row in due:
             self._control_result(row)
         if self.confirmed_preset is not None and self.control.confirmed is None:
-            self.feedback = "Wheel confirmation unavailable" if not self.fresh() else "Settings changed"
+            self.feedback = (
+                "Wheel confirmation unavailable"
+                if not self.fresh()
+                else "Settings changed"
+            )
         self.confirmed_preset = deepcopy(self.control.confirmed)
         attempt = self.control.attempt
         if attempt is not None:
@@ -221,6 +281,18 @@ class Application:
 
     def action(self, action_name: str, **payload: Any) -> dict[str, Any]:
         name = action_name
+        if self.transfer.active and name in (
+            "simulator_start",
+            "connect",
+            "stop",
+            "disconnect",
+            "replay_start",
+            "live_start",
+            "live_connected",
+        ):
+            raise ValueError(
+                "Return from configuration transfer before changing input roles"
+            )
         self.tick()
         self._event(
             "intent",
@@ -244,9 +316,15 @@ class Application:
             "alerts_save",
             "alerts_cancel",
             "alert_test",
-            "preset_begin", "preset_update", "preset_save", "preset_cancel", "preset_clear",
-            "configuration_export", "configuration_import_prepare",
-            "configuration_import_cancel", "configuration_import_commit",
+            "preset_begin",
+            "preset_update",
+            "preset_save",
+            "preset_cancel",
+            "preset_clear",
+            "configuration_export",
+            "configuration_import_prepare",
+            "configuration_import_cancel",
+            "configuration_import_commit",
         ):
             raise ValueError(
                 "Replay is read-only; no wheel commands or simulator input"
@@ -280,7 +358,9 @@ class Application:
                 self.session += 1
                 self.last_valid = None
                 self.parser = Assembler()
-                self._event("transport", transition="disconnected", reason=payload.get("reason"))
+                self._event(
+                    "transport", transition="disconnected", reason=payload.get("reason")
+                )
         elif name in ("connect", "simulator_start"):
             self.replay = None
             mode = payload.get("mode", "simulator")
@@ -418,28 +498,50 @@ class Application:
                 raise ValueError("This preset slot is unconfigured")
             if not self.awake:
                 raise ValueError("Wake the screen before selecting a riding preset")
-            if not self.fresh() or self.recovery or self.mode not in ("simulator", "live"):
+            if (
+                not self.fresh()
+                or self.recovery
+                or self.mode not in ("simulator", "live")
+            ):
                 raise ValueError("A healthy fresh wheel connection is required")
             if self.mode == "live" and self._command_adapter() is None:
                 raise ValueError("Live control transport is unavailable")
             self.screen = "dashboard"
             self.parser = Assembler()
-            self.control.start(preset, self.config["revision"], self.session, self.elapsed())
+            self.control.start(
+                preset, self.config["revision"], self.session, self.elapsed()
+            )
         elif name == "command_result":
-            if (type(payload.get("success")) is not bool
-                    or any(type(payload.get(key)) is not int for key in ("attempt", "session", "index"))
-                    or payload["attempt"] < 1 or payload["session"] < 0
-                    or not 0 <= payload["index"] <= 2
-                    or not isinstance(payload.get("error", ""), str)):
+            if (
+                type(payload.get("success")) is not bool
+                or any(
+                    type(payload.get(key)) is not int
+                    for key in ("attempt", "session", "index")
+                )
+                or payload["attempt"] < 1
+                or payload["session"] < 0
+                or not 0 <= payload["index"] <= 2
+                or not isinstance(payload.get("error", ""), str)
+            ):
                 raise ValueError("An explicit command result is required")
             self._control_result(payload)
         elif name == "horn_result":
-            if (type(payload.get("success")) is not bool
-                    or type(payload.get("request")) is not int or payload["request"] < 1
-                    or type(payload.get("session")) is not int or payload["session"] < 0
-                    or not isinstance(payload.get("error", ""), str)):
+            if (
+                type(payload.get("success")) is not bool
+                or type(payload.get("request")) is not int
+                or payload["request"] < 1
+                or type(payload.get("session")) is not int
+                or payload["session"] < 0
+                or not isinstance(payload.get("error", ""), str)
+            ):
                 raise ValueError("An explicit horn transport result is required")
-            self.horn.result(payload["request"], payload["session"], payload["success"], self.elapsed(), payload.get("error", ""))
+            self.horn.result(
+                payload["request"],
+                payload["session"],
+                payload["success"],
+                self.elapsed(),
+                payload.get("error", ""),
+            )
             if self.horn.feedback:
                 self.feedback = self.horn.feedback["message"]
         elif name == "swipe":
@@ -457,15 +559,25 @@ class Application:
         elif name == "alerts_begin":
             self.alerts_draft = deepcopy(self.config["alerts"])
         elif name == "transfer_scenario":
+            if not isinstance(self.transfer, ConfigurationTransfer):
+                raise ValueError("Fault scenarios require the simulated endpoint")
             self.transfer.configure_scenario(payload)
         elif name == "transfer_watch_edit":
+            if not isinstance(self.transfer, ConfigurationTransfer):
+                raise ValueError(
+                    "Saved watch scenario editing requires the simulated endpoint"
+                )
             self.transfer.watch_edit(payload)
         elif name == "transfer_begin":
             if self.transfer.active:
                 raise ValueError("Configuration transfer is already active")
             if not self.awake or self.screen != "settings" or self.recovery:
                 raise ValueError("Open Transfer configuration from awake Settings")
-            if self.mode != "idle" and (not self.fresh() or self.telemetry is None or self.telemetry.speed_kmh != 0):
+            if self.mode != "idle" and (
+                not self.fresh()
+                or self.telemetry is None
+                or self.telemetry.speed_kmh != 0
+            ):
                 raise ValueError("Fresh stopped telemetry is required for transfer")
             self.transfer.begin(self.config, self.mode, self.simulating)
             self.mode = "transfer"
@@ -476,13 +588,37 @@ class Application:
             self.parser = Assembler()
             self.simulating = False
             self.replay = None
-            self._event("transport", transition="disconnected", reason="Configuration transfer")
+            self._event(
+                "transport", transition="disconnected", reason="Configuration transfer"
+            )
             self._update_control()
             self._update_alerts()
             self.feedback = "Configuration transfer · wheel disconnected"
-        elif name in ("transfer_preview", "transfer_choose", "transfer_send", "transfer_reconcile", "transfer_cancel", "transfer_return"):
+        elif name == "transfer_activate":
+            if self.mode != "transfer":
+                raise ValueError("Saved transfer completion requires transfer mode")
+            self._activate_transferred(payload.get("config"))
+        elif name == "transfer_exit":
+            if self.mode != "transfer":
+                raise ValueError("Return requires transfer mode")
+            self._exit_transfer()
+        elif name in (
+            "transfer_preview",
+            "transfer_choose",
+            "transfer_send",
+            "transfer_reconcile",
+            "transfer_cancel",
+            "transfer_return",
+        ):
             if self.mode != "transfer" or not self.transfer.active:
                 raise ValueError("Enter configuration transfer on the watch first")
+            if isinstance(self.transfer, AsyncConfigurationTransfer):
+                if name != "transfer_choose":
+                    raise ValueError(
+                        "Real configuration transfer requires the asynchronous host adapter"
+                    )
+                self.transfer.choose(payload.get("path"), payload.get("side"))
+                return self.view()
             if name == "transfer_preview":
                 self.transfer.review(self.config)
             elif name == "transfer_choose":
@@ -491,42 +627,42 @@ class Application:
                 self.transfer.cancel()
                 self.feedback = "Transfer cancelled · watch content unchanged"
             elif name in ("transfer_send", "transfer_reconcile"):
-                committed = self.transfer.send(self.config) if name == "transfer_send" else self.transfer.reconcile(self.config)
+                committed = (
+                    self.transfer.send(self.config)
+                    if name == "transfer_send"
+                    else self.transfer.reconcile(self.config)
+                )
                 if committed is not None:
-                    self.config = committed
-                    self.confirmed_preset = None
-                    self.alerts.configure(committed["alerts"], self.elapsed())
-                    self.persistence_error = None
-                    self.feedback = "Configuration transferred · saved readback verified"
+                    self._activate_transferred(committed)
                 else:
                     if self.transfer.local_saved is not None:
                         self.config = deepcopy(self.transfer.local_saved)
                         self.confirmed_preset = None
                         self.alerts.configure(self.config["alerts"], self.elapsed())
-                    self.feedback = self.transfer.error or "Configuration transfer failed"
-            if name == "transfer_return" or (name in ("transfer_send", "transfer_reconcile") and self.transfer.status == "success"):
-                self.transfer.leave()
-                self.mode = self.transfer.previous_mode
-                self.screen = "dashboard"
-                self.session += 1
-                self.connected = self.mode == "simulator"
-                self.simulating = self.connected and self.transfer.previous_simulating
-                self.last_valid = None
-                self.last_emission = self.elapsed()
-                self.parser = Assembler()
-                self._event("transport", transition="connected" if self.connected else "stopped")
+                    self.feedback = (
+                        self.transfer.error or "Configuration transfer failed"
+                    )
+            if name == "transfer_return" or (
+                name in ("transfer_send", "transfer_reconcile")
+                and self.transfer.status == "success"
+            ):
+                self._exit_transfer()
                 if name == "transfer_return":
                     self.feedback = "Returned to riding · fresh telemetry required"
         elif name == "configuration_export":
             self.configuration_export = backup.export(self.config)
         elif name == "configuration_import_prepare":
-            self.configuration_preview = backup.prepare(payload.get("content"), self.config["revision"])
+            self.configuration_preview = backup.prepare(
+                payload.get("content"), self.config["revision"]
+            )
         elif name == "configuration_import_cancel":
             self.configuration_preview = None
         elif name == "configuration_import_commit":
             if self.configuration_preview is None:
                 raise ValueError("Review a configuration import before committing")
-            proposed = backup.replacement(self.configuration_preview, self.config["revision"])
+            proposed = backup.replacement(
+                self.configuration_preview, self.config["revision"]
+            )
             try:
                 self.store.save(proposed)
             except (OSError, ValueError) as exc:
@@ -538,9 +674,17 @@ class Application:
                 self.persistence_error = None
                 self.alerts.configure(proposed["alerts"], self.elapsed())
                 self._update_alerts()
-        elif name in ("preset_begin", "preset_update", "preset_save", "preset_cancel", "preset_clear"):
+        elif name in (
+            "preset_begin",
+            "preset_update",
+            "preset_save",
+            "preset_cancel",
+            "preset_clear",
+        ):
             if payload.pop("source", "panel") != "panel":
-                raise ValueError("Preset definitions can only be edited in the laptop panel")
+                raise ValueError(
+                    "Preset definitions can only be edited in the laptop panel"
+                )
             if name == "preset_begin":
                 self.preset_draft = presets.begin(self.config, payload.get("slot"))
             elif name == "preset_update":
@@ -628,11 +772,40 @@ class Application:
             self.last_interaction = self.elapsed()
         return self.view()
 
+    def _activate_transferred(self, config):
+        self.config = validate_configuration(config)
+        self.confirmed_preset = None
+        self.alerts.configure(self.config["alerts"], self.elapsed())
+        self.persistence_error = None
+        self.feedback = "Configuration transferred · saved readback verified"
+
+    def _exit_transfer(self):
+        self.transfer.leave()
+        self.mode = self.transfer.previous_mode
+        self.screen = "dashboard"
+        self.session += 1
+        self.connected = self.mode == "simulator"
+        self.simulating = self.connected and self.transfer.previous_simulating
+        self.last_valid = None
+        self.last_emission = self.elapsed()
+        self.parser = Assembler()
+        self.button_down = False
+        self.wake_cycle = False
+        self.button_started = None
+        self._event(
+            "transport", transition="connected" if self.connected else "stopped"
+        )
+        self.feedback = "Returned to riding · fresh telemetry required"
+
     def tick(self) -> None:
         self._check_resume()
         previous_horn = self.horn.feedback
         self.horn.tick(self.elapsed(), self.session)
-        if previous_horn and self.horn.feedback is None and self.feedback == previous_horn["message"]:
+        if (
+            previous_horn
+            and self.horn.feedback is None
+            and self.feedback == previous_horn["message"]
+        ):
             self.feedback = ""
         self._update_control()
         if (
@@ -672,8 +845,10 @@ class Application:
         host_boot, host_mono = self.host_clock.read()
         previous_host_boot, previous_host_mono = self.previous_host_clock
         self.previous_host_clock = host_boot, host_mono
-        if (boot - previous_boot - (mono - previous_mono) > 0.1
-                or host_boot - previous_host_boot - (host_mono - previous_host_mono) > 0.1):
+        if (
+            boot - previous_boot - (mono - previous_mono) > 0.1
+            or host_boot - previous_host_boot - (host_mono - previous_host_mono) > 0.1
+        ):
             self.resume_events += 1
             self.session += 1
             self.last_valid = None
@@ -752,10 +927,26 @@ class Application:
             "actual_settings": deepcopy(self.control.actual),
             "command_events": deepcopy(self.command_events),
             "horn_feedback": deepcopy(self.horn.feedback),
-            "presets_menu": [{"id": preset["id"], "name": preset["name"],
-                              "configured": preset["configured"], "available": bool(preset["configured"] and live and not self.control.pending and not self.recovery and self.mode in ("simulator", "live") and (self.mode == "simulator" or self._command_adapter() is not None)),
-                              "revision": self.config["revision"]}
-                             for preset in self.config["presets"]],
+            "presets_menu": [
+                {
+                    "id": preset["id"],
+                    "name": preset["name"],
+                    "configured": preset["configured"],
+                    "available": bool(
+                        preset["configured"]
+                        and live
+                        and not self.control.pending
+                        and not self.recovery
+                        and self.mode in ("simulator", "live")
+                        and (
+                            self.mode == "simulator"
+                            or self._command_adapter() is not None
+                        )
+                    ),
+                    "revision": self.config["revision"],
+                }
+                for preset in self.config["presets"]
+            ],
             "persistence_error": self.persistence_error,
             "vibration": self.alerts.view(),
             "replay": None if self.replay is None else self.replay.status(),
@@ -764,7 +955,6 @@ class Application:
             "fresh": live,
             "elapsed_s": self.elapsed(),
             "simulator": dict(self.simulator.values),
-            "controlled": self.controlled,
             "diagnostics": {
                 "valid_frames": self.valid_frames,
                 "rejected_frames": self.parser.rejected,

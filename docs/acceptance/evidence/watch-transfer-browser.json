@@ -1,0 +1,13 @@
+{
+  "issues": [
+    35,
+    31
+  ],
+  "provenance": "actual Chrome built Canvas/HTML + aiohttp + Python Nordic adapter + fake BLE + original watch JS/Storage adapter; no physical BLE",
+  "expected": "explicit stopped mode/discovery/selection; reviewed saved copies; role cleanup before return; lost commit ack stays unknown; explicit reconnect/readback after watch restart; no resubmit/commands/confirmation; laptop restart saved copy",
+  "observed": "passed",
+  "saved_revision": 4,
+  "ble_clients": 3,
+  "commit_requests": 2,
+  "physical_acceptance": "pending actual BLE, installed Storage, interruption/recovery and owner review"
+}

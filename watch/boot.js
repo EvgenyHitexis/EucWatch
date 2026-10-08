@@ -6,6 +6,8 @@
   var kick=setInterval(function(){if(!BTN1.read())E.kickWatchdog();},3000);
   function recovery(reason){
     storage.write('sw-recovery',reason);
+    if(typeof Bluetooth!=='undefined')Bluetooth.setConsole(true);
+    if(NRF.wake)NRF.wake();
     NRF.setServices({},{uart:true});NRF.setAdvertising({},{name:'Sherman-recovery'});
     global.ShermanRecovery={reason:reason,exit:function(){storage.erase('sw-recovery');storage.erase('sw-starting');reset();}};
     print('Sherman recovery: '+reason+'; use BLE console. Intact recovery startup required.');

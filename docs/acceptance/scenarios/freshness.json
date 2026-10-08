@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "name": "Freshness and reconnect",
+  "seed": 0,
+  "clock": "controlled",
+  "input": "protocol-shaped",
+  "simulator": {
+    "speed_kmh": 25,
+    "voltage_V": 148.05,
+    "pwm_percent": 45,
+    "watch_battery_percent": 80,
+    "traffic": "normal",
+    "frame_length": 87,
+    "fragment_size": 20,
+    "control_submission": "normal",
+    "control_fail_after": 1,
+    "control_submission_delay_s": 0.0,
+    "control_readback": "normal",
+    "control_delay_s": 0.0
+  },
+  "steps": [
+    {
+      "action": "simulator_configure",
+      "traffic": "paused"
+    },
+    {
+      "action": "advance",
+      "seconds": 1.1
+    },
+    {
+      "action": "simulator_configure",
+      "traffic": "normal"
+    },
+    {
+      "action": "simulator_emit"
+    },
+    {
+      "action": "disconnect"
+    },
+    {
+      "action": "connect"
+    },
+    {
+      "action": "simulator_emit"
+    }
+  ]
+}

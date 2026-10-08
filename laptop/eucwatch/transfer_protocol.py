@@ -1,7 +1,7 @@
-"""Version-one configuration protocol planned for Nordic UART.
+"""Version-one configuration protocol shared by Nordic UART and simulation.
 
 JSONL messages are at most 512 bytes and data chunks at most 64 decoded bytes;
-an eventual BLE adapter may fragment those lines to the discovered write size.
+The Python BLE adapter fragments those lines into bounded characteristic writes.
 No console expression or wheel packet is part of this protocol. The simulated
 endpoint exercises the same byte messages, staging and readback contracts.
 """
@@ -33,15 +33,29 @@ class ScenarioTransport:
         self.committed = False
 
     def configure(self, values: dict[str, Any]) -> None:
-        allowed = {"stage": ("normal", "interrupt"), "commit": ("normal", "lost_ack"), "readback": ("normal", "fail")}
-        if not values or set(values) - allowed.keys() or any(value not in allowed[key] for key, value in values.items()):
+        allowed = {
+            "stage": ("normal", "interrupt"),
+            "commit": ("normal", "lost_ack"),
+            "readback": ("normal", "fail"),
+        }
+        if (
+            not values
+            or set(values) - allowed.keys()
+            or any(value not in allowed[key] for key, value in values.items())
+        ):
             raise ValueError("Invalid simulated configuration-transfer scenario")
         self.values.update(values)
 
     def exchange(self, message: bytes) -> bytes:
         row = decode(message)
-        if row["op"] == "chunk" and self.values["stage"] == "interrupt" and row["index"] >= 1:
-            raise OSError("Controlled staging interruption; prior active copy preserved")
+        if (
+            row["op"] == "chunk"
+            and self.values["stage"] == "interrupt"
+            and row["index"] >= 1
+        ):
+            raise OSError(
+                "Controlled staging interruption; prior active copy preserved"
+            )
         if row["op"] == "read" and self.values["readback"] == "fail" and self.committed:
             raise OSError("Controlled saved-content readback failure")
         response = self.endpoint.exchange(message)
@@ -242,6 +256,9 @@ class SimulatedWatch:
         elif op == "abort":
             self.staging = None
             result = {"aborted": True}
+        elif op == "finish":
+            self.staging = None
+            result = {"returned": True}
         else:
             raise ValueError("Unsupported configuration protocol operation")
         return encode({"ok": True, "op": op, **result})
@@ -265,35 +282,75 @@ class ConfigurationProtocol:
         return row
 
     def read(self) -> dict[str, Any]:
-        info = self.request("read")
-        size = info.get("size")
-        if type(size) is not int or not 0 < size <= MAX_CONFIG_BYTES:
-            raise ValueError("Invalid saved configuration size")
-        data = bytearray()
-        for index in range((size + CHUNK_BYTES - 1) // CHUNK_BYTES):
-            row = self.request("read_chunk", index=index)
-            if type(row.get("index")) is not int or row["index"] != index:
-                raise ValueError("Configuration readback order mismatch")
-            data.extend(unpack(row))
-        if len(data) != size or hashlib.sha256(data).hexdigest() != info.get("digest"):
-            raise ValueError("Saved configuration readback hash/size mismatch")
-        config = validate_configuration(json.loads(data, object_pairs_hook=_object))
-        if config["revision"] != info.get("revision"):
-            raise ValueError("Saved configuration revision mismatch")
-        return config
+        return self._drive(read_requests())
 
-    def upload(self, config: dict[str, Any], expected: dict[str, Any], before_commit: Callable[[], None] | None = None) -> None:
-        data = content_bytes(config)
-        self.request(
-            "stage",
-            expected_revision=expected["revision"],
-            size=len(data),
-            expected_digest=hashlib.sha256(content_bytes(expected)).hexdigest(),
-            digest=hashlib.sha256(data).hexdigest(),
-        )
-        for index, offset in enumerate(range(0, len(data), CHUNK_BYTES)):
-            self.request("chunk", **chunk(data[offset : offset + CHUNK_BYTES], index))
-        self.request("validate")
-        if before_commit is not None:
-            before_commit()
-        self.request("commit")
+    def _drive(self, workflow):
+        response = None
+        while True:
+            try:
+                op, fields = workflow.send(response)
+            except StopIteration as result:
+                return result.value
+            response = self.request(op, **fields)
+
+    def upload(
+        self,
+        config: dict[str, Any],
+        expected: dict[str, Any],
+        before_commit: Callable[[], None] | None = None,
+    ) -> None:
+        self._drive(upload_requests(config, expected, before_commit))
+
+    def finish(self) -> None:
+        if self.request("finish").get("returned") is not True:
+            raise ValueError("Watch did not acknowledge return to riding")
+
+
+def read_snapshot_requests():
+    info = yield "read", {}
+    size = info.get("size")
+    if type(size) is not int or not 0 < size <= MAX_CONFIG_BYTES:
+        raise ValueError("Invalid saved configuration size")
+    data = bytearray()
+    for index in range((size + CHUNK_BYTES - 1) // CHUNK_BYTES):
+        row = yield "read_chunk", {"index": index}
+        if type(row.get("index")) is not int or row["index"] != index:
+            raise ValueError("Configuration readback order mismatch")
+        data.extend(unpack(row))
+    if len(data) != size or hashlib.sha256(data).hexdigest() != info.get("digest"):
+        raise ValueError("Saved configuration readback hash/size mismatch")
+    config = validate_configuration(json.loads(data, object_pairs_hook=_object))
+    if config["revision"] != info.get("revision"):
+        raise ValueError("Saved configuration revision mismatch")
+    return config, info["digest"]
+
+
+def read_requests():
+    config, _digest = yield from read_snapshot_requests()
+    return config
+
+
+def upload_requests(
+    config: dict[str, Any],
+    expected: dict[str, Any],
+    before_commit: Callable[[], None] | None = None,
+):
+    data = content_bytes(config)
+    actual, expected_digest = yield from read_snapshot_requests()
+    if actual != expected:
+        raise ValueError("Saved watch configuration changed before staging")
+    yield (
+        "stage",
+        {
+            "expected_revision": expected["revision"],
+            "size": len(data),
+            "expected_digest": expected_digest,
+            "digest": hashlib.sha256(data).hexdigest(),
+        },
+    )
+    for index, offset in enumerate(range(0, len(data), CHUNK_BYTES)):
+        yield "chunk", chunk(data[offset : offset + CHUNK_BYTES], index)
+    yield "validate", {}
+    if before_commit is not None:
+        before_commit()
+    yield "commit", {}

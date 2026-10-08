@@ -1,0 +1,139 @@
+{
+  "issue": 35,
+  "provenance": "Production original ES5 watch App/main/Storage/UART adapters executed in Node VM; controlled pins/clock/radio; 2v14 JSON high-byte escaping modeled in endpoint tests; sanitized WheelLog fixture supplies CRC-valid protocol shape",
+  "fixture": "experiments/laptop-feasibility/evidence/fixture-recording.jsonl",
+  "source_fingerprints": {
+    "watch/app.js": "969d1ca9e7ac9fffae4ac3175303580b0ebd199ad90081470a7ef13b6ed9d4e1",
+    "watch/boot.js": "17bcadbe43c2c2a7b2935f1453f5a05ecb191da171f1cbbb07e6b3d7cc3b2cb7",
+    "watch/configuration.js": "de24e2b51416e8650c96ce7c22ccf03c6fe69b6bb00c829fbac0d9cc122ee6ea",
+    "watch/controls.js": "fc18ee483ddac1be4cbb6686cfaaf1a9db3524b86a04849ad7a6fc99e41c1c1b",
+    "watch/main.js": "2e7ae7932004fef0aa14c508eb3b77183a1df9073e48ba30676dc32d599abedd",
+    "watch/render.js": "e71c250cb98793dbaeb58ee22ea940865a7728ce7a8e1376d3ed5ef437c6b43a",
+    "watch/store.js": "bf69ae5b56a0a9cec823c579d237bd5f6675a29572ec484dc9024bf070529a39",
+    "watch/transfer.js": "9b30fa481ca956bd44c43254b42d0c74aa53113d36a622b4749b66822938d65f",
+    "watch/tests/transfer.cjs": "051dc42bf42c65ef64b38682487e0d7a468d7bf420bcc126aae7b8208e5cae95",
+    "watch/tests/transfer-wire.cjs": "98b6b0a47e81b71bcf2665301ee2048544acb2f78f64ea4dae360f9c8e79301a"
+  },
+  "observations": [
+    {
+      "name": "Explicit Settings entry switches the console and ends riding",
+      "expected": {
+        "mode": "transfer",
+        "phase": "ready",
+        "console": "LoopbackA",
+        "fresh": false
+      },
+      "observed": {
+        "mode": "transfer",
+        "phase": "ready",
+        "console": "LoopbackA",
+        "fresh": false
+      }
+    },
+    {
+      "name": "Acknowledged finish returns without historic telemetry",
+      "expected": {
+        "returned": true,
+        "mode": "watch",
+        "fresh": false,
+        "active": false
+      },
+      "observed": {
+        "returned": true,
+        "mode": "watch",
+        "fresh": false,
+        "active": false
+      }
+    },
+    {
+      "name": "Delayed wheel cleanup blocks peripheral advertising",
+      "expected": false,
+      "observed": false
+    },
+    {
+      "name": "Finish waits for confirmed laptop disconnection",
+      "expected": {
+        "mode": "transfer",
+        "wheel_connections": 1
+      },
+      "observed": {
+        "mode": "transfer",
+        "wheel_connections": 1
+      }
+    },
+    {
+      "name": "Refused output preserves explicit reconciliation/Return",
+      "expected": {
+        "mode": "transfer",
+        "returning": false
+      },
+      "observed": {
+        "mode": "transfer",
+        "returning": false
+      }
+    },
+    {
+      "name": "Expired staging preserves awake transfer mode",
+      "expected": {
+        "staging": false,
+        "awake": true
+      },
+      "observed": {
+        "staging": false,
+        "awake": true
+      }
+    },
+    {
+      "name": "Long hold closes transfer and restores independent recovery console",
+      "expected": {
+        "active": false,
+        "resets": 1,
+        "console": "Bluetooth"
+      },
+      "observed": {
+        "active": false,
+        "resets": 1,
+        "console": "Bluetooth"
+      }
+    },
+    {
+      "name": "Pending preset invalidation and horn block during transfer",
+      "expected": {
+        "pending": false,
+        "confirmed": null,
+        "commands": 1
+      },
+      "observed": {
+        "pending": false,
+        "confirmed": null,
+        "commands": 1
+      }
+    },
+    {
+      "name": "Fresh current values repaint terminal results",
+      "expected": true,
+      "observed": true
+    },
+    {
+      "name": "Horn feedback on settings",
+      "expected": true,
+      "observed": true
+    },
+    {
+      "name": "Horn feedback on alerts",
+      "expected": true,
+      "observed": true
+    },
+    {
+      "name": "Horn feedback on threshold",
+      "expected": true,
+      "observed": true
+    },
+    {
+      "name": "Horn feedback on connection",
+      "expected": true,
+      "observed": true
+    }
+  ],
+  "hardware_acceptance": "Pending installed-runtime API/memory checks, real BLE role transitions, flash interruptions and physical controls; no deployment or hardware operations"
+}

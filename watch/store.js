@@ -14,18 +14,26 @@ exports.create=function(options){
       adapter.warning=null;
       try{var active=read('sw-config.json');if(active)return active;var backup=read('sw-config-backup.json');if(backup)adapter.warning='Recovered previous good configuration: active copy missing';return backup;}
       catch(error){var backup=read('sw-config-backup.json');if(!backup)throw error;adapter.warning='Recovered previous good configuration: '+String(error);return backup;}
-    },save:function(value){
-      var proposed=configuration.validate(value),text=JSON.stringify(proposed),previous=null;
+    },stage:function(value){
+      var proposed=configuration.validate(value),text=JSON.stringify(proposed);
       if(text.length>4096)throw new Error('Configuration exceeds supported size');
       write('sw-config-stage.json',text);
-      if(JSON.stringify(read('sw-config-stage.json'))!==text)throw new Error('Staged configuration verification failed');
-      try{previous=adapter.load();}catch(ignored){}
-      if(!previous)previous=configuration.defaults();
-      write('sw-config-backup.json',JSON.stringify(previous));
+      if(!configuration.equal(read('sw-config-stage.json'),proposed))throw new Error('Native JSON precision changed configuration meaning; review required');
+    },activate:function(value){
+      var proposed=configuration.validate(value),text=JSON.stringify(proposed),previous=null;
+      if(text.length>4096||!configuration.equal(read('sw-config-stage.json'),proposed))throw new Error('Staged configuration changed before activation');
+      try{previous=read('sw-config.json');}catch(ignored){}
+      if(previous)write('sw-config-backup.json',JSON.stringify(previous));
+      else{
+        /* A recovered backup may be our only valid copy. Keep it intact until
+           the replacement active content has been written and verified. */
+        try{previous=read('sw-config-backup.json');}catch(ignoredBackup){}
+        if(!previous)write('sw-config-backup.json',JSON.stringify(configuration.defaults()));
+      }
       write('sw-config.json',text);
-      if(JSON.stringify(read('sw-config.json'))!==text)throw new Error('Active configuration verification failed');
+      if(!configuration.equal(read('sw-config.json'),proposed))throw new Error('Active configuration verification failed');
       adapter.warning=null;
-    }
+    },save:function(value){adapter.stage(value);adapter.activate(value);},discard:function(){storage.erase('sw-config-stage.json');}
   };
   return adapter;
 };

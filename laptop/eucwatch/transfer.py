@@ -1,33 +1,50 @@
 """Explicit saved-configuration exchange with a labelled simulated watch."""
 
-from collections.abc import Callable
-from copy import deepcopy
-from typing import Any
 import json
 import os
 import tempfile
+from collections.abc import Callable
+from copy import deepcopy
+from typing import Any
 
 from .configuration import validate_configuration
-from .persistence import ConfigStore, FileStore, MAX_CONFIG_BYTES
-from .transfer_protocol import ConfigurationProtocol, SimulatedWatch, ScenarioTransport
+from .persistence import MAX_CONFIG_BYTES, ConfigStore, FileStore
+from .transfer_protocol import ConfigurationProtocol, ScenarioTransport, SimulatedWatch
 
 
 class TransferJournal:
     """Bounded saved transaction evidence, separate from user configuration."""
 
-    def __init__(self, store: ConfigStore):
-        self.path = store.path.with_name("transfer_transaction.json") if isinstance(store, FileStore) else None
+    def __init__(self, store: ConfigStore, *, path=None):
+        self.path = (
+            path
+            if path is not None
+            else store.path.with_name("transfer_transaction.json")
+            if isinstance(store, FileStore)
+            else None
+        )
         self.content: dict[str, Any] | None = None
 
     def _validate(self, value: Any) -> dict[str, Any] | None:
-        if not isinstance(value, dict) or set(value) != {"schema", "pending"} or type(value["schema"]) is not int or value["schema"] != 1:
+        if (
+            not isinstance(value, dict)
+            or set(value) != {"schema", "pending"}
+            or type(value["schema"]) is not int
+            or value["schema"] != 1
+        ):
             raise ValueError("Unsupported transfer transaction journal")
         pending = value["pending"]
         if pending is None:
             return None
-        if not isinstance(pending, dict) or set(pending) != {"candidate", "laptop", "watch"}:
+        if not isinstance(pending, dict) or set(pending) != {
+            "candidate",
+            "laptop",
+            "watch",
+        }:
             raise ValueError("Incomplete transfer transaction journal")
-        return {name: validate_configuration(config) for name, config in pending.items()}
+        return {
+            name: validate_configuration(config) for name, config in pending.items()
+        }
 
     def load(self) -> dict[str, Any] | None:
         if self.path is None:
@@ -44,17 +61,26 @@ class TransferJournal:
                 return self._validate(json.loads(data))
             except (OSError, ValueError, RecursionError):
                 continue
-        raise ValueError("Saved transfer transaction cannot be validated; read saved content for review")
+        raise ValueError(
+            "Saved transfer transaction cannot be validated; read saved content for review"
+        )
 
     def save(self, pending: dict[str, Any] | None) -> None:
         normalized = self._validate({"schema": 1, "pending": pending})
-        data = json.dumps({"schema": 1, "pending": normalized}, ensure_ascii=False, allow_nan=False, sort_keys=True).encode()
+        data = json.dumps(
+            {"schema": 1, "pending": normalized},
+            ensure_ascii=False,
+            allow_nan=False,
+            sort_keys=True,
+        ).encode()
         if len(data) > 3 * MAX_CONFIG_BYTES + 1024:
             raise ValueError("Transfer journal exceeds its bounded size")
         if self.path is not None:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             for path in (self.path.with_suffix(".last-good.json"), self.path):
-                fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+                fd, temporary = tempfile.mkstemp(
+                    prefix=f".{path.name}.", dir=path.parent
+                )
                 try:
                     with os.fdopen(fd, "wb") as handle:
                         handle.write(data)
@@ -86,30 +112,24 @@ def fields(content: dict[str, Any], prefix: str = "") -> dict[str, Any]:
     return result
 
 
-class ConfigurationTransfer:
+class ReconciliationState:
+    """Shared saved-copy reconciliation and durability, independent of wire timing."""
+
     def __init__(
-        self,
-        laptop_store: ConfigStore,
-        watch_store: ConfigStore,
-        shared_store: ConfigStore,
-        exchange: Callable[[bytes], bytes] | None = None,
+        self, laptop_store, shared_store, watch, *, journal_store=None, error=None
     ):
         self.active = False
         self.status = "idle"
-        self.error: str | None = None
-        endpoint = SimulatedWatch(watch_store)
-        self.endpoint = endpoint
-        self.simulated = exchange is None
-        self.scenario = ScenarioTransport(endpoint)
-        self.protocol = ConfigurationProtocol(exchange or self.scenario.exchange)
         self.laptop_store = laptop_store
         self.shared_store = shared_store
-        self.watch = deepcopy(endpoint.active)
-        self.error = endpoint.error
+        self.watch = deepcopy(watch)
+        self.error = error
         self.base = None
         try:
             loaded_base = shared_store.load()
-            self.base = None if loaded_base is None else validate_configuration(loaded_base)
+            self.base = (
+                None if loaded_base is None else validate_configuration(loaded_base)
+            )
         except (OSError, ValueError) as exc:
             self.error = f"Shared configuration base requires review: {exc}"
         if self.error is not None:
@@ -117,7 +137,12 @@ class ConfigurationTransfer:
         self.preview: dict[str, Any] | None = None
         self.previous_mode = "idle"
         self.previous_simulating = False
-        self.journal = TransferJournal(laptop_store)
+        journal_path = (
+            journal_store.path.with_suffix(".transaction.json")
+            if isinstance(journal_store, FileStore)
+            else None
+        )
+        self.journal = TransferJournal(journal_store or laptop_store, path=journal_path)
         self.journal_error: str | None = None
         self.local_saved: dict[str, Any] | None = None
         try:
@@ -129,48 +154,8 @@ class ConfigurationTransfer:
             self.status = "unknown"
             self.error = "Outcome unknown; saved transaction requires explicit readback reconciliation"
 
-    def configure_scenario(self, values: dict[str, Any]) -> None:
-        if not self.simulated:
-            raise ValueError("Fault scenarios require the default simulated endpoint")
-        self.scenario.configure(values)
-
-    def watch_edit(self, payload: dict[str, Any]) -> None:
-        if not self.simulated:
-            raise ValueError("Saved watch scenario editing requires the default simulated endpoint")
-        alert = payload.get("alert")
-        if alert not in ("pwm", "speed", "battery", "lost"):
-            raise ValueError("Choose a simulated watch alert")
-        values = {key: value for key, value in payload.items() if key != "alert"}
-        if not values or set(values) - ({"enabled"} if alert == "lost" else {"enabled", "threshold"}):
-            raise ValueError("Invalid simulated watch alert field")
-        proposed = self.protocol.read()
-        proposed["alerts"][alert].update(values)
-        proposed["revision"] += 1
-        self.endpoint.store.save(validate_configuration(proposed))
-        self.watch = deepcopy(proposed)
-
-    def begin(self, config: dict[str, Any], mode: str, simulating: bool) -> None:
-        self.active = True
-        self.previous_mode = mode
-        self.previous_simulating = simulating
-        if self.pending is None and self.journal_error is None:
-            self.review(config)
-        else:
-            self.status = "unknown"
-            self.error = "Outcome unknown; read saved watch content before deciding success or retry"
-
-    def review(self, config: dict[str, Any]) -> None:
-        self._require_active()
-        if self.pending is not None or self.journal_error is not None:
-            raise ValueError("Read back the unknown transfer before preparing another preview")
-        self.preview = None
-        self.error = None
-        try:
-            self.watch = self.protocol.read()
-        except (OSError, ValueError) as exc:
-            self.status = "failed"
-            self.error = f"Saved watch configuration could not be read: {exc}"
-            return
+    def _review_saved(self, config, watch):
+        self.watch = validate_configuration(watch)
         laptop = validate_configuration(config)
         left, right = (
             fields(laptop["alerts"], "alerts"),
@@ -248,6 +233,129 @@ class ConfigurationTransfer:
             raise ValueError("This field does not need a transfer choice")
         self._candidate()
 
+    def _read_local_saved(self) -> None:
+        try:
+            saved = self.laptop_store.load()
+            self.local_saved = None if saved is None else validate_configuration(saved)
+        except (OSError, ValueError):
+            self.local_saved = None
+
+    def _prepare_pending(self, preview: dict[str, Any]) -> None:
+        saved_laptop = self.laptop_store.load()
+        if saved_laptop is not None and saved_laptop != preview["laptop"]:
+            self.local_saved = validate_configuration(saved_laptop)
+            raise ValueError(
+                "Laptop saved content changed during staging; refreshed reconciliation requires review again"
+            )
+        pending = {
+            "candidate": deepcopy(preview["candidate"]),
+            "laptop": deepcopy(preview["laptop"]),
+            "watch": deepcopy(preview["watch"]),
+        }
+        self.journal.save(pending)
+        self.pending = pending
+
+    def _complete(self, committed: dict[str, Any]) -> dict[str, Any]:
+        self.laptop_store.save(committed)
+        self.shared_store.save(committed)
+        self.journal.save(None)
+        self.base = deepcopy(committed)
+        self.pending = None
+        self.preview = None
+        self.active = False
+        self.status = "success"
+        self.error = None
+        return committed
+
+    def leave(self) -> None:
+        self.active = False
+        self.preview = None
+
+    def _require_active(self) -> None:
+        if not self.active:
+            raise ValueError("Enter configuration transfer on the watch first")
+
+
+class ConfigurationTransfer(ReconciliationState):
+    def __init__(
+        self,
+        laptop_store: ConfigStore,
+        watch_store: ConfigStore,
+        shared_store: ConfigStore,
+        exchange: Callable[[bytes], bytes] | None = None,
+    ):
+        endpoint = SimulatedWatch(watch_store)
+        self.endpoint = endpoint
+        self.simulated = exchange is None
+        self.scenario = ScenarioTransport(endpoint)
+        self.protocol = ConfigurationProtocol(exchange or self.scenario.exchange)
+        super().__init__(
+            laptop_store, shared_store, endpoint.active, error=endpoint.error
+        )
+
+    def _mark_pending(self, preview):
+        try:
+            self._prepare_pending(preview)
+        except ValueError:
+            if self.local_saved is not None:
+                self.review(self.local_saved)
+            raise
+
+    def _complete(self, committed):
+        result = super()._complete(committed)
+        self.scenario.committed = False
+        return result
+
+    def configure_scenario(self, values: dict[str, Any]) -> None:
+        if not self.simulated:
+            raise ValueError("Fault scenarios require the default simulated endpoint")
+        self.scenario.configure(values)
+
+    def watch_edit(self, payload: dict[str, Any]) -> None:
+        if not self.simulated:
+            raise ValueError(
+                "Saved watch scenario editing requires the default simulated endpoint"
+            )
+        alert = payload.get("alert")
+        if alert not in ("pwm", "speed", "battery", "lost"):
+            raise ValueError("Choose a simulated watch alert")
+        values = {key: value for key, value in payload.items() if key != "alert"}
+        if not values or set(values) - (
+            {"enabled"} if alert == "lost" else {"enabled", "threshold"}
+        ):
+            raise ValueError("Invalid simulated watch alert field")
+        proposed = self.protocol.read()
+        proposed["alerts"][alert].update(values)
+        proposed["revision"] += 1
+        self.endpoint.store.save(validate_configuration(proposed))
+        self.watch = deepcopy(proposed)
+
+    def begin(self, config: dict[str, Any], mode: str, simulating: bool) -> None:
+        self.active = True
+        self.previous_mode = mode
+        self.previous_simulating = simulating
+        if self.pending is None and self.journal_error is None:
+            self.review(config)
+        else:
+            self.status = "unknown"
+            self.error = "Outcome unknown; read saved watch content before deciding success or retry"
+
+    def review(self, config: dict[str, Any]) -> None:
+        self._require_active()
+        if self.pending is not None or self.journal_error is not None:
+            raise ValueError(
+                "Read back the unknown transfer before preparing another preview"
+            )
+        self.preview = None
+        self.error = None
+        try:
+            self.watch = self.protocol.read()
+        except (OSError, ValueError) as exc:
+            self.status = "failed"
+            self.error = f"Saved watch configuration could not be read: {exc}"
+            return
+        self._review_saved(config, self.watch)
+
     def send(self, config: dict[str, Any]) -> dict[str, Any] | None:
         self._require_active()
         self.local_saved = None
@@ -275,7 +383,11 @@ class ConfigurationTransfer:
                 self.status = "failed"
                 self.error = "Watch saved content changed after preview; refreshed reconciliation requires review again"
                 return None
-            self.protocol.upload(preview["candidate"], preview["watch"], lambda: self._mark_pending(preview))
+            self.protocol.upload(
+                preview["candidate"],
+                preview["watch"],
+                lambda: self._mark_pending(preview),
+            )
             committed = self.protocol.read()
             self.watch = committed
             if committed != preview["candidate"]:
@@ -286,40 +398,8 @@ class ConfigurationTransfer:
         except (OSError, ValueError) as exc:
             self._read_local_saved()
             self.status = "unknown" if self.pending is not None else "failed"
-            self.error = (
-                f"{'Outcome unknown' if self.pending is not None else 'Configuration transfer failed'}; read saved content before retry: {exc}"
-            )
+            self.error = f"{'Outcome unknown' if self.pending is not None else 'Configuration transfer failed'}; read saved content before retry: {exc}"
             return None
-
-    def _read_local_saved(self) -> None:
-        try:
-            saved = self.laptop_store.load()
-            self.local_saved = None if saved is None else validate_configuration(saved)
-        except (OSError, ValueError):
-            self.local_saved = None
-
-    def _mark_pending(self, preview: dict[str, Any]) -> None:
-        saved_laptop = self.laptop_store.load()
-        if saved_laptop is not None and saved_laptop != preview["laptop"]:
-            self.local_saved = validate_configuration(saved_laptop)
-            self.review(self.local_saved)
-            raise ValueError("Laptop saved content changed during staging; refreshed reconciliation requires review again")
-        pending = {"candidate": deepcopy(preview["candidate"]), "laptop": deepcopy(preview["laptop"]), "watch": deepcopy(preview["watch"])}
-        self.journal.save(pending)
-        self.pending = pending
-
-    def _complete(self, committed: dict[str, Any]) -> dict[str, Any]:
-        self.laptop_store.save(committed)
-        self.shared_store.save(committed)
-        self.journal.save(None)
-        self.base = deepcopy(committed)
-        self.pending = None
-        self.preview = None
-        self.active = False
-        self.status = "success"
-        self.error = None
-        self.scenario.committed = False
-        return committed
 
     def reconcile(self, config: dict[str, Any]) -> dict[str, Any] | None:
         self._require_active()
@@ -336,7 +416,11 @@ class ConfigurationTransfer:
                 config = saved_laptop
             actual = self.protocol.read()
             self.watch = actual
-            if pending is not None and actual == pending["candidate"] and config in (pending["laptop"], pending["candidate"]):
+            if (
+                pending is not None
+                and actual == pending["candidate"]
+                and config in (pending["laptop"], pending["candidate"])
+            ):
                 return self._complete(actual)
             self.journal.save(None)
         except (OSError, ValueError) as exc:
@@ -354,19 +438,13 @@ class ConfigurationTransfer:
     def cancel(self) -> None:
         self._require_active()
         if self.pending is not None or self.journal_error is not None:
-            raise ValueError("Read active configuration before cancelling an unknown outcome")
+            raise ValueError(
+                "Read active configuration before cancelling an unknown outcome"
+            )
         self.protocol.request("abort")
         self.preview = None
         self.error = None
         self.status = "cancelled"
-
-    def leave(self) -> None:
-        self.active = False
-        self.preview = None
-
-    def _require_active(self) -> None:
-        if not self.active:
-            raise ValueError("Enter configuration transfer on the watch first")
 
     def view(self) -> dict[str, Any]:
         return {
@@ -378,5 +456,11 @@ class ConfigurationTransfer:
             "watch_config": deepcopy(self.watch),
             "preview": deepcopy(self.preview),
             "scenario": deepcopy(self.scenario.values),
-            "pending": None if self.pending is None else {"candidate_revision": self.pending["candidate"]["revision"], "laptop_revision": self.pending["laptop"]["revision"], "watch_revision": self.pending["watch"]["revision"]},
+            "pending": None
+            if self.pending is None
+            else {
+                "candidate_revision": self.pending["candidate"]["revision"],
+                "laptop_revision": self.pending["laptop"]["revision"],
+                "watch_revision": self.pending["watch"]["revision"],
+            },
         }

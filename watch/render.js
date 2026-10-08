@@ -30,11 +30,21 @@ exports.draw = function (g, state) {
   } else if (state.screen === 'settings') {
     text('SETTINGS',120,10,15);
     controls();
-    if(state.persistence_error)text('Configuration needs review',120,188,12);
-    text('Swipe right to return',120,216,11);
+    text(state.horn_feedback?state.horn_feedback.message:state.validation_error?'Fresh stopped telemetry required':state.persistence_error?'Configuration needs review':'Swipe right to return',120,228,9);
+  }else if(state.screen==='transfer'){
+    text('CONFIGURATION TRANSFER',120,9,15);
+    text('Wheel disconnected for laptop BLE',120,36,11);
+    text('Wheel commands unavailable',120,53,11);
+    var transfer=state.transfer||{};
+    text(transfer.phase||'Preparing transfer',120,84,13);
+    text('Staged bytes: '+(transfer.received||0),120,108,12);
+    if(transfer.error)text(String(transfer.error).slice(0,36),120,134,10);
+    else text('Review and Transfer on laptop',120,134,11);
+    controls();if(state.horn_feedback)text(state.horn_feedback.message,120,227,9);
   }else if(state.screen==='alerts'){
     var name=['pwm','speed','battery','lost'][state.alert_page];
     text('VIBRATION ALERTS '+(state.alert_page+1)+'/4',120,9,14);
+    if(state.horn_feedback)text(state.horn_feedback.message,120,25,8);
     text({pwm:'High PWM',speed:'High speed',battery:'Low wheel battery',lost:'Lost telemetry'}[name],12,41,13,-1);
     controls();
     if(name==='lost')text('One short pulse',120,90,14);
@@ -43,9 +53,11 @@ exports.draw = function (g, state) {
     else if(state.vibration.output_error)text('Vibration output unavailable',120,153,11);
   }else if(state.screen==='threshold'){
     text(state.threshold_input.text||'Enter threshold',120,9,18);controls();
-    if(state.validation_error)text('Invalid threshold',120,27,11);
+    if(state.horn_feedback)text(state.horn_feedback.message,120,28,8);
+    else if(state.validation_error)text('Invalid threshold',120,27,11);
   } else if(state.screen==='connection'){
     text('SELECT WHEEL',120,10,15);
+    if(state.horn_feedback)text(state.horn_feedback.message,120,27,8);
     if(!state.devices.length)text(state.transport&&state.transport.error?'Discovery failed':'Discovering...',120,90,14);
     for(i=0;i<state.devices.length;i++){
       y=40+i*38;g.setColor(1);g.drawRect(8,y,232,y+34);

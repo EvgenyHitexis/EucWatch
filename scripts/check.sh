@@ -3,3 +3,11 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 env PYTHONPATH=laptop uv run --offline --no-sync --project experiments/laptop-feasibility python -m unittest discover -s tests
 npm run build --prefix frontend
+for suite in offline runtime alerts alerts-runtime compare-alerts control transfer transfer-wire; do
+  node "watch/tests/$suite.cjs"
+done
+if [[ "${EUCWATCH_BROWSER_CHECKS:-0}" == 1 ]]; then
+  for flow in browser_flow browser_lifecycle browser_transfer; do
+    env PYTHONPATH=laptop:tests uv run --offline --no-sync --project experiments/laptop-feasibility python "tests/$flow.py"
+  done
+fi

@@ -56,6 +56,9 @@ in `Application`; the scenario module does not maintain another behavior clock.
 
 ## Reproduce freshness and connection recovery
 
+The complete importable [freshness scenario](scenarios/freshness.json) uses the
+inputs and seven steps below. Review it in the panel before explicitly starting.
+
 Save/export simulator inputs with speed 25 km/h, voltage 148.05 V and PWM 45%.
 Use the exported complete `simulator` object and replace `steps` with:
 
