@@ -3,7 +3,8 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const root=path.resolve(__dirname,'..');
 function environment(){
   let now=0,next=1,voltage=3.85,adc=0,disconnectFails=false,disconnectDelay=0,subscribeFails=false,scanHangs=false,connectFailures=0,connectCalls=0,failedStorageKey=null,partialStorage=false;
-  const pending=new Map(),watches=new Map(),pins={},writes=[],registers=[],commands=[];
+  const pending=new Map(),watches=new Map(),pins={},writes=[],registers=[],commands=[],bleWrites=[],storageEffects=[];
+  let writeFailure=-1,writeHangs=false,settleWrite=null;
   const context={module:{exports:{}},Uint8Array,Uint16Array,ArrayBuffer,Promise,Math,JSON,isFinite,
     print:()=>{},reset:()=>{context.resets++;},resets:0,global:{},
     getTime:()=>now/1000,process:{env:{VERSION:'2v14'},memory:()=>({free:4096,usage:100,simulated:true})},
@@ -43,10 +44,11 @@ function environment(){
   const modules={};context.imports=[];
   context.require=name=>{
     context.imports.push(name);
-    if(name==='Storage')return{read:key=>storage[key],readJSON:key=>storage[key]?JSON.parse(storage[key]):undefined,write:(key,value)=>{if(key===failedStorageKey){if(partialStorage)storage[key]='{"partial"';return false;}storage[key]=value;},erase:key=>delete storage[key]};
+    if(name==='Storage')return{read:key=>storage[key],readJSON:key=>storage[key]?JSON.parse(storage[key]):undefined,write:(key,value)=>{storageEffects.push({key,value,failed:key===failedStorageKey});if(key===failedStorageKey){if(partialStorage)storage[key]='{"partial"';return false;}storage[key]=value;},erase:key=>delete storage[key]};
     if(modules[name])return modules[name];
     const module={exports:{}};const sandbox={...context,module,exports:module.exports};
-    vm.runInNewContext(fs.readFileSync(path.join(root,name.replace(/^sw-/,'')+'.js'),'utf8'),sandbox);
+    const content=Object.prototype.hasOwnProperty.call(storage,name)?storage[name]:fs.readFileSync(path.join(root,name.replace(/^sw-/,'')+'.js'),'utf8');
+    vm.runInNewContext(content,sandbox);
     modules[name]=module.exports;return module.exports;
   };
   const timers={setTimeout:context.setTimeout,clearTimeout:context.clearTimeout};
@@ -54,9 +56,10 @@ function environment(){
   context.NRF={setServices:()=>{},setAdvertising:()=>{},findDevices:(callback)=>{if(!scanHangs)callback([{id:'11:22:33:44:55:66 public',name:'Sherman L'}]);},
     connect:()=>{connectCalls++;if(connectFailures>0){connectFailures--;return Promise.reject(Error('wheel unavailable'));}return Promise.resolve({device:{connected:true,on:(name,callback)=>callbacks[name]=callback},
       disconnect(){if(disconnectFails)throw Error('radio cleanup failure');const device=this.device;return new Promise(resolve=>{context.setTimeout(()=>{device.connected=false;resolve();},disconnectDelay);});},getPrimaryService:uuid=>{assert.equal(uuid,'ffe0');return Promise.resolve({getCharacteristic:uuid=>{
-        assert.equal(uuid,'ffe1');return Promise.resolve({on:(name,callback)=>{assert.equal(name,'characteristicvaluechanged');notification=callback;},startNotifications:()=>subscribeFails?Promise.reject(Error('notification subscription failed')):Promise.resolve()});
+        assert.equal(uuid,'ffe1');return Promise.resolve({properties:{notify:true,writeWithoutResponse:true},writeValue:bytes=>{bleWrites.push(Buffer.from(bytes).toString('hex'));if(bleWrites.length===writeFailure)return Promise.reject(Error('Controlled partial write failure'));return writeHangs?new Promise(resolve=>{settleWrite=resolve;}):Promise.resolve();},on:(name,callback)=>{assert.equal(name,'characteristicvaluechanged');notification=callback;},startNotifications:()=>subscribeFails?Promise.reject(Error('notification subscription failed')):Promise.resolve()});
       }});}});}};
-  return {context,timers,watches,registers,commands,
+  return {context,timers,watches,registers,commands,bleWrites,storageEffects,
+    writeFailure:count=>{writeFailure=count;},writeHang:value=>{writeHangs=value;},settleWrite:()=>{if(settleWrite)settleWrite();},
     start:(options={})=>context.require('sw-main').start({clock:{now:context.getTime},radio:context.NRF,timers,...options}),
     voltage:value=>{voltage=value;},adc:()=>adc,
     disconnectFailure:value=>{disconnectFails=value;},
@@ -68,7 +71,7 @@ function environment(){
     touch:(gesture,x,y,fingers=1)=>{context.touchBytes=Uint8Array.from([0,gesture,fingers,x>>8,x&255,y>>8,y&255]);[...watches.values()].find(w=>w.pin===pins.D28).callback();},
     notification:bytes=>notification({target:{value:new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength)}}),
     loss:()=>callbacks.gattserverdisconnected(),
-    boot:()=>vm.runInNewContext(fs.readFileSync(path.join(root,'boot.js'),'utf8'),context)
+    boot:name=>vm.runInNewContext(name?storage[name]:fs.readFileSync(path.join(root,'boot.js'),'utf8'),context)
   };
 }
 const flush=async()=>{for(let i=0;i<12;i++)await Promise.resolve();};

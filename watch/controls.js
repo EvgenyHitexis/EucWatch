@@ -4,7 +4,30 @@ exports.targets=function(state){
   function target(rect,label,action,payload){return {rect:rect,label:label,action:action,payload:payload||{}};}
   if(state.screen==='settings')return [
     target([12,26,228,52],state.transport&&(state.transport.active||state.transport.connected)?'Disconnect wheel':'Connect wheel','transport_toggle'),
-    target([12,60,228,110],'Sleep screen','sleep'),target([12,120,228,170],'Vibration alerts','alerts_begin')];
+    target([12,60,228,110],'Sleep screen','sleep'),target([12,120,228,170],'Vibration alerts','alerts_begin'),
+    target([12,180,228,212],'Presets','preset_slots')];
+  if(state.preset_clear_slot!==null&&(state.screen==='preset_slots'||state.screen==='preset_editor'))return [
+    target([12,174,116,204],'Cancel','preset_clear_cancel'),target([124,174,228,204],'Clear','preset_clear_done')];
+  if(state.screen==='preset_slots'){
+    var slots=[];state.presets.forEach(function(slot,index){var y=36+index*44;slots.push(target([12,y,169,y+38],slot.id+' '+slot.name,'preset_begin',{slot:slot.id}));slots.push(target([174,y,228,y+38],'Clear','preset_clear_begin',{slot:slot.id}));});return slots;
+  }
+  if(state.screen==='preset_editor'){
+    if(!state.preset_draft)return [target([12,202,228,236],'Back','preset_cancel')];
+    if(state.preset_input){
+      var input=state.preset_input,nameInput=input.field==='name',rows=require('sw-preset-editor').keys(input).map(function(key,index){var x=16+index%3*70,y=59+Math.floor(index/3)*31;return target([x,y,x+66,y+28],key,'preset_input_key',{key:key});});
+      if(nameInput)rows=rows.concat([
+        target([12,2,62,28],'<','preset_input_page',{delta:-1}),target([178,2,228,28],'>','preset_input_page',{delta:1}),
+        target([12,185,62,209],'a/A','preset_input_key',{key:'a/A'}),target([68,185,118,209],'Space','preset_input_key',{key:' '}),
+        target([124,185,174,209],'Clear','preset_input_key',{key:'Clear'}),target([180,185,228,209],'<','preset_input_key',{key:'<'})]);
+      return rows.concat([target([12,214,116,238],'Cancel','preset_input_cancel'),target([124,214,228,238],'Set','preset_input_done')]);
+    }
+    var back=target([12,207,76,237],'Back','preset_cancel');
+    if(state.preset_attempt&&state.preset_attempt.pending)return [back];
+    var field=require('sw-preset-editor').fields[state.preset_page],value=state.preset_draft[field];
+    var edit=[target([12,2,62,30],'<','preset_page',{page:(state.preset_page+3)%4}),target([178,2,228,30],'>','preset_page',{page:(state.preset_page+1)%4}),target([12,65,228,103],value===undefined?'Omitted':String(value),'preset_input_begin')];
+    if(field==='pedal_dip_compensation')edit.push(target([12,111,228,141],value===undefined?'Include dip (local)':'Omit dip (local)','preset_include_dip',{included:value===undefined}));
+    return edit.concat([back,target([82,207,180,237],state.persistence_error?'Retry save':'Save slot','preset_save'),target([186,207,228,237],'Clear','preset_clear_begin',{slot:state.preset_draft.id})]);
+  }
   if(state.screen==='alerts'&&state.alerts_draft){
     var name=['pwm','speed','battery','lost'][state.alert_page],setting=state.alerts_draft[name];
     var rows=[target([168,31,228,65],setting.enabled?'ON':'OFF','alerts_update',{alert:name,enabled:!setting.enabled})];

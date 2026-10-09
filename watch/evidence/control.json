@@ -718,6 +718,7 @@
     ],
     "timeout_result": {
       "id": 3,
+      "kind": "preset",
       "slot": 1,
       "name": "Road",
       "revision": 0,

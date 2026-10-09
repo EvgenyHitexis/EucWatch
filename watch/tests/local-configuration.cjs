@@ -17,7 +17,9 @@ assert.equal(JSON.stringify(running.core.view().config),JSON.stringify(saved),'e
 env.touch(0,120,10);env.touch(1,120,90);
 assert.equal(running.core.view().screen,'settings');
 env.touch(5,120,202);
-assert.equal(running.core.view().screen,'settings','former transfer touch must leave Settings usable');
+assert.equal(running.core.view().screen,'preset_slots','the former transfer area now opens the local Presets editor');
+env.touch(4,210,120);
+assert.equal(running.core.view().screen,'settings','returning from local Presets keeps Settings usable');
 for(const name of ['transfer_begin','transfer_preview','transfer_choose','transfer_send','transfer_reconcile','transfer_cancel','transfer_return','transfer_activate','transfer_exit','transfer_scenario','transfer_watch_edit','nordic_select']){
   const before=running.core.view();
   assert.throws(()=>running.core.action(name,{config:before.config}),/Unknown action/);

@@ -1,0 +1,214 @@
+{
+  "issue": 42,
+  "manifest": {
+    "schema": 1,
+    "version": "1739ad10",
+    "runtime": {
+      "BOARD": "P22",
+      "VERSION": "2v14"
+    },
+    "main": "sw-1739ad10-main",
+    "recovery": "sw-1739ad10-boot",
+    "files": [
+      {
+        "name": "sw-1739ad10-alerts",
+        "bytes": 4696,
+        "sha256": "37e778e87f1cf7c4224a3b87a1dd4982a84095cf5d24f0378aab162f3edd0e99",
+        "crc32": "9150e3c8"
+      },
+      {
+        "name": "sw-1739ad10-app",
+        "bytes": 23867,
+        "sha256": "a13f779e49009835313b78b5f3d542e87f6ede4ed8563bdf25652cf050fb8e84",
+        "crc32": "fc2feb33"
+      },
+      {
+        "name": "sw-1739ad10-boot",
+        "bytes": 1322,
+        "sha256": "17bcadbe43c2c2a7b2935f1453f5a05ecb191da171f1cbbb07e6b3d7cc3b2cb7",
+        "crc32": "86c503ff"
+      },
+      {
+        "name": "sw-1739ad10-configuration",
+        "bytes": 4306,
+        "sha256": "de24e2b51416e8650c96ce7c22ccf03c6fe69b6bb00c829fbac0d9cc122ee6ea",
+        "crc32": "026bc8d6"
+      },
+      {
+        "name": "sw-1739ad10-controls",
+        "bytes": 5065,
+        "sha256": "c82104f392ef3f7154a4b73ed893ec927cd96f6b6ede2c9fad184cd90c7416c7",
+        "crc32": "f4d4cdc9"
+      },
+      {
+        "name": "sw-1739ad10-display",
+        "bytes": 6744,
+        "sha256": "6471e8383ad163f9bae99a7e711bddd4a4a377deccf2e54191175d006de5f4ae",
+        "crc32": "47b7ad9d"
+      },
+      {
+        "name": "sw-1739ad10-hardware",
+        "bytes": 3074,
+        "sha256": "332bc60353f8d2949746576aea8ab2d671fc12ee2bc43476b707a96ee2340d25",
+        "crc32": "a7c2ee0e"
+      },
+      {
+        "name": "sw-1739ad10-horn",
+        "bytes": 1358,
+        "sha256": "d03479b8306fe88289b4b4932375b3efb4e696f44e8cad8deea9a93b83bd756c",
+        "crc32": "7020dd6a"
+      },
+      {
+        "name": "sw-1739ad10-main",
+        "bytes": 2120,
+        "sha256": "53de612cf81a9fc0b009a33f557cd2370922062f03b20dccb1cb7aa901d8e1bd",
+        "crc32": "977422be"
+      },
+      {
+        "name": "sw-1739ad10-motor",
+        "bytes": 1327,
+        "sha256": "7814a91690a99773458bbb9282be0b95ae863b1142dbac1892336b56de2a7cae",
+        "crc32": "a87e41b0"
+      },
+      {
+        "name": "sw-1739ad10-preset-control",
+        "bytes": 5309,
+        "sha256": "460c01c668950216447c950aa46f77cc7b61e6a6e0c1eb8babea0004b16f26ab",
+        "crc32": "7c3627e5"
+      },
+      {
+        "name": "sw-1739ad10-preset-editor",
+        "bytes": 3261,
+        "sha256": "4a16fa9198c5527c07c9a371b4dd6c8d7f51203fc52781623c1c75a9a916c448",
+        "crc32": "259b79ff"
+      },
+      {
+        "name": "sw-1739ad10-protocol",
+        "bytes": 2261,
+        "sha256": "173c2d4d534747a7e251ae06fb0b28a0578af8e3db229afd676ac2f6a2ab11b8",
+        "crc32": "c5ce248d"
+      },
+      {
+        "name": "sw-1739ad10-render",
+        "bytes": 7637,
+        "sha256": "e3585e616366fcffcf5aa23ee405f3136c3c48ef7447101b4b3c69997ce84fb0",
+        "crc32": "c5b94248"
+      },
+      {
+        "name": "sw-1739ad10-store",
+        "bytes": 2608,
+        "sha256": "aa87d9cdd37651b8dc67b4d46bca732dfd38aae1b6e9de05ea5cd46a3a60a260",
+        "crc32": "8b5f81bb"
+      },
+      {
+        "name": "sw-1739ad10-transport",
+        "bytes": 10994,
+        "sha256": "ee51d586a555e7dbc4557702442c386fda43648b3a21b7ab1df74ebab2005a56",
+        "crc32": "3a4b322d"
+      },
+      {
+        "name": "sw-1739ad10-notice",
+        "bytes": 4958,
+        "sha256": "6611699176860c4dd1527c3922743d435a7380123fc24fc05b47de62cc2511c5",
+        "crc32": "76d7ef9b"
+      }
+    ]
+  },
+  "rehearsal": {
+    "status": "local-bundle-verified",
+    "version": "1739ad10",
+    "files": 17,
+    "bytes": 90907,
+    "deployment": "not performed; full application, laptop acceptance and separate authorization required",
+    "provenance": "synthetic Storage/runtime/authorization only",
+    "plan": {
+      "required_bytes": 93538,
+      "available_bytes": 1000000,
+      "first_install": true,
+      "writes": [
+        "sw-1739ad10-alerts",
+        "sw-1739ad10-app",
+        "sw-1739ad10-boot",
+        "sw-1739ad10-configuration",
+        "sw-1739ad10-controls",
+        "sw-1739ad10-display",
+        "sw-1739ad10-hardware",
+        "sw-1739ad10-horn",
+        "sw-1739ad10-main",
+        "sw-1739ad10-motor",
+        "sw-1739ad10-preset-control",
+        "sw-1739ad10-preset-editor",
+        "sw-1739ad10-protocol",
+        "sw-1739ad10-render",
+        "sw-1739ad10-store",
+        "sw-1739ad10-transport",
+        "sw-1739ad10-notice"
+      ],
+      "activation_last": "sw-active.json",
+      "deletions": []
+    },
+    "outcome": {
+      "status": "verified"
+    },
+    "writes": [
+      "sw-1739ad10-alerts",
+      "sw-1739ad10-app",
+      "sw-1739ad10-boot",
+      "sw-1739ad10-configuration",
+      "sw-1739ad10-controls",
+      "sw-1739ad10-display",
+      "sw-1739ad10-hardware",
+      "sw-1739ad10-horn",
+      "sw-1739ad10-main",
+      "sw-1739ad10-motor",
+      "sw-1739ad10-preset-control",
+      "sw-1739ad10-preset-editor",
+      "sw-1739ad10-protocol",
+      "sw-1739ad10-render",
+      "sw-1739ad10-store",
+      "sw-1739ad10-transport",
+      "sw-1739ad10-notice",
+      ".bootrst",
+      "sw-active.json"
+    ],
+    "hardware": "none"
+  },
+  "versioned_runtime": "editor packet/readback and existing local configuration survive compatible application startup; no command or confirmation replay",
+  "native_imports": [
+    "sw-1739ad10-main",
+    "sw-1739ad10-hardware",
+    "sw-1739ad10-display",
+    "sw-1739ad10-motor",
+    "sw-1739ad10-render",
+    "sw-1739ad10-store",
+    "sw-1739ad10-configuration",
+    "sw-1739ad10-app",
+    "sw-1739ad10-protocol",
+    "sw-1739ad10-configuration",
+    "sw-1739ad10-preset-editor",
+    "sw-1739ad10-configuration",
+    "sw-1739ad10-alerts",
+    "sw-1739ad10-preset-control",
+    "sw-1739ad10-protocol",
+    "sw-1739ad10-horn",
+    "sw-1739ad10-transport",
+    "sw-1739ad10-controls",
+    "sw-1739ad10-controls",
+    "sw-1739ad10-preset-editor",
+    "sw-1739ad10-preset-control",
+    "sw-1739ad10-preset-control",
+    "sw-1739ad10-preset-control",
+    "sw-1739ad10-preset-control",
+    "sw-1739ad10-preset-control",
+    "sw-1739ad10-preset-control",
+    "sw-1739ad10-preset-editor",
+    "sw-1739ad10-preset-editor",
+    "sw-1739ad10-preset-editor",
+    "sw-1739ad10-controls",
+    "sw-1739ad10-preset-editor",
+    "sw-1739ad10-preset-editor"
+  ],
+  "recovery": "held button bypasses imports; absent main retains recovery guard",
+  "artifact": ".test-output/watch-preset-editor/1739ad10",
+  "hardware": "all hardware, flash capacity and authorization are simulated; display/input/vibration, memory fit, live controls and deployment pending"
+}

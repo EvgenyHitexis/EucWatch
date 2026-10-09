@@ -12,6 +12,7 @@ exports.create = function (options) {
   var paintDuration=0,maxPaintDuration=0,visibleReceipt=null,maxReceiptToPaint=0;
   var core, devices=[], recoveryCalled=false;
   var config=configuration.defaults(),draft=null,persistenceError=null,validationError=null,alertPage=0,thresholdInput=null;
+  var editor=require('sw-preset-editor').create(),presetPage=0,presetInput=null,clearSlot=null;
   if(options.store){try{var saved=options.store.load();if(saved!==null&&saved!==undefined)config=configuration.validate(saved);persistenceError=options.store.warning||null;}catch(error){persistenceError='Saved configuration requires review: '+String(error);}}
   var alerts=require('sw-alerts').create({output:options.vibration_output,settings:config.alerts});
   var commandEvents=[],controlFeedback='',control=require('sw-preset-control').create({send:submit});
@@ -22,9 +23,10 @@ exports.create = function (options) {
     catch(error){var result={attempt:row.attempt,request:row.request,session:row.session,index:row.index,success:false,error:String(error)};if(row.kind==='horn')horn.result(result,clock.now());else control.result(result,clock.now());}
   }
   function updateControl(){
+    editor.tick(clock.now(),session,connected);
     control.tick(clock.now(),{fresh:fresh(),session:session,revision:config.revision,recovery:recovery});
     var result=control.view(),attempt=result.attempt,key=attempt?attempt.id+':'+attempt.status+':'+!!result.confirmed:'';
-    if(attempt&&key!==controlFeedback){controlFeedback=key;feedback=attempt.name+' · '+(attempt.pending?'Applying':attempt.status==='Confirmed'&&!result.confirmed?'Unconfirmed':attempt.status);}
+    if(attempt&&key!==controlFeedback){controlFeedback=key;feedback=require('sw-preset-editor').attemptName(attempt)+' · '+(attempt.pending?'Applying':attempt.status==='Confirmed'&&!result.confirmed?'Unconfirmed':attempt.status);}
     var previous=horn.view();horn.tick(clock.now(),session);
     if(previous&&!horn.view()&&feedback===previous.message)feedback='';
     if(horn.view())feedback=horn.view().message;
@@ -36,22 +38,35 @@ exports.create = function (options) {
   }
   function fresh() { return connected && lastValid !== null && clock.now() - lastValid < 1; }
   function resetSession() { session++; connected = false; lastValid = null; parser = protocol.create(); }
+  function saveEditor(proposed){
+    try{if(options.store)options.store.save(proposed);}
+    catch(error){persistenceError='Configuration save failed: '+String(error)+'; wheel changes are not undone';return false;}
+    config=proposed;control.invalidate(clock.now(),'Saved configuration changed');persistenceError=null;return true;
+  }
+  function leaveEditor(){
+    var attempt=control.view().attempt;
+    if(attempt&&attempt.kind==='editor'&&attempt.pending)control.invalidate(clock.now(),'Editor closed; submitted changes are not undone');
+    editor.close();presetInput=null;clearSlot=null;validationError=null;
+  }
   function percent(voltage) {
     return voltage <= 119.02 ? 0 : voltage >= 148.05 ? 100 : Math.max(0, Math.min(100, Math.round((voltage - 119.02) / 0.2903)));
   }
   function updateAlerts(){alerts.evaluate(clock.now(),{fresh:fresh(),pwm:telemetry?telemetry.pwm_percent:null,speed:telemetry?Math.abs(telemetry.speed_kmh):null,battery:telemetry?percent(telemetry.voltage_V):null});}
   function view() {
-    var live = fresh(), values = telemetry,vibration=alerts.view(),controlState=control.view();
+    var live = fresh(), values = telemetry,vibration=alerts.view(),controlState=control.view(),editing=editor.view();
     vibration.output=options.vibration_status?options.vibration_status():null;
+    if(editing.request){editing.request.wheel_values=editing.values;editing.request.current_confirmation=!!(controlState.confirmed&&controlState.confirmed.kind==='editor'&&controlState.confirmed.slot===editing.request.slot);}
     return { mode: 'watch',session: session, elapsed_s: clock.now(), connected: connected,
       fresh: live, awake: awake, screen: screen, recovery: recovery,
       established_connection: established, button: { down: buttonDown, wake_cycle: wakeCycle }, feedback: feedback,
       telemetry: values, watch_battery: watchBattery,
       vibration:vibration,
-      preset_attempt:controlState.attempt,confirmed_preset:controlState.confirmed,actual_settings:controlState.actual,
+      preset_attempt:controlState.attempt,confirmed_preset:controlState.confirmed&&controlState.confirmed.kind==='preset'?controlState.confirmed:null,actual_settings:controlState.actual,
+      confirmed_setting:controlState.confirmed&&controlState.confirmed.kind==='editor'?controlState.confirmed:null,
       horn_feedback:horn.view(),command_events:configuration.copy(commandEvents),
       config:configuration.copy(config),alerts_draft:draft?configuration.copy(draft):null,alert_page:alertPage,persistence_error:persistenceError,validation_error:validationError,
       threshold_input:thresholdInput?configuration.copy(thresholdInput):null,
+      preset_editor:editing.request,preset_draft:editing.draft,preset_page:presetPage,preset_input:configuration.copy(presetInput),preset_clear_slot:clearSlot,
       devices:devices,transport:options.transportStatus?options.transportStatus():null,
       diagnostics: { valid_frames: validFrames, rejected_frames: rejectedFrames,
         retained_bytes: parser.status().retained_bytes, display_frames: paintCount,
@@ -88,7 +103,7 @@ exports.create = function (options) {
       var previous = parser.status().rejected_frames;
       parser.feed(raw, function (values,frame) {
         telemetry = values; lastValid = clock.now(); receivedAt = lastValid; validFrames++;
-        var settings=protocol.settings(frame);if(settings)control.observe(settings,clock.now(),session);
+        var settings=protocol.settings(frame);if(settings){control.observe(settings,clock.now(),session);editor.observe(config,settings,session,clock.now());}
         updateAlerts();
         if (options.onTelemetry) options.onTelemetry(values, lastValid);
       });
@@ -104,8 +119,12 @@ exports.create = function (options) {
       else if (name === 'disconnect' && payload.session === session) resetSession();
       else if (name === 'swipe' && awake && !recovery) {
         if (payload.direction === 'left' && screen === 'dashboard') screen = 'presets';
-        else if (payload.direction === 'down' && payload.from_top) screen = 'settings';
-        else if (payload.direction === 'right' && screen !== 'dashboard') {screen = 'dashboard';draft=null;thresholdInput=null;validationError=null;}
+        else if (payload.direction === 'down' && payload.from_top) {leaveEditor();screen = 'settings';}
+        else if (payload.direction === 'right' && screen !== 'dashboard') {
+          if(clearSlot!==null)clearSlot=null;
+          else if(presetInput)presetInput=null;
+          else {var priorScreen=screen;leaveEditor();screen=priorScreen==='preset_editor'?'preset_slots':priorScreen==='preset_slots'?'settings':'dashboard';draft=null;thresholdInput=null;validationError=null;}
+        }
       } else if (name === 'sleep' && awake && screen === 'settings') awake = false;
       else if (name === 'button_down' && !buttonDown) {
         buttonDown = true; buttonStarted = clock.now(); wakeCycle = !awake; awake = true;
@@ -114,6 +133,73 @@ exports.create = function (options) {
       else if (name === 'battery_refresh') { watchBattery = battery(); lastBattery = clock.now(); }
       else if(name==='open_connection'){if(awake)screen='connection';}
       else if(name==='devices'){devices=(payload.devices||[]).slice(0,4);}
+      else if(name==='preset_slots'){
+        if(!awake||recovery)throw new Error('Preset editing unavailable');
+        leaveEditor();draft=null;screen='preset_slots';
+      }else if(name==='preset_begin'){
+        if(!awake||recovery||!connected)throw new Error('A selected wheel connection is required to edit');
+        if(control.pending())throw new Error('Wait for the current wheel operation');
+        editor.open(payload.slot,session,clock.now());parser=protocol.create();presetPage=0;presetInput=null;clearSlot=null;screen='preset_editor';
+      }else if(name==='preset_update'){
+        if(control.pending())throw new Error('Wait for the current wheel operation; extra edit discarded');
+        var changes=configuration.copy(payload);delete changes.source;
+        var field=Object.keys(changes)[0],wheelWrite=field!=='name'&&changes[field]!==null;
+        if(wheelWrite&&(!awake||!fresh()||recovery||!options.command_output))throw new Error('A healthy fresh wheel connection and control transport are required');
+        var proposedEditor=editor.update(config,changes),selected=editor.view().draft;
+        saveEditor(proposedEditor);
+        if(wheelWrite){var setting={id:selected.id,name:selected.name};setting[field]=selected[field];parser=protocol.create();control.start(setting,config.revision,session,clock.now(),'editor');}
+      }else if(name==='preset_cancel'){leaveEditor();screen='preset_slots';}
+      else if(name==='preset_save'){
+        if(control.pending())throw new Error('Wait for the current wheel operation');
+        var saving=editor.view().draft;if(!saving)throw new Error('Wait for fresh settings before creating a preset');
+        saveEditor(require('sw-preset-editor').replacement(config,saving));
+      }else if(name==='preset_include_dip'){
+        if(control.pending())throw new Error('Wait for the current wheel operation');
+        var current=editor.view(),dip=null;
+        if(!current.draft||typeof payload.included!=='boolean')throw new Error('Open the editor and choose dip inclusion');
+        if(payload.included){dip=current.values&&current.values.pedal_dip_compensation;if(!fresh()||dip===null||dip===undefined)throw new Error('Current dip setting unavailable');}
+        saveEditor(editor.update(config,{pedal_dip_compensation:dip}));
+      }else if(name==='preset_clear'){
+        if(control.pending())throw new Error('Wait for the current wheel operation');
+        var clearing=config.presets[require('sw-preset-editor').slot(payload.slot)-1];
+        if(saveEditor(require('sw-preset-editor').replacement(config,{id:clearing.id,name:clearing.name,configured:false}))){leaveEditor();screen='preset_slots';}
+      }else if(name==='preset_page'){
+        if(control.pending()||!editor.view().draft||presetInput)throw new Error('Wait for the current wheel operation');
+        if(typeof payload.page!=='number'||Math.floor(payload.page)!==payload.page||payload.page<0||payload.page>3)throw new Error('Invalid preset page');
+        presetPage=payload.page;validationError=null;
+      }else if(name==='preset_input_begin'){
+        if(control.pending()||!editor.view().draft)throw new Error('Wait for fresh settings and the current wheel operation');
+        var inputField=require('sw-preset-editor').fields[presetPage];
+        presetInput={field:inputField,text:inputField==='name'?editor.view().draft.name:'',letters:0,lowercase:false};validationError=null;
+      }else if(name==='preset_input_key'){
+        if(!presetInput)throw new Error('No preset input is open');
+        var key=payload.key;
+        if(key==='Clear')presetInput.text='';
+        else if(key==='<')presetInput.text=presetInput.text.slice(0,-1);
+        else if(key==='a/A'&&presetInput.field==='name')presetInput.lowercase=!presetInput.lowercase;
+        else if(typeof key==='string'&&(require('sw-preset-editor').keys(presetInput).indexOf(key)>=0||(key===' '&&presetInput.field==='name'))){if(presetInput.text.length<(presetInput.field==='name'?24:3))presetInput.text+=key;}
+        else throw new Error('Invalid preset input key');
+        validationError=null;
+      }else if(name==='preset_input_page'){
+        if(!presetInput||presetInput.field!=='name'||(payload.delta!==1&&payload.delta!==-1))throw new Error('Invalid name keypad page');
+        presetInput.letters=(presetInput.letters+payload.delta+3)%3;
+      }else if(name==='preset_input_done'){
+        if(!presetInput)throw new Error('No preset input is open');
+        var completed={};
+        if(presetInput.field!=='name'&&!/^\d{1,3}$/.test(presetInput.text)){validationError='Enter a whole percentage from 0 to 100';return view();}
+        completed[presetInput.field]=presetInput.field==='name'?presetInput.text:Number(presetInput.text);
+        try{core.action('preset_update',completed);}
+        catch(error){validationError=String(error);return view();}
+        presetInput=null;validationError=null;
+      }else if(name==='preset_input_cancel'){presetInput=null;validationError=null;}
+      else if(name==='preset_clear_begin'){
+        if(control.pending())throw new Error('Wait for the current wheel operation');
+        clearSlot=require('sw-preset-editor').slot(payload.slot);
+      }else if(name==='preset_clear_cancel'){clearSlot=null;}
+      else if(name==='preset_clear_done'){
+        if(clearSlot===null)throw new Error('Choose a slot to clear');
+        core.action('preset_clear',{slot:clearSlot});clearSlot=null;
+      }
       else if(name==='preset_apply'){
         if(control.pending()){feedback='Preset already applying';return view();}
         if(typeof payload.slot!=='number'||Math.floor(payload.slot)!==payload.slot||payload.slot<1||payload.slot>4)throw new Error('A fixed preset slot is required');
@@ -132,7 +218,7 @@ exports.create = function (options) {
         if(!options.store)throw new Error('Saved configuration adapter unavailable');
         var loaded=configuration.validate(options.store.load()||configuration.defaults());
         if(!configuration.equal(loaded,config))control.invalidate(clock.now(),'Saved configuration changed');
-        config=loaded;draft=null;thresholdInput=null;screen='dashboard';alerts.configure(config.alerts,clock.now());persistenceError=options.store.warning||null;
+        leaveEditor();config=loaded;draft=null;thresholdInput=null;screen='dashboard';alerts.configure(config.alerts,clock.now());persistenceError=options.store.warning||null;
       }
       else if(name==='alert_test')alerts.test(payload.alert,clock.now());
       else if(name==='alerts_begin'){
@@ -183,13 +269,14 @@ exports.create = function (options) {
     tick: function () {
       var now = clock.now(), state, signature;
       updateControl();
+      if(!editor.view().draft)presetInput=null;
       updateAlerts();
       if (now - lastBattery >= 30) { watchBattery = battery(); lastBattery = now; }
       if (buttonDown && buttonStarted !== null && now - buttonStarted >= 30) { recovery = true; awake = true; feedback = 'Recovery mode'; if (options.recover&&!recoveryCalled) {recoveryCalled=true;options.recover();} }
       if (!established && !buttonDown && !recovery && !draft && now - lastInteraction >= 30) awake = false;
       if (options.present && now - lastPaint >= 0.2 - 0.000000001) {
         state = view();
-        signature = JSON.stringify([state.awake,state.screen,state.recovery,state.dashboard,state.feedback,state.devices,state.transport,state.alerts_draft,state.alert_page,state.threshold_input,state.validation_error,state.persistence_error,state.presets,state.preset_attempt,state.confirmed_preset,state.actual_settings,state.horn_feedback]);
+        signature = JSON.stringify([state.awake,state.screen,state.recovery,state.dashboard,state.feedback,state.devices,state.transport,state.alerts_draft,state.alert_page,state.threshold_input,state.validation_error,state.persistence_error,state.presets,state.preset_attempt,state.confirmed_preset,state.confirmed_setting,state.actual_settings,state.horn_feedback,state.preset_editor,state.preset_draft,state.preset_page,state.preset_input,state.preset_clear_slot]);
         if (signature !== lastView) {
           lastPaint = now; lastView = signature; paintCount++;
           options.present(state);paintDuration=Math.max(0,clock.now()-now);maxPaintDuration=Math.max(maxPaintDuration,paintDuration);

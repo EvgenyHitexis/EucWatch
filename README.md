@@ -44,8 +44,10 @@ control requires a fresh selected session; replay always remains read-only.
 
 The original P22 Espruino 2v14 application lives in [watch/](watch/).
 Its 240×240 monochrome interface, bounded control and alert behavior, native
-Storage adapter and independent recovery UART are exercised offline. Follow
-[installation preparation](docs/acceptance/installation.md) to build and rehearse
+Storage adapter and independent recovery UART are exercised offline. See
+[the matching watch preset editor checks](docs/acceptance/watch-preset-editor.md)
+for the four-slot touch/keypad implementation and reusable laptop scenario results.
+Follow [installation preparation](docs/acceptance/installation.md) to build and rehearse
 a local versioned bundle; deployment requires later acceptance and authorization.
 For real Chrome flows using fake transports, run
 `EUCWATCH_BROWSER_CHECKS=1 ./scripts/check.sh` (Chrome must be installed).
