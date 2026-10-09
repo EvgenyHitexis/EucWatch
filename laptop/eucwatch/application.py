@@ -191,7 +191,6 @@ class Application:
             self.parser = Assembler()
 
     def _update_control(self) -> None:
-        self.editor.tick(self.elapsed(), self.session, self.connected)
         self.control.tick(
             self.elapsed(),
             fresh=self.fresh(),
@@ -228,7 +227,7 @@ class Application:
         try:
             self.store.save(proposed)
         except (OSError, ValueError) as exc:
-            self.persistence_error = f"Configuration save failed: {exc}; wheel changes are not undone"
+            self.persistence_error = f"Configuration save failed: {exc}"
             return False
         self.config = proposed
         self.control.confirmed = None
@@ -237,9 +236,6 @@ class Application:
         return True
 
     def _leave_editor(self) -> None:
-        attempt = self.control.attempt
-        if self.editor.request is not None and self.control.pending and attempt is not None and attempt["kind"] == "editor":
-            self.control.finish(self.elapsed(), "Editor closed; submitted changes are not undone")
         self.editor.close()
 
     def _update_alerts(self) -> None:
@@ -307,7 +303,10 @@ class Application:
             "preset_update",
             "preset_save",
             "preset_cancel",
-            "preset_clear",
+            "preset_page",
+            "preset_input_begin",
+            "preset_input_key",
+            "preset_input_page",
             "preset_include_dip",
             "preset_slots",
             "configuration_export",
@@ -572,72 +571,54 @@ class Application:
                 self.config = proposed
                 self.confirmed_preset = None
                 self.configuration_preview = None
+                self._leave_editor()
+                if self.screen == "preset_editor":
+                    self.screen = "preset_slots"
                 self.persistence_error = None
                 self.alerts.configure(proposed["alerts"], self.elapsed())
                 self._update_alerts()
-        elif name in (
-            "preset_begin",
-            "preset_update",
-            "preset_save",
-            "preset_cancel",
-            "preset_clear",
-        ):
+        elif name == "preset_begin":
+            if not self.awake or self.recovery:
+                raise ValueError("Preset editing unavailable")
+            self.editor.open(self.config, payload.get("slot"))
+            self.screen = "preset_editor"
+        elif name in ("preset_update", "preset_save", "preset_cancel", "preset_include_dip",
+                      "preset_page", "preset_input_begin", "preset_input_key", "preset_input_page"):
+            self.editor.require(payload.pop("editor_id", None))
+            if not self.awake or self.recovery:
+                raise ValueError("Preset editing unavailable")
             payload.pop("source", None)
-            if name == "preset_begin":
-                if not self.awake or self.recovery or self.mode not in ("simulator", "live"):
-                    raise ValueError("A selected wheel connection is required to edit")
-                if self.control.pending:
-                    raise ValueError("Wait for the current wheel operation")
-                self.editor.open(payload.get("slot"), self.session, self.elapsed())
-                self.parser = Assembler()
-                self.screen = "preset_editor"
-            elif name == "preset_update":
-                if self.editor.draft is None:
-                    raise ValueError("Wait for fresh settings before editing")
-                if self.control.pending:
-                    raise ValueError("Wait for the current wheel operation; extra edit discarded")
-                if len(payload) != 1:
-                    raise ValueError("Complete one field adjustment at a time")
-                field, value = next(iter(payload.items()))
-                proposed_draft = presets.update(self.editor.draft, payload)
-                proposed = presets.replacement(self.config, proposed_draft)
-                wheel_write = field in presets.PERCENT_FIELDS and value is not None
-                if wheel_write:
-                    if not self.fresh() or self.recovery or not self.awake:
-                        raise ValueError("A healthy fresh wheel connection is required")
-                    if self.mode == "live" and self._command_adapter() is None:
-                        raise ValueError("Live control transport is unavailable")
-                self.editor.draft = proposed_draft
-                self._save_editor(proposed)
-                if wheel_write:
-                    self.parser = Assembler()
-                    self.control.start({"id": proposed_draft["id"], "name": proposed_draft["name"],
-                                        field: value}, self.config["revision"], self.session,
-                                       self.elapsed(), kind="editor")
-            elif name == "preset_clear":
-                proposed = presets.replacement(self.config, presets.cleared(self.config, payload.get("slot")))
-                if self._save_editor(proposed):
-                    self._leave_editor()
-                    self.screen = "preset_slots"
+            assert self.editor.draft is not None and self.editor.request is not None
+            self.editor.request["reason"] = ""
+            if name == "preset_update":
+                self.editor.update(payload)
+            elif name == "preset_include_dip":
+                if type(payload.get("included")) is not bool:
+                    raise ValueError("Choose explicit dip inclusion")
+                self.editor.draft["dip_included"] = payload["included"]
+            elif name == "preset_page":
+                self.editor.set_page(payload.get("page"))
+            elif name == "preset_input_begin":
+                self.editor.begin_input()
+            elif name == "preset_input_key":
+                self.editor.key(payload.get("key"))
+            elif name == "preset_input_page":
+                entry = self.editor.input
+                if entry is None or entry["field"] != "name" or payload.get("delta") not in (-1, 1):
+                    raise ValueError("Invalid name keypad page")
+                entry["letters"] = (entry["letters"] + payload["delta"]) % 3
             elif name == "preset_cancel":
                 self._leave_editor()
                 self.screen = "preset_slots"
             elif name == "preset_save":
-                if self.editor.draft is None:
-                    raise ValueError("Wait for fresh settings before creating a preset")
-                if self.control.pending:
-                    raise ValueError("Wait for the current wheel operation")
-                self._save_editor(presets.replacement(self.config, self.editor.draft))
-        elif name == "preset_include_dip":
-            if self.editor.draft is None or type(payload.get("included")) is not bool:
-                raise ValueError("Open the editor and choose dip inclusion")
-            if self.control.pending:
-                raise ValueError("Wait for the current wheel operation")
-            draft = deepcopy(self.editor.draft)
-            draft["dip_included"] = payload["included"]
-            proposed = presets.replacement(self.config, draft)
-            self.editor.draft = draft
-            self._save_editor(proposed)
+                try:
+                    proposed = self.editor.validated(self.config)
+                except ValueError as exc:
+                    self.editor.request["reason"] = str(exc)
+                else:
+                    if self._save_editor(proposed):
+                        self._leave_editor()
+                        self.screen = "preset_slots"
         elif name == "preset_slots":
             self._leave_editor()
             self.alerts_draft = None
@@ -798,7 +779,6 @@ class Application:
                 settings = decode_settings(frame)
                 if settings is not None:
                     self.control.observe(settings, self.elapsed(), session)
-                    self.editor.observe(self.config, settings, session, self.elapsed())
                 self._update_control()
             else:
                 self.parser.rejected += 1
@@ -828,15 +808,9 @@ class Application:
             "config": deepcopy(self.config),
             "alerts_draft": deepcopy(self.alerts_draft),
             "preset_draft": deepcopy(self.editor.draft),
-            "preset_editor": None if editor is None else {
-                **editor,
-                "wheel_values": deepcopy(self.editor.values),
-                "current_confirmation": bool(
-                    self.control.confirmed
-                    and self.control.confirmed["kind"] == "editor"
-                    and self.control.confirmed["slot"] == editor["slot"]
-                ),
-            },
+            "preset_editor": editor,
+            "preset_page": self.editor.page,
+            "preset_input": deepcopy(self.editor.input),
             "configuration_preview": deepcopy(self.configuration_preview),
             "configuration_export": deepcopy(self.configuration_export),
             "confirmed_preset": deepcopy(self.confirmed_preset),

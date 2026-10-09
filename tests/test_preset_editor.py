@@ -1,209 +1,79 @@
-"""Wheel-owned editing through the agreed application/action/raw-frame seam."""
+"""Local drafts through public actions/raw notifications/saved views and output."""
+import json
+import tempfile
 import unittest
-
+from pathlib import Path
+from unittest.mock import patch
 from eucwatch import Application, ManualClock
+from eucwatch.persistence import FileStore
+from eucwatch.recording import Replay
 from test_control import settings_frame
 
 
+def edit(app, action, **payload):
+    request=app.view()['preset_editor']
+    return app.action(action, editor_id=request['id'] if request else -1, **payload)
+
+
 class PresetEditorTests(unittest.TestCase):
-    def prepared(self, **options):
-        clock = ManualClock()
-        app = Application(clock=clock, **options)
-        app.action("connect")
-        app.receive(app.session, settings_frame())
-        return app, clock
+    def test_all_slots_save_active_input_locally_and_restart(self):
+        with tempfile.TemporaryDirectory() as directory:
+            store=FileStore(Path(directory)/'config.json');app=Application(clock=ManualClock(),store=store)
+            for slot in range(1,5):
+                before=app.view()['config'];opened=app.action('preset_begin',slot=slot)
+                self.assertEqual(opened['preset_draft'],before['presets'][slot-1])
+                edit(app,'preset_update',name=f'City {slot}',pedal_sensitivity=31,dynamic_assist=26,pedal_dip_compensation=11)
+                edit(app,'preset_include_dip',included=False)
+                self.assertEqual(app.view()['config'],before)
+                state=edit(app,'preset_save')
+                self.assertEqual(state['screen'],'preset_slots');self.assertIsNone(state['preset_editor'])
+                self.assertEqual(state['config']['revision'],before['revision']+1)
+                self.assertEqual(state['config']['presets'][slot-1],{'id':slot,'name':f'City {slot}','configured':True,'pedal_sensitivity':31,'dynamic_assist':26,'pedal_dip_compensation':11,'dip_included':False})
+                self.assertEqual(state['config']['presets'][:slot-1]+state['config']['presets'][slot:],before['presets'][:slot-1]+before['presets'][slot:])
+                self.assertEqual(state['command_events'],[])
+                self.assertEqual(Application(store=FileStore(store.path)).view()['config'],state['config'])
 
-    def test_open_waits_for_new_complete_settings_and_seeds_external_values(self):
-        app, clock = self.prepared()
-        state = app.action("preset_begin", slot=2, source="watch")
-        self.assertEqual(state["preset_editor"]["status"], "waiting")
-        self.assertIsNone(state["preset_draft"])
-        frame = settings_frame(sensitivity=44, assist=55, dip=66)
-        app.receive(app.session, frame[:40])
-        self.assertIsNone(app.view()["preset_draft"])
-        clock.advance(.1)
-        app.receive(app.session, frame[40:])
-        state = app.view()
-        self.assertEqual(state["preset_editor"]["status"], "ready")
-        self.assertEqual(state["preset_draft"], {"id": 2, "name": "Preset 2", "configured": True,
-                                               "pedal_sensitivity": 44, "dynamic_assist": 55})
-        self.assertEqual(state["command_events"], [])
-        self.assertFalse(state["config"]["presets"][1]["configured"])
+    def test_input_navigation_validation_cancel_and_duplicate_completion(self):
+        app=Application(clock=ManualClock());before=app.view()['config'];opened=app.action('preset_begin',slot=3);old=opened['preset_editor']['id']
+        edit(app,'preset_input_begin');edit(app,'preset_input_key',key='Clear');edit(app,'preset_input_key',key='A')
+        edit(app,'preset_page',page=1);edit(app,'preset_input_key',key='Clear')
+        state=edit(app,'preset_save');self.assertIn('Pedal sensitivity',state['preset_editor']['reason']);self.assertEqual(state['config'],before)
+        edit(app,'preset_page',page=0);self.assertEqual(app.view()['preset_input']['text'],'A')
+        edit(app,'preset_page',page=1);self.assertEqual(app.view()['preset_input']['text'],'')
+        edit(app,'preset_input_key',key='3');edit(app,'preset_input_key',key='1');state=edit(app,'preset_save')
+        self.assertEqual(state['config']['presets'][2]['name'],'A');self.assertEqual(state['config']['presets'][2]['pedal_sensitivity'],31)
+        app.action('preset_begin',slot=4)
+        with self.assertRaises(ValueError):app.action('preset_save',editor_id=old)
+        saved=app.view()['config'];edit(app,'preset_update',name='Discard');edit(app,'preset_cancel');self.assertEqual(app.view()['config'],saved)
+        for action in ['preset_clear','preset_input_done','preset_input_cancel']:
+            with self.assertRaises(ValueError):app.action(action,slot=1)
 
-    def open(self, app, clock, slot=1):
-        app.action("preset_begin", slot=slot, source="watch")
-        clock.advance(.1)
-        app.receive(app.session, settings_frame())
+    def test_wheel_changes_reconnect_and_replay_do_not_own_drafts(self):
+        app=Application(clock=ManualClock());app.action('preset_begin',slot=4);edit(app,'preset_update',name='Local')
+        expected=app.view()['preset_draft']
+        app.action('connect');app.receive(app.session,settings_frame(44,55,66));app.receive(app.session-1,settings_frame());app.receive(app.session,b'corrupt')
+        app.action('disconnect');app.action('connect');self.assertEqual(app.view()['preset_draft'],expected)
+        self.assertEqual(app.view()['command_events'],[])
+        fixture=Path('experiments/laptop-feasibility/evidence/fixture-recording.jsonl');app.action('replay_start',recording=Replay.load(fixture))
+        app.action('preset_begin',slot=2);edit(app,'preset_update',name='Replay');edit(app,'preset_save')
+        self.assertEqual(app.view()['config']['presets'][1]['name'],'Replay')
+        with self.assertRaises(ValueError):app.action('preset_apply',slot=2)
 
-    def test_completed_edit_writes_one_evidenced_packet_and_saves_only_selected_slot(self):
-        output = []
-        app, clock = self.prepared(command_output=output.append)
-        self.open(app, clock, slot=3)
-        before = app.view()["config"]
-        state = app.action("preset_update", pedal_sensitivity=44, source="watch")
-        self.assertEqual([row["packet_hex"] for row in output], ["4c6441700f01028080802c4883b125"])
-        self.assertEqual(state["config"]["presets"][2]["pedal_sensitivity"], 44)
-        self.assertEqual([row for row in state["config"]["presets"] if row["id"] != 3],
-                         [row for row in before["presets"] if row["id"] != 3])
-        self.assertEqual(state["preset_attempt"]["kind"], "editor")
-        self.assertIsNone(state["preset_attempt"]["fields"]["pedal_sensitivity"]["submitted_s"])
-        row = output[0]
-        clock.advance(.1)
-        app.action("command_result", attempt=row["attempt"], session=row["session"], index=0, success=True)
-        self.assertIsNone(app.view()["confirmed_preset"])
-        for _ in range(2):
-            clock.advance(.1)
-            app.receive(app.session, settings_frame(sensitivity=44))
-        self.assertEqual(app.view()["preset_attempt"]["status"], "Confirmed")
-        self.assertIsNone(app.view()["confirmed_preset"])
+    def test_file_failure_retry_and_replacement_invalidate_old_operation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'config.json';app=Application(clock=ManualClock(),store=FileStore(path));before=app.view()['config']
+            app.action('preset_begin',slot=4);edit(app,'preset_update',name='Retry',pedal_dip_compensation=17)
+            with patch('os.replace',side_effect=OSError('Disk full')):state=edit(app,'preset_save')
+            self.assertEqual(state['config'],before);self.assertEqual(state['preset_draft']['name'],'Retry');self.assertIn('Disk full',state['persistence_error'])
+            state=edit(app,'preset_save');self.assertEqual(state['config']['presets'][3]['pedal_dip_compensation'],17);self.assertEqual(state['command_events'],[])
+            app.action('preset_begin',slot=1);old=app.view()['preset_editor']['id']
+            app.action('configuration_import_prepare',content=json.dumps(before));app.action('configuration_import_commit')
+            with self.assertRaises(ValueError):app.action('preset_save',editor_id=old)
+            self.assertIsNone(app.view()['preset_editor'])
 
-    def test_cached_preopen_partial_corrupt_speed_and_old_session_cannot_open(self):
-        app, clock = self.prepared()
-        old = app.session
-        app.receive(old, settings_frame()[:40])
-        app.action("preset_begin", slot=1)
-        app.receive(old, settings_frame()[40:])
-        corrupt = bytearray(settings_frame()); corrupt[50] ^= 1
-        for session, frame in ((old, bytes(corrupt)), (old, settings_frame(subtype=0)),
-                               (old, settings_frame(dip=128)), (old - 1, settings_frame())):
-            clock.advance(.1)
-            app.receive(session, frame)
-            self.assertIsNone(app.view()["preset_draft"])
-        for _ in range(50):
-            clock.advance(.1)
-            app.receive(old, settings_frame(subtype=0))
-        self.assertEqual(app.view()["preset_editor"]["status"], "unavailable")
-        app.receive(old, settings_frame())
-        self.assertIsNone(app.view()["preset_draft"])
-        self.assertEqual(app.view()["command_events"], [])
-
-    def test_invalid_unfinished_and_multi_field_adjustments_emit_nothing(self):
-        app, clock = self.prepared()
-        app.action("preset_begin", slot=1)
-        with self.assertRaises(ValueError):
-            app.action("preset_update", pedal_sensitivity=20)
-        clock.advance(.1); app.receive(app.session, settings_frame())
-        before = app.view()["config"]
-        for change in ({"pedal_sensitivity": None}, {"pedal_sensitivity": True},
-                       {"dynamic_assist": 20.5}, {"dynamic_assist": -1},
-                       {"pedal_dip_compensation": 101}, {"name": ""},
-                       {"name": "x" * 25}, {"id": 4},
-                       {"pedal_sensitivity": 30, "dynamic_assist": 20}):
-            with self.subTest(change=change), self.assertRaises(ValueError):
-                app.action("preset_update", **change)
-        self.assertEqual(app.view()["config"], before)
-        self.assertEqual(app.view()["command_events"], [])
-
-    def test_all_four_slots_create_rename_include_omit_and_clear_locally(self):
-        app, clock = self.prepared()
-        for slot in range(1, 5):
-            self.open(app, clock, slot)
-            app.action("preset_save")  # Explicitly create from readback.
-            app.action("preset_update", name=f"Road {slot}")
-            app.action("preset_include_dip", included=True)
-            self.assertEqual(app.view()["config"]["presets"][slot-1]["pedal_dip_compensation"], 10)
-            app.action("preset_include_dip", included=False)
-            self.assertNotIn("pedal_dip_compensation", app.view()["config"]["presets"][slot-1])
-            app.action("preset_cancel")
-        self.assertEqual(app.view()["command_events"], [])
-        before = app.view()["config"]
-        for slot in range(1, 5):
-            state = app.action("preset_clear", slot=slot)
-            self.assertEqual(state["config"]["presets"][slot-1],
-                             {"id": slot, "name": f"Road {slot}", "configured": False})
-            self.assertEqual(state["config"]["presets"][slot:], before["presets"][slot:])
-        self.assertEqual(app.view()["command_events"], [])
-
-    def test_serialization_cancel_disconnect_and_replacement_never_replay(self):
-        output = []
-        app, clock = self.prepared(command_output=output.append)
-        self.open(app, clock)
-        app.action("preset_update", dynamic_assist=26)
-        with self.assertRaises(ValueError):
-            app.action("preset_update", pedal_sensitivity=31)
-        first = output[0]
-        app.action("preset_cancel")
-        app.action("command_result", attempt=first["attempt"], session=first["session"], index=0, success=True)
-        self.assertFalse(app.view()["preset_attempt"]["pending"])
-        self.assertIn("not undone", app.view()["preset_attempt"]["reason"])
-        self.open(app, clock)
-        app.action("preset_update", pedal_sensitivity=44)
-        app.action("disconnect")
-        self.assertEqual(app.view()["preset_editor"]["status"], "unavailable")
-        app.action("connect")
-        app.receive(first["session"], settings_frame())
-        clock.advance(.1); app.receive(app.session, settings_frame())
-        self.assertIsNone(app.view()["preset_draft"])
-        self.assertEqual(len(output), 2)
-
-    def test_simulated_edit_changes_wheel_and_confirmation_requires_two_frames(self):
-        app, clock = self.prepared()
-        self.open(app, clock)
-        app.action("preset_include_dip", included=True)
-        for field, value in (("pedal_sensitivity", 31), ("dynamic_assist", 26),
-                             ("pedal_dip_compensation", 11)):
-            state = app.action("preset_update", **{field: value})
-            self.assertEqual(state["preset_attempt"]["status"], "confirming")
-            clock.advance(.1); app.action("simulator_emit")
-            self.assertTrue(app.view()["preset_attempt"]["pending"])
-            clock.advance(.1); app.action("simulator_emit")
-            self.assertEqual(app.view()["preset_attempt"]["status"], "Confirmed")
-            self.assertEqual(app.view()["actual_settings"][field], value)
-        packets = [row["packet_hex"] for row in app.view()["command_events"] if row["event"] == "submission"]
-        self.assertEqual(packets, ["4c6441700f01028080801ff753d033",
-                                  "4c6441701f0102808080808080808080808080808080808080801aba3c7b2f",
-                                  "4c6441702101028080808080808080808080808080808080808080800b672ed25c"])
-
-    def test_missing_mismatched_and_hung_submission_have_bounded_unknown_outcomes(self):
-        for options, reason in (({"control_readback": "missing"}, "Confirmation timeout"),
-                                ({"control_readback": "mismatch"}, "Confirmation timeout"),
-                                ({"control_submission": "hang"}, "Submission timeout"),
-                                ({"control_submission": "fail", "control_fail_after": 0}, "Transport submission failed")):
-            with self.subTest(options=options):
-                app, clock = self.prepared()
-                self.open(app, clock)
-                app.action("simulator_configure", **options)
-                app.action("preset_update", dynamic_assist=26)
-                for _ in range(60):
-                    clock.advance(.2); app.action("simulator_emit")
-                state = app.view()
-                self.assertFalse(state["preset_attempt"]["pending"])
-                self.assertEqual(state["preset_attempt"]["reason"], reason)
-                self.assertEqual(len([row for row in state["command_events"] if row["event"] == "submission"]), 1)
-
-    def test_save_failure_keeps_last_valid_configuration_and_does_not_undo_wheel(self):
-        from eucwatch.persistence import MemoryStore
-        class FailingStore(MemoryStore):
-            def save(self, config):
-                raise OSError("Disk full")
-        app, clock = self.prepared(store=FailingStore())
-        self.open(app, clock)
-        before = app.view()["config"]
-        app.action("preset_update", dynamic_assist=26)
-        for _ in range(2):
-            clock.advance(.1); app.action("simulator_emit")
-        state = app.view()
-        self.assertEqual(state["config"], before)
-        self.assertEqual(state["preset_draft"]["dynamic_assist"], 26)
-        self.assertEqual(state["actual_settings"]["dynamic_assist"], 26)
-        self.assertEqual(state["preset_attempt"]["status"], "Confirmed")
-        self.assertIn("Disk full", state["persistence_error"])
-        self.assertIn("not undone", state["persistence_error"])
-
-    def test_editor_confirmation_is_lost_on_external_change_or_staleness(self):
-        app, clock = self.prepared()
-        self.open(app, clock)
-        app.action("preset_update", dynamic_assist=26)
-        for _ in range(2):
-            clock.advance(.1); app.action("simulator_emit")
-        self.assertTrue(app.view()["preset_editor"]["current_confirmation"])
-        clock.advance(.1); app.receive(app.session, settings_frame(assist=27))
-        self.assertFalse(app.view()["preset_editor"]["current_confirmation"])
-        self.assertEqual(app.view()["preset_editor"]["wheel_values"]["dynamic_assist"], 27)
-        self.assertEqual(app.view()["preset_attempt"]["status"], "Confirmed")
-        app.action("preset_update", dynamic_assist=26)
-        for _ in range(2):
-            clock.advance(.1); app.action("simulator_emit")
-        self.assertTrue(app.view()["preset_editor"]["current_confirmation"])
-        clock.advance(1)
-        self.assertFalse(app.view()["preset_editor"]["current_confirmation"])
+    def test_save_stops_unsent_application_without_editor_packets(self):
+        writes=[];app=Application(clock=ManualClock(),command_output=writes.append);app.action('connect');app.receive(app.session,settings_frame())
+        app.action('preset_apply',slot=1);row=writes[0]
+        app.action('preset_begin',slot=1);edit(app,'preset_update',dynamic_assist=12);edit(app,'preset_save')
+        app.action('command_result',attempt=row['attempt'],session=row['session'],index=0,success=True)
+        self.assertEqual(len(writes),1);self.assertFalse(app.view()['preset_attempt']['pending']);self.assertIn('changed',app.view()['preset_attempt']['reason'])

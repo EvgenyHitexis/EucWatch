@@ -1,98 +1,42 @@
-# Laptop watch-sized preset editor (#41)
+# Local laptop preset editor (#43, #46)
 
-This implements the four-slot wheel-owned editor resolved in #39, on the laptop
-staging interface. It establishes software behavior for the later watch
-implementation. Live wheel evidence and owner review remain **pending**;
-no physical wheel command or watch deployment was performed.
+Settings → Presets opens any of the four saved definitions immediately, including
+without a wheel connection. Input and dip inclusion change only one transient
+draft. Name input supports case, spaces, digits, character clearing and backspace.
+Top arrows select fields even with a keypad open; the `1/3` character button pages
+letters independently. Empty numeric text survives page changes.
 
-Launch with `./scripts/launch.sh`. Start the simulator, swipe down from the top
-of the dashboard, then tap **Presets** in Settings. All four fixed slots have
-an edit area and a separate Clear area. Tap a slot to request fresh wheel
-settings. Opening sends no setting packet. The read has a five-second bound and
-only a newly assembled complete CRC-valid current-session settings frame with
-all three percentages available can seed it. Old saved values, cached readback,
-speed-only frames, corruption, incomplete fields and old sessions cannot open
-an editable screen. Reopen explicitly after an unavailable result or reconnect.
+Save validates the whole definition, including active input and omitted dip,
+then commits one slot and returns to selection. Cancel discards the entire draft
+from either a field page or keypad. Invalid input and failed local storage keep
+the draft open for correction/retry. Save/Cancel replace Save slot, Back, preset
+Clear and Set/Done. No editor action reads or writes wheel settings. Each editor
+has an operation ID; completed/stale saves cannot overwrite a later operation.
+Reviewed configuration replacement retires an open editor. Other slots and alerts
+compose from current saved configuration. A successful Save still invalidates
+pending/currently confirmed riding-menu requests by revision.
 
-The editor has four pages: Name, Pedal sensitivity, Dynamic assist and Pedal dip
-compensation. Tap the top left/right arrows to select a page. Tap its value to
-open the text or numeric keypad. Names support paged letters and digits,
-lowercase, spaces, clearing and backspace, up to 24 characters. Numeric entry
-supports digits, clearing and backspace; **Set** completes a whole percentage
-from 0 to 100. **Cancel** or a right swipe discards unfinished keypad input.
-An invalid value is refused without a command. All controls stay inside the
-240×240 interface; the desktop definition editor has been removed.
+The riding menu alone applies saved included fields immediately, retaining its
+serialization, deadlines and fresh confirmation rules. Local Save is never wheel
+confirmation. Schema/default/migration evidence is in `local-configuration.md`.
+Gesture changes are tracked separately in #48.
 
-Set on a riding field submits exactly that field's evidenced packet through the
-existing serialized control adapter and saves the selected slot's definition.
-Further edits are discarded while that operation is pending. Requested values,
-submission completion and current wheel readings/confirmation are separate.
-Confirmation requires two consecutive matching valid frames after submission.
-Submission is bounded to five seconds and confirmation to ten seconds after
-submission completes. Transport failure, mismatch, missing readback, staleness,
-session replacement and partial/unknown outcomes retain explicit reasons.
-A field edit confirms that field, never the entire named riding preset.
-Externally changed settings or stale telemetry invalidate current confirmation;
-the terminal operation result remains historical evidence.
+Reproduce:
 
-Name edits and dip inclusion/omission are local. Dip starts omitted for new
-slots and retains existing inclusion for saved slots, using current readback
-when included. Inclusion copies the latest observed dip without submitting a
-packet; omission leaves the wheel value unchanged. **Save slot** explicitly
-creates a slot from the seed or retries local persistence; it sends no packet.
-Clear from either the editor or slot list requires a separate confirmation and
-retains the slot's
-identity and name. Clearing and leaving cannot undo wheel changes. Leaving the
-editor terminates a pending editor operation and prevents unsent continuation.
-There is no automatic rollback, retry or reconnect/reload replay. The riding
-menu still applies a configured slot immediately with one tap.
-
-A storage error leaves the last valid active/saved configuration intact and
-retains the edited value in the open editor. It reports that wheel changes are
-not undone. After storage recovers, Retry save persists that definition without
-resubmitting a wheel command. Restart restores only local definitions and
-preferences, never an editor, queued command or wheel confirmation.
-
-## Reproduction and evidence
-
-Run the complete checks with `EUCWATCH_BROWSER_CHECKS=1 ./scripts/check.sh`.
-The focused application checks use:
-
-```sh
-env PYTHONPATH=laptop:tests experiments/laptop-feasibility/.venv/bin/python -m unittest test_preset_editor test_presets test_live_control test_http_control
+```
+PYTHONPATH=laptop:tests experiments/laptop-feasibility/.venv/bin/python -m unittest test_preset_editor test_presets test_backup test_http_control test_control test_live_control test_local_configuration
+npm run build --prefix frontend
+PYTHONPATH=laptop:tests experiments/laptop-feasibility/.venv/bin/python tests/browser_preset_editor.py
+uvx ty check --python experiments/laptop-feasibility/.venv/bin/python laptop
 ```
 
-`tests/browser_preset_editor.py` is the reusable action/raw-frame flow invoked
-by `tests/browser_flow.py` against the actual built frontend and HTTP backend.
-The retained [browser scenario and outcomes](evidence/preset-editor/preset-editor-browser.json)
-include ordered taps/swipes/frame responses, external seed values, saved
-outcomes, source hashes and explicit pending hardware/owner status. Raw frame
-responses traverse the real parser; the existing simulator command adapter
-receives actual encoded commands. Controlled BLE tests use the real live
-session and chunk writer with a fake selected client, without Bluetooth access.
-Read-only recording replay remains covered by the existing replay checks.
+Passed: public local-editor scenarios, HTTP duplicate/stale completion, controlled
+live-client isolation/reconnection, storage retry, revision invalidation, all-four
+actual Canvas name/numeric input, direct active-input Save, Cancel, validation and
+restart. Reusable exact pointer trace, independent expectations, saved states,
+zero command output and source hashes: `evidence/local-presets/editor-laptop.json`.
+The same directory holds 240×240 PNGs for every slot and validation/save failure.
 
-| Scenario | Expected and observed software result | Evidence |
-| --- | --- | --- |
-| Open every slot after external wheel changes | Wait; seed new settings; opening emits nothing | Application tests; browser action/frame scenario |
-| Cached/partial/corrupt/speed-only/old-session input | Cannot seed; bounded visible unavailable result | Application tests; unavailable rendering |
-| Complete each of three riding fields in each slot | One exact field packet; selected definition updated; two fresh frames confirm | Browser scenario; controlled BLE application tests |
-| Text input, numeric Cancel, local name, include/omit dip | Usable watch input; local actions emit no command | Browser scenario |
-| Clear Cancel, Clear commit, recreate all four slots | Fixed identities/names; other slots unchanged | Browser scenario |
-| Missing/mismatching readback, failed/hung submission | Bounded unconfirmed result; no automatic retry | Application tests |
-| Disconnect during live chunk submission; replacement session | Unsent tail stopped; old input rejected; replacement sends nothing | Controlled BLE tests |
-| Failed storage after a wheel change | Last valid local config retained; wheel change stays; local retry emits nothing | Application tests; failed-save rendering |
-| Restart, reload and duplicate HTTP completion | Definitions survive; commands and confirmation never replay | Browser scenario; FileStore and HTTP tests |
-| External divergence or stale telemetry after confirmation | Current confirmation lost; terminal result retained | Application tests |
-
-Renderings are retained for all three riding pages of each editor:
-[slot 1](evidence/preset-editor/slot-1-field-1.png),
-[slot 2](evidence/preset-editor/slot-2-field-1.png),
-[slot 3](evidence/preset-editor/slot-3-field-1.png),
-[slot 4](evidence/preset-editor/slot-4-field-1.png), with corresponding
-`field-2` and `field-3` images in the same directory. Failure renderings show
-[unavailable readback](evidence/preset-editor/unavailable-readback.png) and
-[failed local save after wheel change](evidence/preset-editor/save-failure-after-wheel-change.png).
-These are 240×240 Canvas images, not actual-watch display acceptance. Physical
-range support, setting persistence and owner review remain under #9/#31; the
-production watch editor and device acceptance are subsequent work.
+`evidence/preset-editor/` is retained historical #41 evidence for the superseded
+wheel-owned interaction. It cannot establish #43 acceptance. Owner review, live
+wheel validation, deployment and physical watch acceptance remain pending.

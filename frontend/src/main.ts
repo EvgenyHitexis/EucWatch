@@ -59,7 +59,7 @@ interface View extends WatchPresetView {
   replay: { name: string; sha256: string; source: string; total: number; position: number; finished: boolean } | null;
   config: { version: number; revision: number; alerts: AlertSettings; presets: Preset[] };
   alerts_draft: AlertSettings | null;
-  preset_draft: Preset | null;
+  preset_draft: WatchPresetView['preset_draft'];
   presets_menu: PresetMenuSlot[];
   configuration_preview: null | { content: unknown; base_revision:number; migration:{from:number;to:number;changes:string[]} };
   configuration_export: unknown;

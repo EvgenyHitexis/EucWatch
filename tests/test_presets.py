@@ -18,6 +18,7 @@ class PresetTests(unittest.TestCase):
 
     def test_direct_edit_restart_retains_definitions_without_commands_or_confirmation(self):
         from test_control import settings_frame
+        from test_preset_editor import edit
         with tempfile.TemporaryDirectory() as directory:
             store = FileStore(Path(directory) / "configuration.json")
             clock = ManualClock()
@@ -26,10 +27,11 @@ class PresetTests(unittest.TestCase):
             app.receive(app.session, settings_frame())
             app.action("preset_begin", slot=4)
             clock.advance(.1); app.receive(app.session, settings_frame())
-            app.action("preset_update", name="City")
-            app.action("preset_update", dynamic_assist=26)
+            edit(app, "preset_update", name="City")
+            edit(app, "preset_update", dynamic_assist=26)
             for _ in range(2):
                 clock.advance(.1); app.action("simulator_emit")
+            edit(app, "preset_save")
             saved = app.view()["config"]
             restarted = Application(clock=ManualClock(), store=FileStore(store.path)).view()
             self.assertEqual(restarted["config"], saved)

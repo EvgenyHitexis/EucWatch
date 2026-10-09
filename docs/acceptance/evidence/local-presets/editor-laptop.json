@@ -1,0 +1,2342 @@
+{
+  "issue": 46,
+  "timeline": [
+    {
+      "input": "swipe",
+      "start": [
+        120,
+        10
+      ],
+      "end": [
+        120,
+        110
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        196
+      ],
+      "end": [
+        120,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        80,
+        55
+      ],
+      "end": [
+        80,
+        55
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        80
+      ],
+      "end": [
+        120,
+        80
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        125,
+        196
+      ],
+      "end": [
+        125,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        73
+      ],
+      "end": [
+        49,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        30,
+        196
+      ],
+      "end": [
+        30,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        119,
+        73
+      ],
+      "end": [
+        119,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        80,
+        196
+      ],
+      "end": [
+        80,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        205,
+        196
+      ],
+      "end": [
+        205,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        205,
+        196
+      ],
+      "end": [
+        205,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        104
+      ],
+      "end": [
+        49,
+        104
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        73
+      ],
+      "end": [
+        49,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        166,
+        196
+      ],
+      "end": [
+        166,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        176,
+        226
+      ],
+      "end": [
+        176,
+        226
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        80,
+        55
+      ],
+      "end": [
+        80,
+        55
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        126
+      ],
+      "end": [
+        120,
+        126
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        126
+      ],
+      "end": [
+        120,
+        126
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        80
+      ],
+      "end": [
+        120,
+        80
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        73
+      ],
+      "end": [
+        49,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        73
+      ],
+      "end": [
+        49,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        73
+      ],
+      "end": [
+        189,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        73
+      ],
+      "end": [
+        49,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        119,
+        73
+      ],
+      "end": [
+        119,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        104
+      ],
+      "end": [
+        189,
+        104
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        176,
+        226
+      ],
+      "end": [
+        176,
+        226
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        80,
+        55
+      ],
+      "end": [
+        80,
+        55
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        80
+      ],
+      "end": [
+        120,
+        80
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        135
+      ],
+      "end": [
+        189,
+        135
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        135
+      ],
+      "end": [
+        189,
+        135
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        135
+      ],
+      "end": [
+        189,
+        135
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        119,
+        135
+      ],
+      "end": [
+        119,
+        135
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        64,
+        226
+      ],
+      "end": [
+        64,
+        226
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        80,
+        99
+      ],
+      "end": [
+        80,
+        99
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        80
+      ],
+      "end": [
+        120,
+        80
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        125,
+        196
+      ],
+      "end": [
+        125,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        73
+      ],
+      "end": [
+        49,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        30,
+        196
+      ],
+      "end": [
+        30,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        119,
+        73
+      ],
+      "end": [
+        119,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        80,
+        196
+      ],
+      "end": [
+        80,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        205,
+        196
+      ],
+      "end": [
+        205,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        205,
+        196
+      ],
+      "end": [
+        205,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        119,
+        104
+      ],
+      "end": [
+        119,
+        104
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        73
+      ],
+      "end": [
+        49,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        166,
+        196
+      ],
+      "end": [
+        166,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        176,
+        226
+      ],
+      "end": [
+        176,
+        226
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        80,
+        99
+      ],
+      "end": [
+        80,
+        99
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        126
+      ],
+      "end": [
+        120,
+        126
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        126
+      ],
+      "end": [
+        120,
+        126
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        80
+      ],
+      "end": [
+        120,
+        80
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        73
+      ],
+      "end": [
+        49,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        73
+      ],
+      "end": [
+        49,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        73
+      ],
+      "end": [
+        189,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        73
+      ],
+      "end": [
+        49,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        119,
+        73
+      ],
+      "end": [
+        119,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        104
+      ],
+      "end": [
+        189,
+        104
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        176,
+        226
+      ],
+      "end": [
+        176,
+        226
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        80,
+        99
+      ],
+      "end": [
+        80,
+        99
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        80
+      ],
+      "end": [
+        120,
+        80
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        135
+      ],
+      "end": [
+        189,
+        135
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        135
+      ],
+      "end": [
+        189,
+        135
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        135
+      ],
+      "end": [
+        189,
+        135
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        119,
+        135
+      ],
+      "end": [
+        119,
+        135
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        64,
+        226
+      ],
+      "end": [
+        64,
+        226
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        80,
+        143
+      ],
+      "end": [
+        80,
+        143
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        80
+      ],
+      "end": [
+        120,
+        80
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        125,
+        196
+      ],
+      "end": [
+        125,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        73
+      ],
+      "end": [
+        49,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        30,
+        196
+      ],
+      "end": [
+        30,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        119,
+        73
+      ],
+      "end": [
+        119,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        80,
+        196
+      ],
+      "end": [
+        80,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        205,
+        196
+      ],
+      "end": [
+        205,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        205,
+        196
+      ],
+      "end": [
+        205,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        104
+      ],
+      "end": [
+        189,
+        104
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        73
+      ],
+      "end": [
+        49,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        166,
+        196
+      ],
+      "end": [
+        166,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        176,
+        226
+      ],
+      "end": [
+        176,
+        226
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        80,
+        143
+      ],
+      "end": [
+        80,
+        143
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        126
+      ],
+      "end": [
+        120,
+        126
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        126
+      ],
+      "end": [
+        120,
+        126
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        80
+      ],
+      "end": [
+        120,
+        80
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        73
+      ],
+      "end": [
+        49,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        73
+      ],
+      "end": [
+        49,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        73
+      ],
+      "end": [
+        189,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        73
+      ],
+      "end": [
+        49,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        119,
+        73
+      ],
+      "end": [
+        119,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        104
+      ],
+      "end": [
+        189,
+        104
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        176,
+        226
+      ],
+      "end": [
+        176,
+        226
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        80,
+        143
+      ],
+      "end": [
+        80,
+        143
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        80
+      ],
+      "end": [
+        120,
+        80
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        135
+      ],
+      "end": [
+        189,
+        135
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        135
+      ],
+      "end": [
+        189,
+        135
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        135
+      ],
+      "end": [
+        189,
+        135
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        119,
+        135
+      ],
+      "end": [
+        119,
+        135
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        64,
+        226
+      ],
+      "end": [
+        64,
+        226
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        80,
+        187
+      ],
+      "end": [
+        80,
+        187
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        80
+      ],
+      "end": [
+        120,
+        80
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        125,
+        196
+      ],
+      "end": [
+        125,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        73
+      ],
+      "end": [
+        49,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        30,
+        196
+      ],
+      "end": [
+        30,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        119,
+        73
+      ],
+      "end": [
+        119,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        80,
+        196
+      ],
+      "end": [
+        80,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        205,
+        196
+      ],
+      "end": [
+        205,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        205,
+        196
+      ],
+      "end": [
+        205,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        135
+      ],
+      "end": [
+        49,
+        135
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        73
+      ],
+      "end": [
+        49,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        166,
+        196
+      ],
+      "end": [
+        166,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        176,
+        226
+      ],
+      "end": [
+        176,
+        226
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        80,
+        187
+      ],
+      "end": [
+        80,
+        187
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        126
+      ],
+      "end": [
+        120,
+        126
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        126
+      ],
+      "end": [
+        120,
+        126
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        80
+      ],
+      "end": [
+        120,
+        80
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        73
+      ],
+      "end": [
+        49,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        73
+      ],
+      "end": [
+        49,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        73
+      ],
+      "end": [
+        189,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        73
+      ],
+      "end": [
+        49,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        119,
+        73
+      ],
+      "end": [
+        119,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        104
+      ],
+      "end": [
+        189,
+        104
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        176,
+        226
+      ],
+      "end": [
+        176,
+        226
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        80,
+        187
+      ],
+      "end": [
+        80,
+        187
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        80
+      ],
+      "end": [
+        120,
+        80
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        135
+      ],
+      "end": [
+        189,
+        135
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        135
+      ],
+      "end": [
+        189,
+        135
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        135
+      ],
+      "end": [
+        189,
+        135
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        119,
+        135
+      ],
+      "end": [
+        119,
+        135
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        64,
+        226
+      ],
+      "end": [
+        64,
+        226
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        80,
+        55
+      ],
+      "end": [
+        80,
+        55
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        80
+      ],
+      "end": [
+        120,
+        80
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        176,
+        226
+      ],
+      "end": [
+        176,
+        226
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        49,
+        166
+      ],
+      "end": [
+        49,
+        166
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        189,
+        73
+      ],
+      "end": [
+        189,
+        73
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        119,
+        73
+      ],
+      "end": [
+        119,
+        73
+      ]
+    },
+    {
+      "input": "storage_failure",
+      "mode": "refuse"
+    },
+    {
+      "input": "tap",
+      "start": [
+        176,
+        226
+      ],
+      "end": [
+        176,
+        226
+      ]
+    },
+    {
+      "input": "storage_failure",
+      "mode": "none"
+    },
+    {
+      "input": "tap",
+      "start": [
+        176,
+        226
+      ],
+      "end": [
+        176,
+        226
+      ]
+    }
+  ],
+  "observed": [
+    {
+      "slot": 1,
+      "expected": {
+        "id": 1,
+        "name": "Ab 1",
+        "configured": true,
+        "pedal_sensitivity": 31,
+        "dynamic_assist": 26,
+        "pedal_dip_compensation": 11,
+        "dip_included": false
+      },
+      "observed": {
+        "id": 1,
+        "name": "Ab 1",
+        "configured": true,
+        "pedal_sensitivity": 31,
+        "dynamic_assist": 26,
+        "pedal_dip_compensation": 11,
+        "dip_included": false
+      }
+    },
+    {
+      "slot": 2,
+      "expected": {
+        "id": 2,
+        "name": "Ab 2",
+        "configured": true,
+        "pedal_sensitivity": 31,
+        "dynamic_assist": 26,
+        "pedal_dip_compensation": 11,
+        "dip_included": false
+      },
+      "observed": {
+        "id": 2,
+        "name": "Ab 2",
+        "configured": true,
+        "pedal_sensitivity": 31,
+        "dynamic_assist": 26,
+        "pedal_dip_compensation": 11,
+        "dip_included": false
+      }
+    },
+    {
+      "slot": 3,
+      "expected": {
+        "id": 3,
+        "name": "Ab 3",
+        "configured": true,
+        "pedal_sensitivity": 31,
+        "dynamic_assist": 26,
+        "pedal_dip_compensation": 11,
+        "dip_included": false
+      },
+      "observed": {
+        "id": 3,
+        "name": "Ab 3",
+        "configured": true,
+        "pedal_sensitivity": 31,
+        "dynamic_assist": 26,
+        "pedal_dip_compensation": 11,
+        "dip_included": false
+      }
+    },
+    {
+      "slot": 4,
+      "expected": {
+        "id": 4,
+        "name": "Ab 4",
+        "configured": true,
+        "pedal_sensitivity": 31,
+        "dynamic_assist": 26,
+        "pedal_dip_compensation": 11,
+        "dip_included": false
+      },
+      "observed": {
+        "id": 4,
+        "name": "Ab 4",
+        "configured": true,
+        "pedal_sensitivity": 31,
+        "dynamic_assist": 26,
+        "pedal_dip_compensation": 11,
+        "dip_included": false
+      }
+    }
+  ],
+  "renderings": [
+    {
+      "file": "slot-1-name.png",
+      "label": "Preset editor slot 1. Name: Ab 1. name keypad. Input Ab 1. Previous and next field.  Whole-editor Save or Cancel. "
+    },
+    {
+      "file": "slot-1-numeric.png",
+      "label": "Preset editor slot 1. Dynamic assist: 26. dynamic_assist keypad. Input 26. Previous and next field.  Whole-editor Save or Cancel. "
+    },
+    {
+      "file": "slot-2-name.png",
+      "label": "Preset editor slot 2. Name: Ab 2. name keypad. Input Ab 2. Previous and next field.  Whole-editor Save or Cancel. "
+    },
+    {
+      "file": "slot-2-numeric.png",
+      "label": "Preset editor slot 2. Dynamic assist: 26. dynamic_assist keypad. Input 26. Previous and next field.  Whole-editor Save or Cancel. "
+    },
+    {
+      "file": "slot-3-name.png",
+      "label": "Preset editor slot 3. Name: Ab 3. name keypad. Input Ab 3. Previous and next field.  Whole-editor Save or Cancel. "
+    },
+    {
+      "file": "slot-3-numeric.png",
+      "label": "Preset editor slot 3. Dynamic assist: 26. dynamic_assist keypad. Input 26. Previous and next field.  Whole-editor Save or Cancel. "
+    },
+    {
+      "file": "slot-4-name.png",
+      "label": "Preset editor slot 4. Name: Ab 4. name keypad. Input Ab 4. Previous and next field.  Whole-editor Save or Cancel. "
+    },
+    {
+      "file": "slot-4-numeric.png",
+      "label": "Preset editor slot 4. Dynamic assist: 26. dynamic_assist keypad. Input 26. Previous and next field.  Whole-editor Save or Cancel. "
+    },
+    {
+      "file": "invalid-save.png",
+      "label": "Preset editor slot 1. Pedal sensitivity: . pedal_sensitivity keypad. Input empty. Previous and next field.  Whole-editor Save or Cancel. Pedal sensitivity: enter a whole percentage 0\u2013100"
+    },
+    {
+      "file": "failed-save.png",
+      "label": "Preset editor slot 1. Pedal sensitivity: 32. pedal_sensitivity keypad. Input 32. Previous and next field.  Whole-editor Save or Cancel. Configuration save failed: Controlled disk full"
+    }
+  ],
+  "saved": {
+    "version": 2,
+    "revision": 9,
+    "presets": [
+      {
+        "id": 1,
+        "name": "Ab 1",
+        "configured": true,
+        "pedal_sensitivity": 32,
+        "dynamic_assist": 26,
+        "pedal_dip_compensation": 11,
+        "dip_included": false
+      },
+      {
+        "id": 2,
+        "name": "Ab 2",
+        "configured": true,
+        "pedal_sensitivity": 31,
+        "dynamic_assist": 26,
+        "pedal_dip_compensation": 11,
+        "dip_included": false
+      },
+      {
+        "id": 3,
+        "name": "Ab 3",
+        "configured": true,
+        "pedal_sensitivity": 31,
+        "dynamic_assist": 26,
+        "pedal_dip_compensation": 11,
+        "dip_included": false
+      },
+      {
+        "id": 4,
+        "name": "Ab 4",
+        "configured": true,
+        "pedal_sensitivity": 31,
+        "dynamic_assist": 26,
+        "pedal_dip_compensation": 11,
+        "dip_included": false
+      }
+    ],
+    "alerts": {
+      "pwm": {
+        "enabled": false,
+        "threshold": null
+      },
+      "speed": {
+        "enabled": false,
+        "threshold": null
+      },
+      "battery": {
+        "enabled": false,
+        "threshold": null
+      },
+      "lost": {
+        "enabled": true
+      }
+    }
+  },
+  "packets": [],
+  "expected": "four offline slots; active name/numeric Save; retained multi-field text; Cancel; validation; failed FileStore save and retry; no commands",
+  "outcome": "passed",
+  "hardware_acceptance": "pending",
+  "provenance": "Actual built Canvas / Chrome pointer events / aiohttp Application / FileStore / controlled simulator; no physical operations",
+  "source_sha256": {
+    "laptop/eucwatch/scenarios.py": "9c04dd7a33785e4dfd06546fb36a7a200ac31128560a1888ad5eed4485a001e1",
+    "laptop/eucwatch/configuration.py": "2ad472d0e7ef9c552cdff3a20a27eda8ce1f0702aa23f4682cfc236e13722095",
+    "laptop/eucwatch/backup.py": "341d0fedba183ab11eda44a322d68a3df4380a896dd13d716d89e7272e25a371",
+    "laptop/eucwatch/control.py": "fb272bc3c6c963ab6b78f569e9f80c03684245f503ec03b3d70d166a26e3efc5",
+    "laptop/eucwatch/horn.py": "b08abb4d884fa8d664fdbaf3071e5e335a3769ec254db0742089ba2dc75e4240",
+    "laptop/eucwatch/protocol.py": "08b8728c39de23640f4f3281f8bda4b7b4ea9c6999534e60c95d06b7340a5ad4",
+    "laptop/eucwatch/installation.py": "57de9ba903ec940e4f31a5855545a36cbc3e10aaae58f2178ba68ba2256136e7",
+    "laptop/eucwatch/presets.py": "89ac4c92d9fe2f8a4cd8b9a3c859f5910470ebfc0e2e24365f69538ebcdf0dfa",
+    "laptop/eucwatch/recording.py": "fbf021f8238a854257d47ac58b979211de423c60ca5e0cb0988dffaecc049bc9",
+    "laptop/eucwatch/server.py": "e078a419e389be6b63a8eab9adf333f79c61337618d8f601bf9a090f0cf92ebc",
+    "laptop/eucwatch/clock.py": "880f2fe3c7af6f5a0087bd0b3c1998306684456c294ef20de4fbb7d31ed7f219",
+    "laptop/eucwatch/live.py": "794450dbcf19b58a3895f36f9f9cb32d20d0c5ceae4e12693af6ca25722231b0",
+    "laptop/eucwatch/live_control.py": "b70f9d49b80aeb84eca9cf837e99fe8edb3e6aa721434b8ce83121a04c9a13d0",
+    "laptop/eucwatch/application.py": "596258b05028876729411a75abded4caa9476c6a7847a0f8a6b59411f66c620e",
+    "laptop/eucwatch/persistence.py": "0eb90cf866acdb302995cf24e98a9e595ccf9c0a3350b032910dfb703269b81d",
+    "laptop/eucwatch/__init__.py": "117d2ce7b89f227b3a013afcb87c32cad3a5b44d45fba7d9f5076a5ca38336bf",
+    "laptop/eucwatch/alerts.py": "142e3d81cd810b15667ffd8b6bfbec3d54e2a28ff01a5313bc0c28f7bccd24d8",
+    "laptop/eucwatch/simulator.py": "3ddecb614f2567b8b8032825c7b6dee7bddf91023bdaaf174543f882ca0f5305",
+    "frontend/src/main.ts": "0e555d1056d65758e7f61b2534c9df457a2f734aafe97dde0d9f52a9af471e71",
+    "frontend/src/scenarios.ts": "5c434107b4925d6cbfa4bdb3148f9af3442a7f61e71551a8a71b8f34b2a111da",
+    "frontend/src/preset-editor.ts": "1d36fc757921729728046f544f42245e86811997e7ff9520848d5a50f2d30026",
+    "frontend/src/backup.ts": "fa9c7acce752f61b6d525f1b3ee9f0d797e4ec757f200c42d175ea087e342175",
+    "/home/evbu13/dev/EucWatch/tests/browser_local_presets.py": "c664ed35d0985edf9a7351b30fac034803a297c739317947db05df16cc97fecd"
+  }
+}

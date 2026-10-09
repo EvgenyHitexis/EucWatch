@@ -278,7 +278,10 @@ class ControlTests(unittest.TestCase):
         app.action("command_result", attempt=first["preset_attempt"]["id"], session=first["session"], index=0, success=True)
         self.assertEqual(len(output), 1)
         second = app.action("preset_apply", slot=1)
-        app.action("preset_clear", slot=1)
+        from test_preset_editor import edit
+        app.action("preset_begin", slot=1)
+        edit(app, "preset_update", name="Changed")
+        edit(app, "preset_save")
         app.action("command_result", attempt=second["preset_attempt"]["id"], session=second["session"], index=0, success=True)
         self.assertEqual(app.view()["preset_attempt"]["reason"], "Saved configuration changed")
         self.assertEqual(len(output), 2)

@@ -88,11 +88,15 @@ class ControlHTTPTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(response.status, 200)
             clock.advance(.1); app.receive(app.session, settings_frame())
             old = app.session
+            editor_id = app.view()['preset_editor']['id']
+            await post('preset_update', 'edit', editor_id=editor_id, dynamic_assist=26)
+            revision = app.view()['config']['revision']
             for _ in range(2):
-                response = await post('preset_update', 'complete-once', dynamic_assist=26, source='watch')
+                response = await post('preset_save', 'complete-once', editor_id=editor_id)
                 self.assertEqual(response.status, 200)
             count = len([r for r in app.view()['command_events'] if r['event'] == 'submission'])
-            self.assertEqual(count, 1)
+            self.assertEqual(count, 0)
+            self.assertEqual(app.view()["config"]["revision"], revision + 1)
             await http.get('/api/session', params={'controller': session['controller']})
             await http.get('/api/state', params={'controller': session['controller']})
             await post('disconnect', 'disconnect')
