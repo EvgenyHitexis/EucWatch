@@ -1,4 +1,6 @@
 """Preset control lifecycle through application actions and protocol input."""
+from preset_fixture import save_preset
+
 import unittest
 import zlib
 
@@ -21,9 +23,7 @@ class ControlTests(unittest.TestCase):
     def prepared(self, **options):
         clock = ManualClock()
         app = Application(clock=clock, **options)
-        app.action("preset_begin", slot=1)
-        app.action("preset_update", name="Road", pedal_sensitivity=31, dynamic_assist=26)
-        app.action("preset_save")
+        save_preset(app, slot=1, name="Road", pedal_sensitivity=31, dynamic_assist=26)
         app.action("simulator_configure", speed_kmh=25)
         app.action("simulator_start")
         return app, clock
@@ -144,9 +144,7 @@ class ControlTests(unittest.TestCase):
     def test_partial_evidence_then_transport_failure_stops_remaining_writes(self):
         output = []
         app, clock = self.prepared(command_output=output.append)
-        app.action("preset_begin", slot=1)
-        app.action("preset_update", pedal_dip_compensation=11)
-        app.action("preset_save")
+        save_preset(app, slot=1, pedal_dip_compensation=11)
         app.action("simulator_configure", traffic="paused")
         state = app.action("preset_apply", slot=1)
         attempt, session = state["preset_attempt"]["id"], state["session"]
@@ -219,9 +217,7 @@ class ControlTests(unittest.TestCase):
         app.receive(state["session"], settings_frame(assist=27))
         self.assertIsNone(app.view()["confirmed_preset"])
         app.action("preset_apply", slot=1)
-        app.action("preset_begin", slot=1)
-        app.action("preset_update", name="Renamed")
-        state = app.action("preset_save")
+        state = save_preset(app, slot=1, name="Renamed")
         self.assertFalse(state["preset_attempt"]["pending"])
         self.assertEqual(state["preset_attempt"]["reason"], "Saved configuration changed")
         self.assertIsNone(state["confirmed_preset"])
@@ -229,9 +225,7 @@ class ControlTests(unittest.TestCase):
     def test_optional_dip_is_third_verified_packet_and_transport_receipts_never_confirm(self):
         output = []
         app, clock = self.prepared(command_output=output.append)
-        app.action("preset_begin", slot=1)
-        app.action("preset_update", pedal_dip_compensation=11)
-        app.action("preset_save")
+        save_preset(app, slot=1, pedal_dip_compensation=11)
         state = app.action("preset_apply", slot=1)
         for index in range(3):
             self.assertEqual(len(output), index + 1)
@@ -260,9 +254,7 @@ class ControlTests(unittest.TestCase):
 
     def test_simulated_failure_stops_unsent_optional_write_without_rollback_or_retry(self):
         app, clock = self.prepared()
-        app.action("preset_begin", slot=1)
-        app.action("preset_update", pedal_dip_compensation=11)
-        app.action("preset_save")
+        save_preset(app, slot=1, pedal_dip_compensation=11)
         app.action("simulator_configure", control_submission="fail", control_fail_after=1)
         state = app.action("preset_apply", slot=1)
         self.assertEqual(state["preset_attempt"]["status"], "Not confirmed")
@@ -287,9 +279,7 @@ class ControlTests(unittest.TestCase):
         app.action("command_result", attempt=first["preset_attempt"]["id"], session=first["session"], index=0, success=True)
         self.assertEqual(len(output), 1)
         second = app.action("preset_apply", slot=1)
-        app.action("preset_begin", slot=1)
         app.action("preset_clear", slot=1)
-        app.action("preset_save")
         app.action("command_result", attempt=second["preset_attempt"]["id"], session=second["session"], index=0, success=True)
         self.assertEqual(app.view()["preset_attempt"]["reason"], "Saved configuration changed")
         self.assertEqual(len(output), 2)

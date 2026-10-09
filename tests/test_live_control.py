@@ -1,4 +1,6 @@
 """Actual application commands through the real session and a fake BLE boundary."""
+from preset_fixture import save_preset
+
 
 import asyncio
 import unittest
@@ -29,9 +31,7 @@ class LiveControlTests(unittest.IsolatedAsyncioTestCase):
     async def prepared(self, **options):
         self.clock = ManualClock()
         self.app = Application(clock=self.clock, command_output=lambda row: self.control.submit(row))
-        self.app.action("preset_begin", slot=1)
-        self.app.action("preset_update", name="Road", pedal_sensitivity=31, dynamic_assist=26)
-        self.app.action("preset_save")
+        save_preset(self.app, slot=1, name="Road", pedal_sensitivity=31, dynamic_assist=26)
         self.clients = []
         def factory(*args, **kwargs):
             client = WritingClient(*args, **kwargs)
@@ -76,9 +76,7 @@ class LiveControlTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_partial_failure_stops_remaining_chunks_and_optional_settings(self):
         await self.prepared()
-        self.app.action("preset_begin", slot=1)
-        self.app.action("preset_update", pedal_dip_compensation=11)
-        self.app.action("preset_save")
+        save_preset(self.app, slot=1, pedal_dip_compensation=11)
         started, release = asyncio.Event(), asyncio.Event()
         async def fail_second(_packet):
             if len(self.client.writes) == 2:
@@ -182,9 +180,7 @@ class LiveControlTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_optional_dip_uses_its_exact_serial_chunks_and_confirmation_includes_it(self):
         await self.prepared()
-        self.app.action("preset_begin", slot=1)
-        self.app.action("preset_update", pedal_dip_compensation=11)
-        self.app.action("preset_save")
+        save_preset(self.app, slot=1, pedal_dip_compensation=11)
         self.app.action("preset_apply", slot=1)
         await self.until(lambda: self.app.view()["preset_attempt"]["status"] == "confirming")
         self.assertEqual([len(data) for _uuid, data, _response in self.client.writes], [15, 20, 11, 20, 13])
@@ -325,3 +321,51 @@ class LiveControlTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):
             self.control.submit(row)
         self.assertEqual(len(self.client.writes), 3)
+
+    async def test_watch_editor_uses_selected_client_and_fresh_external_settings(self):
+        await self.prepared()
+        self.client.emit(settings_frame(sensitivity=44, assist=55, dip=66))
+        self.app.action("preset_begin", slot=4, source="watch")
+        self.assertIsNone(self.app.view()["preset_draft"])
+        self.assertEqual(self.client.writes, [])
+        self.clock.advance(.1)
+        self.client.emit(settings_frame(sensitivity=45, assist=56, dip=67))
+        self.assertEqual(self.app.view()["preset_draft"]["dynamic_assist"], 56)
+        self.app.action("preset_update", dynamic_assist=26, source="watch")
+        await self.until(lambda: self.app.view()["preset_attempt"]["status"] == "confirming")
+        self.assertEqual(b''.join(packet for _, packet, _ in self.client.writes).hex(),
+                         "4c6441701f0102808080808080808080808080808080808080801aba3c7b2f")
+        self.clock.advance(.1); self.client.emit(settings_frame(sensitivity=45, assist=27, dip=67))
+        self.assertEqual(self.app.view()["preset_attempt"]["fields"]["dynamic_assist"]["state"], "mismatched")
+        for _ in range(2):
+            self.clock.advance(.1); self.client.emit(settings_frame(sensitivity=45, assist=26, dip=67))
+        self.assertEqual(self.app.view()["preset_attempt"]["status"], "Confirmed")
+        self.assertIsNone(self.app.view()["confirmed_preset"])
+        self.assertEqual(self.app.view()["config"]["presets"][3]["dynamic_assist"], 26)
+
+    async def test_editor_disconnect_during_chunk_stops_unsent_tail_and_cannot_resume(self):
+        await self.prepared()
+        self.app.action("preset_begin", slot=1, source="watch")
+        self.clock.advance(.1); self.client.emit(settings_frame())
+        entered, release = asyncio.Event(), asyncio.Event()
+        async def interrupted(_packet):
+            entered.set()
+            await release.wait()
+        self.client.behavior = interrupted
+        self.app.action("preset_update", dynamic_assist=26, source="watch")
+        await entered.wait()
+        old = self.app.session
+        self.app.action("live_disconnected", session=old)
+        self.control.tick()
+        release.set()
+        await self.until(lambda: not self.app.view()["preset_attempt"]["pending"])
+        self.assertEqual(len(self.client.writes), 1)
+        self.assertEqual(self.app.view()["preset_editor"]["status"], "unavailable")
+        await self.live.connect(ADDRESS)
+        replacement = self.clients[-1]
+        replacement.emit(SOURCE_FRAME)
+        self.clock.advance(.1); replacement.emit(settings_frame())
+        self.app.receive(old, settings_frame())
+        self.assertIsNone(self.app.view()["preset_draft"])
+        self.assertEqual(replacement.writes, [])
+        self.assertEqual(len(self.client.writes), 1)

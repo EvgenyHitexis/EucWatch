@@ -113,7 +113,11 @@ Two-axis review found no hard standards violations. Its material spec finding,
 a measurement repeat launching at the exact freshness expiry, is fixed and
 covered at that exact deadline; earlier pulse phases still finish in order.
 
-### #21 — four fixed preset definitions
+### #21 — four fixed preset definitions (historical)
+
+The local-only editor and watch editing refusal below were superseded by #41.
+The retained artifacts describe the former scope; current editor behavior and
+checks are recorded in [preset editor acceptance](preset-editor.md).
 
 Eight Application-boundary checks cover defaults, required whole percentages,
 optional dip omission, Save/Cancel, staged clearing, stable identities, watch
@@ -246,6 +250,20 @@ See [expected/observed results and reproduction](local-configuration.md).
 The check entry point replaces transfer suites and the browser transfer flow with
 local-configuration checks and the revised complete browser journey. Historical
 transfer artifacts are preserved unchanged and are not rerun as current gates.
+
+### #41 — watch-sized editor with direct wheel writes
+
+Settings → Presets exposes all four slot editors inside the 240×240 Canvas.
+New current-session complete settings seed each opening; completed field edits
+submit the corresponding command directly and update only the selected local
+slot. Submission and two-frame wheel confirmation remain distinct. Text/numeric
+keypads, local names/include/omit/clear, stopped-unsent operations, bounded
+failure/unknown results, persistence errors, restart/reload and duplicate
+suppression are covered by the main application seam and actual browser flow.
+The desktop definition editor is removed. See the [reproduction, expected/observed
+register and retained rendering/action/frame evidence](preset-editor.md).
+Controlled live-transport tests exercise the real session/parser/chunk writer
+using a fake BLE client. Hardware evidence and owner review remain pending.
 
 ### Remaining laptop acceptance
 

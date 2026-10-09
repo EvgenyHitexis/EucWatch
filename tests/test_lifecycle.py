@@ -1,4 +1,6 @@
 """Authoritative HTTP epochs, browser ownership and restart retention."""
+from preset_fixture import save_preset
+
 import asyncio
 from pathlib import Path
 import tempfile
@@ -107,9 +109,7 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
             output = []
             store = FileStore(Path(directory)/'configuration.json')
             app = Application(clock=clock, store=store, command_output=output.append)
-            app.action('preset_begin', slot=1)
-            app.action('preset_update', name='Road', pedal_sensitivity=31, dynamic_assist=26)
-            app.action('preset_save')
+            save_preset(app, slot=1, name='Road', pedal_sensitivity=31, dynamic_assist=26)
             app.action('alerts_begin')
             app.action('alerts_update', alert='pwm', enabled=True, threshold=10)
             app.action('alerts_save')

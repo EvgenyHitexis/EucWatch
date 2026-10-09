@@ -20,6 +20,7 @@ from eucwatch.scenarios import FileScenarioStore
 from test_live import Scanner, Clients, ADDRESS, SOURCE_FRAME
 from test_live_control import WritingClient
 from test_control import settings_frame
+from browser_preset_editor import exercise
 
 
 class Browser:
@@ -152,39 +153,7 @@ async def run():
                         alert_result={'issue':20,'provenance':'actual Canvas and HTML editor / aiohttp / controlled clock',
                             'expected':'back discards, missing enabled threshold refused, save authoritative threshold, PWM test three150ms pulses',
                             'observed':'passed','pulse_durations_s':starts}
-                        await cdp.wait("!document.querySelector('#preset-edit').disabled",session)
-                        await cdp.evaluate("document.querySelector('#preset-slot').value='2'; document.querySelector('#preset-slot').dispatchEvent(new Event('change')); document.querySelector('#preset-edit').click()",session)
-                        await cdp.wait("!document.querySelector('#preset-name').disabled",session)
-                        async def preset_field(selector,value):
-                            await cdp.evaluate(f"(() => {{ const field=document.querySelector({json.dumps(selector)}); field.value={json.dumps(value)}; field.dispatchEvent(new Event('change',{{bubbles:true}})); }})()",session)
-                            await cdp.wait("!document.querySelector('#preset-save').disabled",session)
-                        await preset_field('#preset-name','Rain')
-                        await preset_field('#preset-pedal-sensitivity','30')
-                        await cdp.evaluate("document.querySelector('#preset-editor').requestSubmit()",session)
-                        await cdp.wait("document.querySelector('#preset-validation-error').textContent.length>0",session)
-                        assert not behavior.view()['config']['presets'][1]['configured']
-                        await preset_field('#preset-dynamic-assist','20')
-                        await cdp.evaluate("document.querySelector('#preset-editor').requestSubmit()",session)
-                        await cdp.wait("document.querySelector('#preset-status').textContent.includes('Saved')",session)
-                        expected_preset={'id':2,'name':'Rain','configured':True,'pedal_sensitivity':30,'dynamic_assist':20}
-                        assert behavior.view()['config']['presets'][1]==expected_preset
-                        await cdp.pointer('#watch',(215,120),(20,120),session)
-                        await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('Rain')",session)
-                        menu=await cdp.evaluate("document.querySelector('canvas').getAttribute('aria-label')",session)
-                        await cdp.wait("!document.querySelector('#preset-clear').disabled",session)
-                        await cdp.evaluate("document.querySelector('#preset-clear').click()",session)
-                        await cdp.wait("document.querySelector('#preset-status').textContent.includes('Unsaved')",session)
-                        await cdp.wait("!document.querySelector('#preset-cancel').disabled",session)
-                        await cdp.evaluate("document.querySelector('#preset-cancel').click()",session)
-                        await cdp.wait("document.querySelector('#preset-status').textContent.includes('Saved')",session)
-                        assert behavior.view()['config']['presets'][1]==expected_preset
-                        restarted=Application(clock=ManualClock(),store=behavior.store)
-                        assert restarted.view()['config']['presets'][1]==expected_preset
-                        preset_result={'issue':21,'provenance':'actual HTML editor / Canvas menu / aiohttp / store restart',
-                            'expected':'required validation, Save/Cancel, optional dip absent, four identities and restart retention',
-                            'observed':'passed','saved':expected_preset,'menu':menu}
-                        await cdp.pointer('#watch',(20,120),(215,120),session)
-                        await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard'",session)
+                        preset_result = await exercise(cdp, session, behavior, Path('docs/acceptance/evidence/preset-editor'))
                         await cdp.evaluate("document.querySelector('[data-action=simulator_start]').click()", session)
                         await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('Connected')", session)
                         async def scenario(speed, voltage, pwm, traffic='normal'):
@@ -200,15 +169,15 @@ async def run():
                         await cdp.pointer('#watch',(215,120),(20,120),session)
                         await cdp.wait("document.querySelector('canvas').dataset.screen==='presets'",session)
                         await cdp.pointer('#watch',(177,80),(177,80),session)
-                        await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard' && document.querySelector('canvas').getAttribute('aria-label').includes('Rain · Applying')",session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard' && document.querySelector('canvas').getAttribute('aria-label').includes('RAIN · Applying')",session)
                         await cdp.evaluate("document.querySelector('#advance-seconds').value='0.2'",session)
                         for index in range(2):
                             await cdp.wait("!document.querySelector('#advance').disabled",session)
                             await cdp.evaluate("document.querySelector('#advance').click()",session)
                             await cdp.wait(f"Number(document.querySelector('canvas').dataset.elapsed)>={.2*(index+1)-.00001}",session)
-                        await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('Rain · Confirmed')",session)
+                        await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('RAIN · Confirmed')",session)
                         control_result={'issue':22,'provenance':'actual Canvas one-tap / aiohttp / actual settings-frame parser / moving simulator',
-                            'expected':'Rain onetap immediately dashboard Applying while speed25; two matching fresh settings frames Confirmed',
+                            'expected':'RAIN onetap immediately dashboard Applying while speed25; two matching fresh settings frames Confirmed',
                             'observed':'passed','attempt':behavior.view()['preset_attempt']}
                         def horn_count():
                             return sum(row.get('kind')=='horn' and row['event']=='submission' for row in behavior.view()['command_events'])
@@ -268,7 +237,7 @@ async def run():
                         await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard'",session)
                         await advance_control(.2)
                         await advance_control(.2)
-                        await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('Rain · Confirmed')",session)
+                        await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('RAIN · Confirmed')",session)
                         control_result['explicit_retry']='Confirmed; late readings before retry retained prior failure'
                         await cdp.evaluate("document.querySelector('#advance-seconds').value='1.1'",session)
                         await scenario(25, 119.02, 45)
@@ -278,7 +247,7 @@ async def run():
                         await cdp.wait("document.querySelector('canvas').dataset.fresh === 'false'", session)
                         stale = await cdp.evaluate("document.querySelector('canvas').getAttribute('aria-label')", session)
                         assert 'Speed —' in stale and 'wheel battery dimmed' in stale
-                        assert 'Rain · Confirmed' not in stale
+                        assert 'RAIN · Confirmed' not in stale
                         blocked_count=horn_count()
                         await cdp.pointer('#watch-button',(10,20),(10,20),session)
                         await cdp.wait("document.querySelector('#watch-feedback').textContent==='Horn unavailable: connection unavailable'",session)
@@ -368,7 +337,7 @@ async def run():
                         assert behavior.view()['confirmed_preset'] is None
                         host_clock.advance(.1)
                         live_clients.created[0].emit(settings_frame(sensitivity=30,assist=20))
-                        await cdp.wait("document.querySelector('#preset-outcome').textContent==='Rain · Confirmed'",session)
+                        await cdp.wait("document.querySelector('#preset-outcome').textContent==='RAIN · Confirmed'",session)
                         await cdp.pointer('#watch-button',(10,20),(10,20),session)
                         await cdp.wait("document.querySelector('#watch-feedback').textContent==='Horn request sent'",session)
                         assert [len(data) for _,data,_ in live_clients.created[0].writes]==[15,20,11,14]
@@ -448,7 +417,7 @@ async def run():
                         assert await cdp.evaluate("!document.querySelector('[id^=transfer-],[id^=nordic-]')",session)
                         assert await cdp.evaluate("!/transfer|synchron|reconcil|conflict/i.test(document.querySelector('.panel').innerText + document.querySelector('canvas').getAttribute('aria-label'))",session)
                         before_removed_touch=behavior.view()
-                        await cdp.pointer('#watch',(120,202),(120,202),session)
+                        await cdp.pointer('#watch',(120,215),(120,215),session)
                         await cdp.wait("document.querySelector('canvas').dataset.screen==='settings'",session)
                         assert behavior.view()['config']==before_removed_touch['config']
                         assert behavior.view()['session']==before_removed_touch['session']

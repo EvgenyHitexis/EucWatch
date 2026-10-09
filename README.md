@@ -30,9 +30,12 @@ Run checks with `./scripts/check.sh`. Acceptance scenarios and evidence are in
 [docs/acceptance/laptop.md](docs/acceptance/laptop.md). Physical acceptance remains
 separate: no live horn, riding experiment or watch deployment is authorized here.
 
-The panel includes four saved presets, alert editing, local configuration
-backup/import/restore, reusable controlled scenarios, and
-explicit wheel discovery. Saved laptop configuration uses the XDG configuration
+Edit the four saved presets through watch-sized **Settings → Presets**.
+Each editor reads fresh wheel settings; completing a riding-value adjustment
+writes directly to the wheel. Names and optional-dip inclusion stay local. See
+[preset editor behavior and evidence](docs/acceptance/preset-editor.md).
+The separate panel supports alert editing, local configuration backup/import/restore,
+reusable controlled scenarios and explicit wheel discovery. Saved laptop configuration uses the XDG configuration
 directory; the watch retains its own presets and alert preferences in native
 Storage. Each environment operates independently and preserves existing local
 configuration across restart and compatible updates. See the

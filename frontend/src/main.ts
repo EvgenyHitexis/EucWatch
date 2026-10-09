@@ -1,6 +1,7 @@
 import './style.css';
 import { mountScenarios, type ScenarioView } from './scenarios';
 import { mountBackup } from './backup';
+import { WatchPresets, type Preset, type PresetOperation, type WatchPresetView } from './preset-editor';
 
 interface Dashboard {
   speed: string;
@@ -19,14 +20,6 @@ interface AlertSettings {
   speed: MeasurementAlert;
   battery: MeasurementAlert;
   lost: { enabled: boolean };
-}
-interface Preset {
-  id: number;
-  name: string;
-  configured: boolean;
-  pedal_sensitivity?: number;
-  dynamic_assist?: number;
-  pedal_dip_compensation?: number;
 }
 interface PresetMenuSlot { id: number; name: string; configured: boolean; available: boolean; revision: number }
 interface LiveStatus {
@@ -48,14 +41,14 @@ interface LiveStatus {
 const alertNames: AlertName[] = ['pwm', 'speed', 'battery', 'lost'];
 const alertLabels: Record<AlertName, string> = { pwm: 'High PWM', speed: 'High speed', battery: 'Low wheel battery', lost: 'Lost telemetry' };
 const alertUnits: Record<AlertName, string> = { pwm: '%', speed: 'km/h', battery: '%', lost: '' };
-interface View {
+interface View extends WatchPresetView {
   mode: string;
   controlled: boolean;
   session: number;
   elapsed_s: number;
   connected: boolean;
   fresh: boolean;
-  screen: 'dashboard' | 'presets' | 'settings';
+  screen: 'dashboard' | 'presets' | 'settings' | 'preset_slots' | 'preset_editor';
   scenario: ScenarioView;
   awake: boolean;
   button: { down: boolean; wake_cycle: boolean };
@@ -70,7 +63,7 @@ interface View {
   presets_menu: PresetMenuSlot[];
   configuration_preview: null | { content: unknown; base_revision:number; migration:{from:number;to:number;changes:string[]} };
   configuration_export: unknown;
-  preset_attempt: null | { name: string; status: string; pending: boolean; requested_s: number; submitted_s: number | null; reason: string; fields: Record<string, { requested: number; actual: number | null; state: string }> };
+  preset_attempt: PresetOperation | null;
   confirmed_preset: null | { name: string };
   live: LiveStatus | null;
   persistence_error: string | null;
@@ -180,29 +173,16 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <div class="vibration-output"><p id="vibration-status" role="status">Simulated vibration output · idle</p><pre id="vibration-trace" aria-label="Timestamped simulated vibration pulse trace"></pre></div>
         <p class="metadata">Pulse traces establish software timing. Physical vibration effectiveness requires watch acceptance.</p>
         <div class="divider"></div>
-        <h2>Riding preset definitions</h2>
-        <p class="intro">Four fixed slots retain their positions. Editing a definition saves configuration without changing the wheel.</p>
-        <label>Preset slot<select id="preset-slot">${[1, 2, 3, 4].map(slot => `<option value="${slot}">Slot ${slot} · Preset ${slot}</option>`).join('')}</select></label>
-        <div class="actions"><button id="preset-edit" data-action="preset_begin" data-control>Edit slot</button><button id="preset-clear" data-action="preset_clear" data-control>Clear slot…</button></div>
-        <form id="preset-editor">
-          <label>Name<input id="preset-name" type="text" maxlength="24" required placeholder="Preset name"></label>
-          <div class="fields" style="margin-top:16px">
-            <label>Pedal sensitivity (%)<input id="preset-pedal-sensitivity" type="number" min="0" max="100" step="1" placeholder="Required when configured"></label>
-            <label>Dynamic assist (%)<input id="preset-dynamic-assist" type="number" min="0" max="100" step="1" placeholder="Required when configured"></label>
-            <label>Pedal dip compensation (%)<input id="preset-pedal-dip-compensation" type="number" min="0" max="100" step="1" placeholder="Omit: leave wheel unchanged"></label>
-          </div>
-          <div class="actions"><button type="submit" id="preset-save" data-action="preset_save" class="primary">Save definition</button><button type="button" id="preset-cancel" data-action="preset_cancel">Cancel</button></div>
-        </form>
-        <p class="metadata" id="preset-status">No preset draft.</p>
-        <p class="messages" id="preset-validation-error" role="alert"></p>
-        <p class="messages" id="preset-persistence-error" role="alert"></p>
-        <p class="metadata">Included values use whole percentages, 0–100. Physical range support remains unverified under wheel evidence #9; measured roundtrips cover individual points. Blank optional dip leaves that setting unchanged on application.</p>
+        <h2>Riding presets</h2>
+        <p class="intro">Edit all four slots on the watch-sized screen through Settings → Presets. Opening reads current wheel settings. Set completes a riding adjustment and writes directly to the wheel. Names, Save slot, clearing and dip inclusion stay local.</p>
+        <p class="metadata">Submitted changes are not undone by leaving. Requested, submitted and freshly confirmed values appear in the editor. Replay remains read-only.</p>
       </section>
     </div>
   </main>`;
 
 const canvas = document.querySelector<HTMLCanvasElement>('#watch')!;
 const ctx = canvas.getContext('2d')!;
+const watchPresets = new WatchPresets(ctx, canvas, (name, payload) => enqueueWatch(name, payload));
 const status = document.querySelector<HTMLElement>('#backend-status')!;
 const message = document.querySelector<HTMLElement>('#message')!;
 let session: Session | null = null;
@@ -256,13 +236,6 @@ function setControls(): void {
   document.querySelectorAll<HTMLInputElement>('#alerts-editor input').forEach(input => { input.disabled = !editable; });
   document.querySelector<HTMLButtonElement>('#alerts-save')!.disabled = !editable;
   document.querySelector<HTMLButtonElement>('#alerts-cancel')!.disabled = !editable;
-  const editingPreset = available && !!session?.controller && !submitting && !!current?.preset_draft;
-  document.querySelectorAll<HTMLInputElement>('#preset-editor input').forEach(input => { input.disabled = !editingPreset; });
-  document.querySelector<HTMLButtonElement>('#preset-save')!.disabled = !editingPreset;
-  document.querySelector<HTMLButtonElement>('#preset-cancel')!.disabled = !editingPreset;
-  document.querySelector<HTMLSelectElement>('#preset-slot')!.disabled = !!current?.preset_draft || !available || submitting;
-  document.querySelector<HTMLButtonElement>('#preset-edit')!.disabled ||= !!current?.preset_draft;
-  document.querySelector<HTMLButtonElement>('#preset-clear')!.disabled ||= !!current?.preset_draft;
   document.querySelector<HTMLButtonElement>('#live-discover')!.disabled ||= !current?.live || (current?.mode === 'live' && current.connected);
   document.querySelector<HTMLButtonElement>('#live-select')!.disabled ||= !current?.live || !document.querySelector<HTMLSelectElement>('#live-device')!.value;
   document.querySelector<HTMLButtonElement>('#live-disconnect')!.disabled ||= !current?.live || current.mode !== 'live';
@@ -279,7 +252,7 @@ function text(value: string, x: number, y: number, size: number, color = '#fffff
 }
 
 function render(view: View | null): void {
-  const key = JSON.stringify([view, available, alertPage, watchError, thresholdEntry, presetError, liveError]);
+  const key = JSON.stringify([view, available, alertPage, watchError, thresholdEntry, presetError, liveError, watchPresets.stateKey()]);
   if (key === rendered) return;
   rendered = key;
   ctx.fillStyle = '#000000';
@@ -294,8 +267,8 @@ function render(view: View | null): void {
   document.querySelector<HTMLElement>('#mode')!.textContent = view?.mode === 'simulator' ? 'SIMULATOR' : view?.mode === 'replay' ? 'READ-ONLY REPLAY' : view?.mode === 'live' ? 'LIVE WHEEL' : 'IDLE · NO WHEEL';
   if (view) document.querySelector<HTMLElement>('#diagnostics')!.textContent = `Session ${view.session} · Valid frames: ${view.diagnostics.valid_frames} · CRC/format rejects: ${view.diagnostics.rejected_frames} · Resume events: ${view.diagnostics.resume_events}`;
   const outcome=view?.preset_attempt;
-  document.querySelector<HTMLElement>('#preset-outcome')!.textContent=outcome ? `${outcome.name} · ${outcome.pending ? 'Applying' : outcome.status==='Confirmed' && !view?.confirmed_preset ? 'Previous result Confirmed; current confirmation lost' : outcome.status}${outcome.reason ? ` · ${outcome.reason}` : ''}${!outcome.pending && (outcome.status!=='Confirmed' || !view?.confirmed_preset) ? ' · Some settings may have changed; the previous preset is not assured.' : ''}` : 'No preset requested.';
-  document.querySelector<HTMLElement>('#preset-field-results')!.textContent=outcome ? Object.entries(outcome.fields).map(([field,result])=>`${field.replaceAll('_',' ')}: requested ${result.requested}, actual ${result.actual ?? 'unknown'} · ${result.state}`).join('\n')+`\nRequested ${outcome.requested_s.toFixed(3)} s · submission ${outcome.submitted_s===null ? 'incomplete' : outcome.submitted_s.toFixed(3)+' s'}` : '';
+  document.querySelector<HTMLElement>('#preset-outcome')!.textContent=outcome ? `${outcome.name} · ${outcome.pending ? 'Applying' : outcome.kind==='preset' && outcome.status==='Confirmed' && !view?.confirmed_preset ? 'Previous result Confirmed; current confirmation lost' : outcome.status}${outcome.reason ? ` · ${outcome.reason}` : ''}${!outcome.pending && (outcome.status!=='Confirmed' || (outcome.kind==='preset' && !view?.confirmed_preset)) ? ' · Some settings may have changed; the previous preset is not assured.' : ''}` : 'No preset requested.';
+  document.querySelector<HTMLElement>('#preset-field-results')!.textContent=outcome ? Object.entries(outcome.fields).map(([field,result])=>`${field.replaceAll('_',' ')}: requested ${result.requested}, ${result.submitted_s === null ? 'not submitted' : 'submitted'}, actual ${result.actual ?? 'unknown'} · ${result.state}`).join('\n')+`\nRequested ${outcome.requested_s.toFixed(3)} s · submission ${outcome.submitted_s===null ? 'incomplete' : outcome.submitted_s.toFixed(3)+' s'}` : '';
   const recording = view?.recording;
   document.querySelector<HTMLElement>('#recording-status')!.textContent = recording ? `${recording.closed ? 'Closed recording' : 'Recording'} · ${recording.written} events written · ${recording.queued} queued · ${recording.rejected} rejected${!available ? ' · last known status' : ''}` : 'Recording is not enabled for this application session.';
   document.querySelector<HTMLElement>('#recording-error')!.textContent = recording?.error ? `Recording failure: ${recording.error}` : '';
@@ -331,27 +304,6 @@ function render(view: View | null): void {
     document.querySelector<HTMLElement>('#alerts-status')!.textContent = view?.alerts_draft ? 'Unsaved draft · Save or Cancel explicitly' : `Saved alert settings · revision ${view?.config?.revision}`;
   }
   document.querySelector<HTMLElement>('#persistence-error')!.textContent = view?.persistence_error ? `Configuration could not be saved: ${view.persistence_error}` : '';
-  document.querySelector<HTMLElement>('#preset-persistence-error')!.textContent = view?.persistence_error ? `Configuration could not be saved: ${view.persistence_error}` : '';
-  document.querySelector<HTMLElement>('#preset-validation-error')!.textContent = presetError;
-  const presetDraft = view?.preset_draft;
-  const selectedSlot = Number(document.querySelector<HTMLSelectElement>('#preset-slot')!.value);
-  const displayedPreset = presetDraft ?? view?.config?.presets.find(preset => preset.id === selectedSlot);
-  for (const preset of view?.config?.presets ?? []) {
-    document.querySelector<HTMLOptionElement>(`#preset-slot option[value="${preset.id}"]`)!.textContent = `Slot ${preset.id} · ${preset.name}${preset.configured ? '' : ' · unconfigured'}`;
-  }
-  if (displayedPreset) {
-    const fields = [
-      ['preset-name', displayedPreset.name],
-      ['preset-pedal-sensitivity', displayedPreset.pedal_sensitivity],
-      ['preset-dynamic-assist', displayedPreset.dynamic_assist],
-      ['preset-pedal-dip-compensation', displayedPreset.pedal_dip_compensation],
-    ] as const;
-    for (const [id, value] of fields) {
-      const input = document.querySelector<HTMLInputElement>(`#${id}`)!;
-      if (document.activeElement !== input) input.value = value === undefined ? '' : String(value);
-    }
-  }
-  document.querySelector<HTMLElement>('#preset-status')!.textContent = presetDraft ? `Unsaved slot ${presetDraft.id} draft · ${presetDraft.configured ? 'configured' : 'unconfigured'} · Save or Cancel explicitly` : `Saved definitions · revision ${view?.config?.revision ?? '—'}`;
   const vibration = view?.vibration;
   const vibrationStatus = document.querySelector<HTMLElement>('#vibration-status')!;
   vibrationStatus.textContent = vibration?.current ? `Simulated vibration · ${alertLabels[vibration.current.alert]}${vibration.current.test ? ' test' : ''} · pulse ${vibration.current.duration_s * 1000} ms` : 'Simulated vibration output · idle';
@@ -369,6 +321,7 @@ function render(view: View | null): void {
     canvas.setAttribute('aria-label', 'Recovery mode. Wheel controls unavailable.');
     return;
   }
+  if (view && watchPresets.render(view, presetError, available)) return;
   if (screen !== 'dashboard') {
     if (screen === 'settings' && view?.alerts_draft) {
       renderWatchAlerts(view.alerts_draft);
@@ -395,7 +348,9 @@ function render(view: View | null): void {
       text('Sleep screen', 120, 107, 20, '#ffffff', 'center');
       ctx.strokeRect(12, 120, 216, 50);
       text('Vibration alerts', 120, 152, 18, '#ffffff', 'center');
-      canvas.setAttribute('aria-label', 'Settings. Sleep screen. Vibration alerts. Swipe right to return without saving.'+(view?.horn_feedback ? ` ${view.horn_feedback.message}` : ''));
+      ctx.strokeRect(12, 180, 216, 32);
+      text('Presets', 120, 202, 18, '#ffffff', 'center');
+      canvas.setAttribute('aria-label', 'Settings. Sleep screen. Vibration alerts. Presets. Swipe right to return without saving.'+(view?.horn_feedback ? ` ${view.horn_feedback.message}` : ''));
     }
     text(view?.horn_feedback?.message ?? '‹ Swipe right to return', 120, 228, 11, '#ffffff', 'center');
     return;
@@ -617,23 +572,6 @@ for (const name of alertNames) {
   if (name !== 'lost') document.querySelector(`#alert-${name}-threshold`)!.addEventListener('change', update);
 }
 
-document.querySelector('#preset-edit')!.addEventListener('click', () => void action('preset_begin', { slot: number('preset-slot'), source: 'panel' }));
-document.querySelector('#preset-clear')!.addEventListener('click', () => void action('preset_clear', { slot: number('preset-slot'), source: 'panel' }));
-document.querySelector('#preset-editor')!.addEventListener('submit', event => { event.preventDefault(); enqueueWatch('preset_save'); });
-document.querySelector('#preset-cancel')!.addEventListener('click', () => { enqueueWatch('preset_cancel'); });
-document.querySelector('#preset-slot')!.addEventListener('change', () => { rendered = ''; });
-document.querySelector<HTMLInputElement>('#preset-name')!.addEventListener('change', event => { enqueueWatch('preset_update', { name: (event.target as HTMLInputElement).value }); });
-for (const [id, field] of [
-  ['preset-pedal-sensitivity', 'pedal_sensitivity'],
-  ['preset-dynamic-assist', 'dynamic_assist'],
-  ['preset-pedal-dip-compensation', 'pedal_dip_compensation'],
-] as const) {
-  document.querySelector<HTMLInputElement>(`#${id}`)!.addEventListener('change', event => {
-    const value = (event.target as HTMLInputElement).value;
-    enqueueWatch('preset_update', { [field]: value === '' ? null : Number(value) });
-  });
-}
-
 document.querySelector('#start')!.addEventListener('click', () => void action('simulator_start', { controlled: document.querySelector<HTMLInputElement>('#controlled')!.checked }));
 document.querySelector('#stop')!.addEventListener('click', () => void action('stop'));
 document.querySelector('#scenario')!.addEventListener('submit', async event => {
@@ -714,13 +652,17 @@ canvas.addEventListener('pointerup', event => {
   const dy = end.y - start.y;
   if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy)) {
     thresholdEntry = null;
+    if (dx > 0 && watchPresets.cancelInput()) return;
     enqueueWatch('swipe', { direction: dx < 0 ? 'left' : 'right', from_top: start.y <= 45 });
   } else if (dy >= 40 && Math.abs(dy) > Math.abs(dx)) {
     enqueueWatch('swipe', { direction: 'down', from_top: start.y <= 45 });
+  } else if (Math.abs(dx) < 12 && Math.abs(dy) < 12 && current && ['preset_slots', 'preset_editor'].includes(current.screen)) {
+    watchPresets.tap(current, end.x, end.y);
   } else if (Math.abs(dx) < 12 && Math.abs(dy) < 12 && current?.screen === 'settings') {
     if (current.alerts_draft) watchAlertTap(end.x, end.y);
     else if (end.x >= 12 && end.x <= 228 && end.y >= 60 && end.y <= 110) enqueueWatch('sleep');
     else if (end.x >= 12 && end.x <= 228 && end.y >= 120 && end.y <= 170) { alertPage = 0; thresholdEntry = null; enqueueWatch('alerts_begin'); }
+    else if (end.x >= 12 && end.x <= 228 && end.y >= 180 && end.y <= 212) enqueueWatch('preset_slots');
   } else if (Math.abs(dx)<12 && Math.abs(dy)<12 && current?.screen==='presets') {
     const column=end.x>=124 ? 1 : 0;
     const row=end.y>=124 ? 1 : 0;
@@ -776,6 +718,7 @@ function releaseForLifecycle(): void {
   replayLoadGeneration++;
   inputGeneration++;
   gesture = null;
+  watchPresets.cancelInput();
   if (holdTimer !== null) window.clearTimeout(holdTimer);
   holdTimer = null;
   const pressed = buttonCycleOpen || !!current?.button.down;

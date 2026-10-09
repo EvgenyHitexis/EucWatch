@@ -1,4 +1,6 @@
 """Modeled button requests at the public Application boundary; no audio claims."""
+from preset_fixture import save_preset
+
 
 import unittest
 import zlib
@@ -47,9 +49,7 @@ class HornTests(unittest.TestCase):
                 elif case == "disconnected":
                     app.action("disconnect")
                 elif case == "preset":
-                    app.action("preset_begin", slot=1)
-                    app.action("preset_update", pedal_sensitivity=30, dynamic_assist=25)
-                    app.action("preset_save")
+                    save_preset(app, slot=1, pedal_sensitivity=30, dynamic_assist=25)
                     app.action("preset_apply", slot=1)
                 elif case == "recovery":
                     app.action("swipe", direction="down")
@@ -89,9 +89,7 @@ class HornTests(unittest.TestCase):
 
     def test_blocked_held_cycle_does_not_play_after_preset_confirmation(self):
         app, clock = self.connected()
-        app.action("preset_begin", slot=1)
-        app.action("preset_update", pedal_sensitivity=30, dynamic_assist=25)
-        app.action("preset_save")
+        save_preset(app, slot=1, pedal_sensitivity=30, dynamic_assist=25)
         app.action("preset_apply", slot=1)
         app.action("button_down")
         for _ in range(2):

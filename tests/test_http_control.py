@@ -1,5 +1,6 @@
 """Live writes are reached through normal authenticated UI intents only."""
 import asyncio
+import json
 import unittest
 
 from aiohttp.test_utils import TestClient, TestServer
@@ -35,9 +36,10 @@ class ControlHTTPTests(unittest.IsolatedAsyncioTestCase):
                     'controller':session['controller'], 'id':identity or str(count), 'action':action_name, 'epoch':app.session, **payload})
                 self.assertEqual(response.status, expected, await response.text())
                 return await response.json()
-            await action('preset_begin', slot=1)
-            await action('preset_update', name='Road', pedal_sensitivity=31, dynamic_assist=26)
-            await action('preset_save')
+            config = app.view()['config']
+            config['presets'][0].update(name='Road', configured=True, pedal_sensitivity=31, dynamic_assist=26)
+            await action('configuration_import_prepare', content=json.dumps(config))
+            await action('configuration_import_commit')
             await action('live_discover')
             await action('live_select', address=ADDRESS)
             wheel = clients[0]
@@ -65,5 +67,41 @@ class ControlHTTPTests(unittest.IsolatedAsyncioTestCase):
             await action('preset_apply', slot=1)
             self.assertEqual(len(wheel.writes), 4)
             self.assertFalse(wheel.is_connected)
+        finally:
+            await http.close()
+
+    async def test_duplicate_editor_completion_is_not_replayed_after_reload_or_reconnect(self):
+        clock = ManualClock()
+        app = Application(clock=clock)
+        app.action('connect')
+        app.receive(app.session, settings_frame())
+        http = TestClient(TestServer(create_app(app, result_limit=2)))
+        await http.start_server()
+        try:
+            session = await (await http.get('/api/session')).json()
+            headers = {'Origin': str(http.make_url('/')).rstrip('/'), 'X-EucWatch-Key': session['credential']}
+            async def post(name, identity, epoch=None, **values):
+                return await http.post('/api/action', headers=headers, json={
+                    'controller': session['controller'], 'id': identity, 'action': name,
+                    'epoch': app.session if epoch is None else epoch, **values})
+            response = await post('preset_begin', 'open', slot=2, source='watch')
+            self.assertEqual(response.status, 200)
+            clock.advance(.1); app.receive(app.session, settings_frame())
+            old = app.session
+            for _ in range(2):
+                response = await post('preset_update', 'complete-once', dynamic_assist=26, source='watch')
+                self.assertEqual(response.status, 200)
+            count = len([r for r in app.view()['command_events'] if r['event'] == 'submission'])
+            self.assertEqual(count, 1)
+            await http.get('/api/session', params={'controller': session['controller']})
+            await http.get('/api/state', params={'controller': session['controller']})
+            await post('disconnect', 'disconnect')
+            await post('connect', 'connect')
+            app.receive(app.session, settings_frame())
+            response = await post('preset_update', 'complete-once', epoch=old, dynamic_assist=26)
+            self.assertEqual(response.status, 409)
+            response = await post('preset_update', 'late-new-identity', epoch=old, dynamic_assist=26)
+            self.assertEqual(response.status, 409)
+            self.assertEqual(len([r for r in app.view()['command_events'] if r['event'] == 'submission']), count)
         finally:
             await http.close()

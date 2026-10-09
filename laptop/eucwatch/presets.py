@@ -1,4 +1,4 @@
-"""Fixed-slot editor drafts. Editing never receives a wheel transport.
+"""Fixed-slot local definitions and freshly seeded wheel-owned editor state.
 
 The application's percentage contract is 0–100 for the three included controls.
 Source interpretation and the manufacturer's sensitivity range are documented
@@ -49,3 +49,60 @@ def replacement(config: dict[str, Any], draft: dict[str, Any]) -> dict[str, Any]
     proposed["presets"][validate_slot(draft["id"]) - 1] = deepcopy(draft)
     proposed["revision"] += 1
     return validate_configuration(proposed)
+
+
+READBACK_LIMIT = 5.0
+
+
+class PresetEditor:
+    """One session-bound editor; opening never invents or writes riding values."""
+
+    def __init__(self):
+        self.request: dict[str, Any] | None = None
+        self.draft: dict[str, Any] | None = None
+        self.values: dict[str, int | None] | None = None
+
+    def open(self, slot: Any, session: int, now: float) -> None:
+        self.draft = None
+        self.values = None
+        self.request = {"slot": validate_slot(slot), "session": session,
+                        "requested_s": now, "status": "waiting", "reason": "",
+                        "seeded_s": None}
+
+    def tick(self, now: float, session: int, connected: bool) -> None:
+        request = self.request
+        if request is None or request["status"] == "unavailable":
+            return
+        reason = ""
+        if request["session"] != session or not connected:
+            reason = "Wheel session ended; reopen for fresh settings"
+        elif request["status"] == "waiting" and now - request["requested_s"] >= READBACK_LIMIT - 1e-9:
+            reason = "Current wheel settings unavailable (readback timeout)"
+        if reason:
+            request.update(status="unavailable", reason=reason)
+            self.draft = None
+            self.values = None
+
+    def observe(self, config: dict[str, Any], values: dict[str, int | None],
+                session: int, now: float) -> None:
+        request = self.request
+        if request is None or request["session"] != session or request["status"] == "unavailable":
+            return
+        self.values = deepcopy(values)
+        if request["status"] != "waiting" or any(values.get(name) is None for name in PERCENT_FIELDS):
+            return
+        saved = begin(config, request["slot"])
+        self.draft = {"id": saved["id"], "name": saved["name"], "configured": True,
+                      "pedal_sensitivity": values["pedal_sensitivity"],
+                      "dynamic_assist": values["dynamic_assist"]}
+        if "pedal_dip_compensation" in saved:
+            self.draft["pedal_dip_compensation"] = values["pedal_dip_compensation"]
+        request.update(status="ready", seeded_s=now)
+
+    def close(self) -> None:
+        self.request = None
+        self.draft = None
+        self.values = None
+
+    def view(self) -> dict[str, Any] | None:
+        return deepcopy(self.request)

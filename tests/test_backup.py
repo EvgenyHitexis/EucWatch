@@ -1,4 +1,6 @@
 """Configuration backup through explicit application actions and real storage."""
+from preset_fixture import save_preset
+
 
 import json
 import tempfile
@@ -66,11 +68,7 @@ class BackupTests(unittest.TestCase):
 
     def configured(self, store=None, **options):
         app = Application(clock=ManualClock(), store=store, **options)
-        app.action("preset_begin", slot=3)
-        app.action(
-            "preset_update", name="Daily", pedal_sensitivity=30, dynamic_assist=25
-        )
-        app.action("preset_save")
+        save_preset(app, slot=3, name="Daily", pedal_sensitivity=30, dynamic_assist=25)
         return app
 
     def test_restoration_stops_unsent_preset_writes_and_ignores_late_transport_result(
@@ -184,9 +182,9 @@ class BackupTests(unittest.TestCase):
         app = self.configured()
         content = json.dumps(app.view()["config"])
         app.action("configuration_import_prepare", content=content)
-        app.action("preset_begin", slot=1)
-        app.action("preset_update", name="Changed")
-        app.action("preset_save")
+        app.action("alerts_begin")
+        app.action("alerts_update", alert="lost", enabled=False)
+        app.action("alerts_save")
         saved = app.view()["config"]
         with self.assertRaisesRegex(ValueError, "changed"):
             app.action("configuration_import_commit")

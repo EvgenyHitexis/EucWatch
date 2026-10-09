@@ -37,12 +37,12 @@ class PresetControl:
     def pending(self) -> bool:
         return self.attempt is not None and self.attempt["pending"]
 
-    def start(self, preset: dict[str, Any], revision: int, session: int, now: float) -> None:
+    def start(self, preset: dict[str, Any], revision: int, session: int, now: float, *, kind: str = "preset") -> None:
         self.confirmed = None
         fields = {name: {"requested": preset[name], "actual": None, "state": "unknown",
                          "submitted_s": None, "matches": 0}
                   for name in FIELDS if name in preset}
-        self.attempt = {"id": self.next_id, "slot": preset["id"], "name": preset["name"],
+        self.attempt = {"kind": kind, "id": self.next_id, "slot": preset["id"], "name": preset["name"],
                         "revision": revision, "session": session, "status": "submitting",
                         "pending": True, "requested_s": now, "submitted_s": None,
                         "finished_s": None, "reason": "", "fields": fields,
@@ -138,7 +138,7 @@ class PresetControl:
             attempt["status"] = "Confirmed"
             attempt["pending"] = False
             attempt["finished_s"] = now
-            self.confirmed = {"slot": attempt["slot"], "name": attempt["name"],
+            self.confirmed = {"kind": attempt["kind"], "slot": attempt["slot"], "name": attempt["name"],
                               "revision": attempt["revision"], "session": session,
                               "values": {name: field["requested"] for name, field in attempt["fields"].items()}}
 

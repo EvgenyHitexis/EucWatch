@@ -1,4 +1,6 @@
 """Real Chrome lifecycle failures against the built UI and authoritative host."""
+from preset_fixture import save_preset
+
 import asyncio
 import json
 from pathlib import Path
@@ -20,9 +22,7 @@ async def run():
     with tempfile.TemporaryDirectory(prefix='eucwatch-lifecycle-') as directory:
         root=Path(directory)
         app=Application(store=FileStore(root/'configuration.json'))
-        app.action('preset_begin',slot=1)
-        app.action('preset_update',name='Retained',pedal_sensitivity=31,dynamic_assist=26)
-        app.action('preset_save')
+        save_preset(app, slot=1, name='Retained',pedal_sensitivity=31,dynamic_assist=26)
         recorder=Recorder(root/'capture.jsonl')
         app.event_sink=recorder.record
         probe=socket.socket();probe.bind(('127.0.0.1',0));port=probe.getsockname()[1];probe.close()
