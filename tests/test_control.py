@@ -60,7 +60,7 @@ class ControlTests(unittest.TestCase):
         self.assertEqual(app.view()["preset_attempt"]["submitted_s"], 0.2)
         self.assertIsNone(app.view()["confirmed_preset"])
 
-    def test_pending_extra_taps_are_discarded_and_stale_or_unconfigured_selection_is_rejected(self):
+    def test_pending_extra_taps_are_discarded_and_stale_selection_is_rejected(self):
         app, clock = self.prepared()
         first = app.action("preset_apply", slot=1)
         second = app.action("preset_apply", slot=2)
@@ -73,8 +73,7 @@ class ControlTests(unittest.TestCase):
             app.action("preset_apply", slot=1)
         self.assertFalse(app.view()["preset_attempt"]["pending"])
         app.action("simulator_emit")
-        with self.assertRaises(ValueError):
-            app.action("preset_apply", slot=2)
+        self.assertEqual(app.action("preset_apply", slot=2)["preset_attempt"]["slot"], 2)
 
     def test_confirmation_requires_two_consecutive_all_matching_frames_and_corruption_is_not_evidence(self):
         app, clock = self.prepared()

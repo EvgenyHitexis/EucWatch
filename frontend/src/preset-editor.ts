@@ -3,6 +3,7 @@ export interface Preset {
   id: number;
   name: string;
   configured: boolean;
+  dip_included: boolean;
   pedal_sensitivity?: number;
   dynamic_assist?: number;
   pedal_dip_compensation?: number;
@@ -111,7 +112,7 @@ export class WatchPresets {
     this.text(`‹ SLOT ${draft.id} · ${this.page + 1}/4 ›`, 120, 22, 13);
     this.text(labels[this.page], 120, 50, 17);
     this.button(String(draft[field] ?? 'Omitted'), 12, 65, 216, 38);
-    if (field === 'pedal_dip_compensation') this.button(draft[field] === undefined ? 'Include dip (local)' : 'Omit dip (local)', 12, 111, 216);
+    if (field === 'pedal_dip_compensation') this.button(!draft.dip_included ? 'Include dip (local)' : 'Omit dip (local)', 12, 111, 216);
     const attempt = view.preset_attempt;
     const result = attempt?.kind === 'editor' && attempt.slot === draft.id ? attempt.fields[field] : undefined;
     this.text(result ? `Requested ${result.requested} · ${result.submitted_s === null ? 'submission pending' : 'submitted'}` : 'Tap value to edit', 120, 155, 12);
@@ -176,7 +177,7 @@ export class WatchPresets {
       this.entry = name ? view.preset_draft.name : '';
       this.letters = 0;
     } else if (field === 'pedal_dip_compensation' && y >= 111 && y <= 141) {
-      void this.enqueue('preset_include_dip', {included: view.preset_draft[field] === undefined});
+      void this.enqueue('preset_include_dip', {included: !view.preset_draft.dip_included});
     } else if (y >= 207) {
       if (x <= 76) void this.enqueue('preset_cancel');
       else if (x <= 180) void this.enqueue('preset_save');

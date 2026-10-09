@@ -8,13 +8,13 @@ from eucwatch.persistence import FileStore
 
 
 class PresetTests(unittest.TestCase):
-    def test_four_initial_slots_have_names_without_invented_tunes(self):
+    def test_four_initial_slots_have_editable_owner_defaults(self):
         app = Application(clock=ManualClock())
         menu = app.view()["presets_menu"]
         self.assertEqual([slot["id"] for slot in menu], [1, 2, 3, 4])
         self.assertEqual([slot["name"] for slot in menu],
-                         ["Preset 1", "Preset 2", "Preset 3", "Preset 4"])
-        self.assertTrue(all(not slot["configured"] and not slot["available"] for slot in menu))
+                         ["Jump", "Forest", "Road", "Drag"])
+        self.assertTrue(all(slot["configured"] and not slot["available"] for slot in menu))
 
     def test_direct_edit_restart_retains_definitions_without_commands_or_confirmation(self):
         from test_control import settings_frame

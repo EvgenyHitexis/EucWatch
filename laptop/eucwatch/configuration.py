@@ -4,7 +4,9 @@ import math
 from copy import deepcopy
 from typing import Any
 
-VERSION = 1
+VERSION = 2
+DEFAULT_PRESETS = (("Jump", 0, 0, 0), ("Forest", 70, 0, 0),
+                   ("Road", 30, 25, 10), ("Drag", 20, 70, 5))
 ALERTS = ("pwm", "speed", "battery", "lost")
 
 
@@ -13,8 +15,10 @@ def default_configuration() -> dict[str, Any]:
         "version": VERSION,
         "revision": 0,
         "presets": [
-            {"id": slot, "name": f"Preset {slot}", "configured": False}
-            for slot in range(1, 5)
+            {"id": slot, "name": name, "configured": True,
+             "pedal_sensitivity": pedal, "dynamic_assist": assist,
+             "pedal_dip_compensation": dip, "dip_included": False}
+            for slot, (name, pedal, assist, dip) in enumerate(DEFAULT_PRESETS, 1)
         ],
         "alerts": {
             **{name: {"enabled": False, "threshold": None} for name in ALERTS[:-1]},
@@ -60,7 +64,7 @@ def validate_configuration(config: Any) -> dict[str, Any]:
         "alerts",
     }:
         raise ValueError("A complete configuration is required")
-    if type(config["version"]) is not int or config["version"] != VERSION:
+    if type(config["version"]) is not int or config["version"] not in (1, VERSION):
         raise ValueError("Unsupported configuration version; review required")
     if type(config["revision"]) is not int or config["revision"] < 0:
         raise ValueError("Invalid configuration revision")
@@ -89,6 +93,11 @@ def validate_configuration(config: Any) -> dict[str, Any]:
         if preset["configured"]:
             required |= {"pedal_sensitivity", "dynamic_assist"}
         optional = {"pedal_dip_compensation"} if preset["configured"] else set()
+        if config["version"] == VERSION:
+            if not preset["configured"] or type(preset.get("dip_included")) is not bool:
+                raise ValueError("Configured preset with explicit dip inclusion is required")
+            required |= {"pedal_dip_compensation", "dip_included"}
+            optional = set()
         if not required <= set(preset) or set(preset) - required - optional:
             raise ValueError("Invalid preset fields")
         for field in ("pedal_sensitivity", "dynamic_assist", "pedal_dip_compensation"):
@@ -96,4 +105,14 @@ def validate_configuration(config: Any) -> dict[str, Any]:
                 type(preset[field]) is not int or not 0 <= preset[field] <= 100
             ):
                 raise ValueError(f"{field} must be a whole percentage from 0 to 100")
-    return deepcopy(config)
+    normalized = deepcopy(config)
+    if config["version"] == 1:
+        defaults = default_configuration()["presets"]
+        for index, preset in enumerate(normalized["presets"]):
+            if not preset["configured"]:
+                normalized["presets"][index] = defaults[index]
+            else:
+                preset["dip_included"] = "pedal_dip_compensation" in preset
+                preset.setdefault("pedal_dip_compensation", defaults[index]["pedal_dip_compensation"])
+        normalized["version"] = VERSION
+    return normalized

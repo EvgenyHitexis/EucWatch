@@ -91,7 +91,8 @@ class LocalConfigurationHTTPTests(unittest.IsolatedAsyncioTestCase):
             saved = default_configuration()
             saved["revision"] = 17
             saved["presets"][0] = {"id": 1, "name": "Laptop local", "configured": True,
-                                    "pedal_sensitivity": 30, "dynamic_assist": 20}
+                                    "pedal_sensitivity": 30, "dynamic_assist": 20,
+                                    "pedal_dip_compensation": 0, "dip_included": False}
             saved["alerts"]["pwm"] = {"enabled": True, "threshold": 70}
             path.write_text(json.dumps(saved))
             retired = Path(directory) / "shared_configuration.json"

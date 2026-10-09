@@ -7,7 +7,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, Protocol
 
-from .configuration import validate_configuration
+from .configuration import default_configuration, validate_configuration
 
 MAX_CONFIG_BYTES = 32 * 1024
 
@@ -97,7 +97,7 @@ class FileStore:
             self._replace(self.backup, previous)
         else:
             # The first persisted copy needs a validated recovery companion too.
-            self._replace(self.backup, data)
+            self._replace(self.backup, (json.dumps(default_configuration()) + "\n").encode())
         self._replace(self.path, data)
         directory = os.open(self.path.parent, os.O_DIRECTORY)
         try:

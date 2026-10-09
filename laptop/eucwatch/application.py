@@ -633,12 +633,8 @@ class Application:
                 raise ValueError("Open the editor and choose dip inclusion")
             if self.control.pending:
                 raise ValueError("Wait for the current wheel operation")
-            value = None
-            if payload["included"]:
-                value = (self.editor.values or {}).get("pedal_dip_compensation")
-                if value is None:
-                    raise ValueError("Current dip setting unavailable")
-            draft = presets.update(self.editor.draft, {"pedal_dip_compensation": value})
+            draft = deepcopy(self.editor.draft)
+            draft["dip_included"] = payload["included"]
             proposed = presets.replacement(self.config, draft)
             self.editor.draft = draft
             self._save_editor(proposed)

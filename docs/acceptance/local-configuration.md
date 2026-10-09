@@ -77,3 +77,32 @@ unchanged for provenance. They describe the previous product scope and do not
 count as acceptance of independent local configuration. Earlier editor evidence
 also retains its recorded scope; it does not establish the corrected direct
 wheel-owned editor behavior.
+
+## Local preset revision #43 — slice #44
+
+Schema 2 saves `pedal_dip_compensation` and boolean `dip_included` independently.
+Schema 1 is validated before migration; configured definitions and alert preferences
+survive, while only unconfigured slots receive Jump/Forest/Road/Drag defaults.
+Migration retains revisions; reviewed replacement increments once. First-save
+recovery retains defaults rather than an uncommitted candidate.
+
+Independent inputs and expectations: `docs/acceptance/scenarios/local-presets.json`.
+Actual built Canvas/backend results, pointer inputs, exact packets, saved state,
+source hashes and both list renderings: `evidence/local-presets/defaults-laptop.json`
+and `defaults-{riding,settings}.png` in that directory. Every default was applied
+with simulator dip 83; no default emitted a dip packet and dip remained 83.
+
+Reproduce from the repository root:
+
+```
+PYTHONPATH=laptop:tests experiments/laptop-feasibility/.venv/bin/python -m unittest test_preset_defaults test_backup test_local_configuration test_control test_presets
+npm run build --prefix frontend
+PYTHONPATH=laptop:tests experiments/laptop-feasibility/.venv/bin/python tests/browser_local_presets.py
+uvx ty check --python experiments/laptop-feasibility/.venv/bin/python laptop
+```
+
+Passed: migration/review/restore/restart, legacy-only recovery, interrupted first
+save, invalid/unknown/oversized refusal, included zero/nonzero packets, existing
+backup/revision/control checks, built UI flow and typechecking. Editor transaction
+and gesture changes belong to #46/#48. Offline results do not establish owner,
+wheel or watch hardware acceptance.

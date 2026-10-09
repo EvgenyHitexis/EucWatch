@@ -31,9 +31,11 @@ def update(draft: dict[str, Any], changes: dict[str, Any]) -> dict[str, Any]:
     proposed = deepcopy(draft)
     for field, value in changes.items():
         if field == "pedal_dip_compensation" and value is None:
-            proposed.pop(field, None)
+            proposed["dip_included"] = False
         else:
             proposed[field] = value
+            if field == "pedal_dip_compensation":
+                proposed["dip_included"] = True
             if field in PERCENT_FIELDS:
                 proposed["configured"] = True
     return proposed
@@ -41,7 +43,8 @@ def update(draft: dict[str, Any], changes: dict[str, Any]) -> dict[str, Any]:
 
 def cleared(config: dict[str, Any], slot: Any) -> dict[str, Any]:
     preset = begin(config, slot)
-    return {"id": preset["id"], "name": preset["name"], "configured": False}
+    from .configuration import default_configuration
+    return default_configuration()["presets"][preset["id"] - 1]
 
 
 def replacement(config: dict[str, Any], draft: dict[str, Any]) -> dict[str, Any]:
@@ -94,8 +97,10 @@ class PresetEditor:
         saved = begin(config, request["slot"])
         self.draft = {"id": saved["id"], "name": saved["name"], "configured": True,
                       "pedal_sensitivity": values["pedal_sensitivity"],
-                      "dynamic_assist": values["dynamic_assist"]}
-        if "pedal_dip_compensation" in saved:
+                      "dynamic_assist": values["dynamic_assist"],
+                      "pedal_dip_compensation": saved["pedal_dip_compensation"],
+                      "dip_included": saved["dip_included"]}
+        if saved["dip_included"]:
             self.draft["pedal_dip_compensation"] = values["pedal_dip_compensation"]
         request.update(status="ready", seeded_s=now)
 

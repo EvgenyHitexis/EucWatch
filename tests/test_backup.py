@@ -141,7 +141,7 @@ class BackupTests(unittest.TestCase):
         self.assertEqual(state["configuration_preview"]["content"], exported)
         self.assertEqual(
             state["configuration_preview"]["migration"],
-            {"from": 1, "to": 1, "changes": []},
+            {"from": 2, "to": 2, "changes": []},
         )
         target.action("configuration_import_cancel")
         self.assertEqual(target.view()["config"], initial)

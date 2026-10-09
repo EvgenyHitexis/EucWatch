@@ -1,8 +1,6 @@
 """Versioned configuration backup review, without wheel/session state.
 
-Only schema 1 exists in this application. Compatible application updates retain
-that schema's meaning and fixed identities; no undocumented historical format
-is guessed or silently reset. Additional schemas require an explicit migration.
+Schema 1 is explicitly migrated to independent remembered dip and inclusion.
 """
 
 import json
@@ -31,13 +29,16 @@ def migrate(content: Any) -> tuple[dict[str, Any], dict[str, Any]]:
     if (
         not isinstance(content, dict)
         or type(content.get("version")) is not int
-        or content["version"] != VERSION
+        or content["version"] not in (1, VERSION)
     ):
         raise ValueError("Unsupported configuration version; owner review required")
     return validate_configuration(content), {
-        "from": VERSION,
+        "from": content["version"],
         "to": VERSION,
-        "changes": [],
+        "changes": ([] if content["version"] == VERSION else [
+            "Initialize unconfigured slots from editable defaults",
+            "Retain saved dip separately from inclusion; fill absent remembered dip by slot",
+        ]),
     }
 
 

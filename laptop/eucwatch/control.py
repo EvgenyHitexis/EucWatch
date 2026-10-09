@@ -41,7 +41,8 @@ class PresetControl:
         self.confirmed = None
         fields = {name: {"requested": preset[name], "actual": None, "state": "unknown",
                          "submitted_s": None, "matches": 0}
-                  for name in FIELDS if name in preset}
+                  for name in FIELDS if name in preset and
+                  (name != "pedal_dip_compensation" or preset.get("dip_included", kind == "editor"))}
         self.attempt = {"kind": kind, "id": self.next_id, "slot": preset["id"], "name": preset["name"],
                         "revision": revision, "session": session, "status": "submitting",
                         "pending": True, "requested_s": now, "submitted_s": None,
