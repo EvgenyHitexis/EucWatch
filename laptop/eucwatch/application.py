@@ -8,7 +8,6 @@ from typing import Any
 
 from . import backup, presets
 from .alerts import AlertScheduler
-from .async_transfer import AsyncConfigurationTransfer
 from .clock import Clock, ManualClock, SystemClock
 from .configuration import (
     default_configuration,
@@ -17,11 +16,10 @@ from .configuration import (
 )
 from .control import PresetControl
 from .horn import HornRequests
-from .persistence import ConfigStore, FileStore, MemoryStore
+from .persistence import ConfigStore, MemoryStore
 from .protocol import CHARACTERISTIC, Assembler, Telemetry, decode, decode_settings
 from .recording import Replay
 from .simulator import Simulator
-from .transfer import ConfigurationTransfer
 
 
 def rounded(value: float, places: int = 0) -> str:
@@ -46,9 +44,6 @@ class Application:
         store: ConfigStore | None = None,
         vibration_output: Callable[[dict[str, Any]], None] | None = None,
         command_output: Callable[[dict[str, Any]], None] | None = None,
-        watch_store: ConfigStore | None = None,
-        shared_store: ConfigStore | None = None,
-        transfer_transport: Callable[[bytes], bytes] | None = None,
     ):
         self.clock = clock or SystemClock()
         self.host_clock = self.clock
@@ -102,21 +97,6 @@ class Application:
         self.control = PresetControl(self._submit_control, self._control_event)
         self.simulated_receipts: list[dict[str, Any]] = []
         self.control_status: tuple[int, str] | None = None
-        if isinstance(self.store, FileStore):
-            watch_store = watch_store or FileStore(
-                self.store.path.with_name("simulated_watch.json")
-            )
-            shared_store = shared_store or FileStore(
-                self.store.path.with_name("shared_configuration.json")
-            )
-        self.transfer: ConfigurationTransfer | AsyncConfigurationTransfer = (
-            ConfigurationTransfer(
-                self.store,
-                watch_store or MemoryStore(),
-                shared_store or MemoryStore(),
-                transfer_transport,
-            )
-        )
         self.horn = HornRequests(self._control_event)
 
     def _command_adapter(self):
@@ -281,18 +261,6 @@ class Application:
 
     def action(self, action_name: str, **payload: Any) -> dict[str, Any]:
         name = action_name
-        if self.transfer.active and name in (
-            "simulator_start",
-            "connect",
-            "stop",
-            "disconnect",
-            "replay_start",
-            "live_start",
-            "live_connected",
-        ):
-            raise ValueError(
-                "Return from configuration transfer before changing input roles"
-            )
         self.tick()
         self._event(
             "intent",
@@ -558,97 +526,6 @@ class Application:
                     self.alerts_draft = None
         elif name == "alerts_begin":
             self.alerts_draft = deepcopy(self.config["alerts"])
-        elif name == "transfer_scenario":
-            if not isinstance(self.transfer, ConfigurationTransfer):
-                raise ValueError("Fault scenarios require the simulated endpoint")
-            self.transfer.configure_scenario(payload)
-        elif name == "transfer_watch_edit":
-            if not isinstance(self.transfer, ConfigurationTransfer):
-                raise ValueError(
-                    "Saved watch scenario editing requires the simulated endpoint"
-                )
-            self.transfer.watch_edit(payload)
-        elif name == "transfer_begin":
-            if self.transfer.active:
-                raise ValueError("Configuration transfer is already active")
-            if not self.awake or self.screen != "settings" or self.recovery:
-                raise ValueError("Open Transfer configuration from awake Settings")
-            if self.mode != "idle" and (
-                not self.fresh()
-                or self.telemetry is None
-                or self.telemetry.speed_kmh != 0
-            ):
-                raise ValueError("Fresh stopped telemetry is required for transfer")
-            self.transfer.begin(self.config, self.mode, self.simulating)
-            self.mode = "transfer"
-            self.screen = "transfer"
-            self.connected = False
-            self.session += 1
-            self.last_valid = None
-            self.parser = Assembler()
-            self.simulating = False
-            self.replay = None
-            self._event(
-                "transport", transition="disconnected", reason="Configuration transfer"
-            )
-            self._update_control()
-            self._update_alerts()
-            self.feedback = "Configuration transfer · wheel disconnected"
-        elif name == "transfer_activate":
-            if self.mode != "transfer":
-                raise ValueError("Saved transfer completion requires transfer mode")
-            self._activate_transferred(payload.get("config"))
-        elif name == "transfer_exit":
-            if self.mode != "transfer":
-                raise ValueError("Return requires transfer mode")
-            self._exit_transfer()
-        elif name in (
-            "transfer_preview",
-            "transfer_choose",
-            "transfer_send",
-            "transfer_reconcile",
-            "transfer_cancel",
-            "transfer_return",
-        ):
-            if self.mode != "transfer" or not self.transfer.active:
-                raise ValueError("Enter configuration transfer on the watch first")
-            if isinstance(self.transfer, AsyncConfigurationTransfer):
-                if name != "transfer_choose":
-                    raise ValueError(
-                        "Real configuration transfer requires the asynchronous host adapter"
-                    )
-                self.transfer.choose(payload.get("path"), payload.get("side"))
-                return self.view()
-            if name == "transfer_preview":
-                self.transfer.review(self.config)
-            elif name == "transfer_choose":
-                self.transfer.choose(payload.get("path"), payload.get("side"))
-            elif name == "transfer_cancel":
-                self.transfer.cancel()
-                self.feedback = "Transfer cancelled · watch content unchanged"
-            elif name in ("transfer_send", "transfer_reconcile"):
-                committed = (
-                    self.transfer.send(self.config)
-                    if name == "transfer_send"
-                    else self.transfer.reconcile(self.config)
-                )
-                if committed is not None:
-                    self._activate_transferred(committed)
-                else:
-                    if self.transfer.local_saved is not None:
-                        self.config = deepcopy(self.transfer.local_saved)
-                        self.confirmed_preset = None
-                        self.alerts.configure(self.config["alerts"], self.elapsed())
-                    self.feedback = (
-                        self.transfer.error or "Configuration transfer failed"
-                    )
-            if name == "transfer_return" or (
-                name in ("transfer_send", "transfer_reconcile")
-                and self.transfer.status == "success"
-            ):
-                self._exit_transfer()
-                if name == "transfer_return":
-                    self.feedback = "Returned to riding · fresh telemetry required"
         elif name == "configuration_export":
             self.configuration_export = backup.export(self.config)
         elif name == "configuration_import_prepare":
@@ -772,31 +649,6 @@ class Application:
             self.last_interaction = self.elapsed()
         return self.view()
 
-    def _activate_transferred(self, config):
-        self.config = validate_configuration(config)
-        self.confirmed_preset = None
-        self.alerts.configure(self.config["alerts"], self.elapsed())
-        self.persistence_error = None
-        self.feedback = "Configuration transferred · saved readback verified"
-
-    def _exit_transfer(self):
-        self.transfer.leave()
-        self.mode = self.transfer.previous_mode
-        self.screen = "dashboard"
-        self.session += 1
-        self.connected = self.mode == "simulator"
-        self.simulating = self.connected and self.transfer.previous_simulating
-        self.last_valid = None
-        self.last_emission = self.elapsed()
-        self.parser = Assembler()
-        self.button_down = False
-        self.wake_cycle = False
-        self.button_started = None
-        self._event(
-            "transport", transition="connected" if self.connected else "stopped"
-        )
-        self.feedback = "Returned to riding · fresh telemetry required"
-
     def tick(self) -> None:
         self._check_resume()
         previous_horn = self.horn.feedback
@@ -824,7 +676,6 @@ class Application:
             and self.alerts_draft is None
             and self.preset_draft is None
             and self.configuration_preview is None
-            and not self.transfer.active
             and self.elapsed() - self.last_interaction >= 30 - 1e-9
         ):
             self.awake = False
@@ -921,7 +772,6 @@ class Application:
             "preset_draft": deepcopy(self.preset_draft),
             "configuration_preview": deepcopy(self.configuration_preview),
             "configuration_export": deepcopy(self.configuration_export),
-            "transfer": self.transfer.view(),
             "confirmed_preset": deepcopy(self.confirmed_preset),
             "preset_attempt": self.control.view(),
             "actual_settings": deepcopy(self.control.actual),

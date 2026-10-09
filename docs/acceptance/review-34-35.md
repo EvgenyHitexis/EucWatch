@@ -1,5 +1,15 @@
 # Review of watch controls and configuration transfer
 
+> Historical record — configuration synchronization/transfer and its review/conflict
+> gates (#28/#29/#35) were superseded on 2026-10-09 by
+> [the resolved owner correction](https://github.com/EvgenyHitexis/EucWatch/issues/39#issuecomment-6082478274)
+> and [issue #40](https://github.com/EvgenyHitexis/EucWatch/issues/40).
+> The workflow, endpoint and referenced transfer test commands have been removed.
+> Retained evidence below preserves its original provenance and applies only to
+> the previous scope; it is not acceptance of the revised product. Use
+> [local configuration checks](local-configuration.md) for the replacement gates.
+
+
 Reviewed on 2026-10-08 against specification
 [#17](https://github.com/EvgenyHitexis/EucWatch/issues/17) and implementation
 [#34](https://github.com/EvgenyHitexis/EucWatch/issues/34) /

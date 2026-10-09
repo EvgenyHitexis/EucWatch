@@ -49,8 +49,7 @@ changed successfully. Invalid review preserves the previous definition/preview.
 The runner binds its steps to its controlled simulator session. Its own explicit
 disconnect/connect steps update that binding; an external mode/session change
 ends the sequence without delivering later steps. It needs an explicit new
-Start. Configuration-transfer mode must return to riding before a scenario can
-start. Browser-delayed file reads are discarded when the input/session epoch
+Start. Browser-delayed file reads are discarded when the input/session epoch
 changes. Backend behavior, raw parsing, freshness and vibration scheduling remain
 in `Application`; the scenario module does not maintain another behavior clock.
 

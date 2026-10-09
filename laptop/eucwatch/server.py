@@ -2,7 +2,6 @@
 
 import argparse
 import asyncio
-import hashlib
 import secrets
 import time
 from contextlib import suppress
@@ -11,14 +10,9 @@ from pathlib import Path
 from aiohttp import web
 
 from eucwatch import Application
-from eucwatch.async_transfer import (
-    AsyncConfigurationProtocol,
-    AsyncConfigurationTransfer,
-)
 from eucwatch.live import LiveSession
 from eucwatch.live_control import LiveControl
-from eucwatch.nordic import NusTransport
-from eucwatch.persistence import FileStore, MemoryStore
+from eucwatch.persistence import FileStore
 from eucwatch.recording import Recorder, Replay
 from eucwatch.scenarios import FileScenarioStore, ScenarioLibrary
 
@@ -34,17 +28,11 @@ def create_app(
     controller_timeout=10.0,
     result_limit=2048,
     scenario_store=None,
-    nus=None,
-    nus_transfer_factory=None,
 ):
     behavior = application or Application(
         store=store, event_sink=None if recorder is None else recorder.record
     )
     live = live or LiveSession(behavior)
-    nus = nus or NusTransport(behavior, live)
-    simulated_transfer = behavior.transfer
-    target_stores = {}
-    real_transfers = {}
     scenarios = ScenarioLibrary(scenario_store)
     control = LiveControl(live, behavior)
     behavior.live_command_output = control.submit
@@ -54,7 +42,6 @@ def create_app(
     seen = set()
     intent_lock = asyncio.Lock()
     last_ui_seen = time.monotonic()
-    nus_cleanup = None
 
     def expire_controller():
         if controllers and time.monotonic() - last_ui_seen > controller_timeout:
@@ -70,98 +57,7 @@ def create_app(
             "recording": None if recorder is None else recorder.status(),
             "live": live.status(),
             "scenario": scenarios.view(),
-            "nordic": nus.status(),
         }
-
-    def target_transfer(address):
-        existing = real_transfers.get(address)
-        if existing is not None and (
-            existing.active
-            or existing.pending is not None
-            or existing.journal_error is not None
-            or existing.status == "return_failed"
-        ):
-            return existing
-        protocol = AsyncConfigurationProtocol(nus.exchange)
-        if nus_transfer_factory is not None:
-            transfer = nus_transfer_factory(address, protocol)
-            real_transfers[address] = transfer
-            return transfer
-        if address not in target_stores:
-            if isinstance(behavior.store, FileStore):
-                identity = hashlib.sha256(address.encode()).hexdigest()
-                directory = behavior.store.path.parent / "watch-targets" / identity
-                target_stores[address] = (
-                    FileStore(directory / "shared.json"),
-                    FileStore(directory / "journal.json"),
-                )
-            else:
-                target_stores[address] = (MemoryStore(), MemoryStore())
-        shared, journal = target_stores[address]
-        name = next(
-            (
-                device["name"]
-                for device in nus.status()["devices"]
-                if device["address"] == address
-            ),
-            address,
-        )
-        transfer = AsyncConfigurationTransfer(
-            behavior.store,
-            shared,
-            protocol,
-            endpoint_label=f"Actual watch · {name} · {address}",
-            journal_store=journal,
-        )
-        real_transfers[address] = transfer
-        return transfer
-
-    async def finish_real_transfer():
-        await nus.disconnect()
-        if nus.client is not None:
-            behavior.transfer.active = True
-            behavior.transfer.status = "return_failed"
-            behavior.transfer.error = "Watch disconnect remains uncertain; complete explicit disconnect before returning to wheel mode"
-            return
-        behavior.action("transfer_exit")
-        if behavior.mode == "live" and live.selected:
-            await live.connect(live.selected)
-
-    async def real_transfer_action(name, payload):
-        transfer = behavior.transfer
-        if (
-            not isinstance(transfer, AsyncConfigurationTransfer)
-            or behavior.mode != "transfer"
-            or not transfer.active
-        ):
-            raise ValueError("Select a real watch inside configuration transfer first")
-        committed = None
-        if name == "transfer_preview":
-            await transfer.areview(behavior.config)
-        elif name == "transfer_send":
-            committed = await transfer.asend(behavior.config)
-        elif name == "transfer_reconcile":
-            committed = await transfer.areconcile(behavior.config)
-        elif name == "transfer_cancel":
-            await transfer.acancel()
-        elif name == "transfer_return":
-            await transfer.areturn()
-        else:
-            raise ValueError("Unknown asynchronous transfer action")
-        if committed is not None:
-            behavior.action("transfer_activate", config=committed)
-        elif (
-            transfer.local_saved is not None and transfer.local_saved != behavior.config
-        ):
-            behavior.action("transfer_activate", config=transfer.local_saved)
-        behavior.feedback = transfer.error or (
-            "Configuration transferred · saved readback verified"
-            if transfer.verified_saved is not None
-            else "Configuration transfer"
-        )
-        if not transfer.active:
-            await finish_real_transfer()
-        return snapshot()
 
     def local(request):
         expected = f"{request.scheme}://{request.host}"
@@ -227,8 +123,6 @@ def create_app(
                 "live_disconnected",
                 "command_result",
                 "horn_result",
-                "transfer_activate",
-                "transfer_exit",
             ):
                 raise ValueError("Transport callbacks are internal application inputs")
             if (
@@ -260,68 +154,7 @@ def create_app(
                         {"error": "Application session changed; refresh before acting"},
                         status=409,
                     )
-                if behavior.transfer.active and (
-                    name.startswith("live_")
-                    or name
-                    in (
-                        "simulator_start",
-                        "connect",
-                        "stop",
-                        "disconnect",
-                        "replay_start",
-                        "scenario_start",
-                        "scenario_step",
-                    )
-                ):
-                    raise ValueError(
-                        "Return from configuration transfer before changing input roles"
-                    )
-                if name.startswith("nordic_"):
-                    if (
-                        behavior.mode != "transfer"
-                        or not behavior.transfer.active
-                        or live.client is not None
-                        or live.desired
-                    ):
-                        raise ValueError(
-                            "Enter stopped transfer and complete the wheel disconnect first"
-                        )
-                    if name == "nordic_discover":
-                        await nus.discover()
-                    elif name == "nordic_select":
-                        previous = behavior.transfer
-                        await nus.connect(payload["address"])
-                        transfer = target_transfer(payload["address"])
-                        if previous is not transfer:
-                            previous.leave()
-                        transfer.begin(
-                            behavior.config,
-                            previous.previous_mode,
-                            previous.previous_simulating,
-                        )
-                        behavior.transfer = transfer
-                        if (
-                            transfer.pending is None
-                            and transfer.journal_error is None
-                            and transfer.verified_saved is None
-                        ):
-                            await transfer.areview(behavior.config)
-                    elif name == "nordic_disconnect":
-                        await nus.disconnect()
-                    else:
-                        raise ValueError("Unknown Nordic UART action")
-                    result = snapshot()
-                elif isinstance(
-                    behavior.transfer, AsyncConfigurationTransfer
-                ) and name in (
-                    "transfer_preview",
-                    "transfer_send",
-                    "transfer_reconcile",
-                    "transfer_cancel",
-                    "transfer_return",
-                ):
-                    result = await real_transfer_action(name, payload)
-                elif name.startswith("scenario_"):
+                if name.startswith("scenario_"):
                     if name == "scenario_save":
                         scenarios.save_current(
                             behavior.simulator.values,
@@ -334,10 +167,6 @@ def create_app(
                         scenarios.export()
                     elif name == "scenario_start":
                         scenarios.export()  # Validate a complete definition before disconnecting.
-                        if behavior.transfer.active:
-                            raise ValueError(
-                                "Return from transfer before starting a scenario"
-                            )
                         await live.disconnect()
                         scenarios.start(behavior)
                     elif name == "scenario_step":
@@ -354,14 +183,6 @@ def create_app(
                 elif name == "live_disconnect":
                     await live.disconnect()
                     result = snapshot()
-                elif name == "transfer_begin":
-                    if behavior.transfer.active:
-                        raise ValueError("Configuration transfer is already active")
-                    behavior.transfer = simulated_transfer
-                    # Validate the fresh stopped entry before ending the wheel link.
-                    behavior.action(name, **payload)
-                    await live.disconnect()
-                    result = snapshot()
                 else:
                     if name in (
                         "simulator_start",
@@ -376,21 +197,8 @@ def create_app(
                             payload["recording"],
                             name=payload.pop("name", "Imported recording"),
                         )
-                    if name.startswith("transfer_") and live.client is not None:
-                        raise ValueError(
-                            "Wheel disconnect outcome is uncertain; complete disconnect before configuration transfer"
-                        )
                     behavior.action(name, **payload)
                     result = snapshot()
-                    if (
-                        name
-                        in ("transfer_send", "transfer_return", "transfer_reconcile")
-                        and not behavior.transfer.active
-                        and behavior.mode == "live"
-                        and live.selected
-                    ):
-                        await live.connect(live.selected)
-                        result = snapshot()
                 results[key] = result
                 seen.add(key)
                 if len(results) > result_limit:
@@ -442,7 +250,6 @@ def create_app(
 
     async def lifetime(app):
         async def run():
-            nonlocal nus_cleanup
             while True:
                 expire_controller()
                 if (
@@ -453,19 +260,6 @@ def create_app(
                 behavior.tick()
                 live.tick()
                 control.tick()
-                nus.tick()
-                if (
-                    nus.session is not None
-                    and nus_cleanup is not None
-                    and nus_cleanup.done()
-                ):
-                    nus_cleanup = None
-                if (
-                    nus.client is not None
-                    and nus.session is None
-                    and nus_cleanup is None
-                ):
-                    nus_cleanup = asyncio.create_task(nus.disconnect())
                 await asyncio.sleep(0.02)
 
         async def write_recording():
@@ -482,10 +276,6 @@ def create_app(
             await task
         await control.close()
         behavior.live_command_output = None
-        if nus_cleanup is not None:
-            with suppress(asyncio.CancelledError):
-                await nus_cleanup
-        await nus.close()
         await live.close()
         if writer is not None:
             writer.cancel()

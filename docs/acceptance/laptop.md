@@ -196,7 +196,12 @@ Two-axis review: #22/#27 have no material spec or hard standards findings;
 suggestions remain separate from acceptance criteria. Watch #32 review corrections
 and remaining physical evidence are recorded in the watch register.
 
-### #34/#35 — watch controls and configuration exchange
+### #34/#35 — watch controls and historical configuration exchange
+
+The configuration-exchange portion below is historical: its gates and test
+commands were superseded by #40 on 2026-10-09. Retained transfer evidence proves
+only the former scope. Watch control acceptance retains its separate provenance.
+Current checks are recorded under [local configuration](local-configuration.md).
 
 The watch implements one-tap presets and bounded horn requests; its offline
 control traces match the laptop application. Python owns the Nordic UART client;
@@ -227,6 +232,20 @@ Review regressions preserve the sole validated backup during subsequent saves
 after recovery, and bind staging to the exact freshly read watch byte digest
 when Python/Espruino numeric JSON formatting differs. These establish software
 behavior, not physical flash atomicity or real BLE reliability.
+
+### #40 — independent local configuration
+
+The laptop panel, watch-sized Settings and production-watch Settings offer no
+configuration synchronization/transfer or conflict reconciliation. The laptop
+rejects former transfer/Nordic actions; the watch no longer loads or bundles its
+configuration-exchange endpoint. Existing schema-1 presets and alert preferences
+retain their formats and local save/recovery paths. Local backup/import/restore,
+recording/replay, direct wheel sessions and staged installation/recovery remain.
+See [expected/observed results and reproduction](local-configuration.md).
+
+The check entry point replaces transfer suites and the browser transfer flow with
+local-configuration checks and the revised complete browser journey. Historical
+transfer artifacts are preserved unchanged and are not rerun as current gates.
 
 ### Remaining laptop acceptance
 

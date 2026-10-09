@@ -1,0 +1,26 @@
+{
+  "issue": 40,
+  "provenance": "Node VM executes production watch main/app/hardware/Storage/boot; fake pins/radio/native drivers/clock; preexisting schema-1 watch configuration",
+  "expected": "no transfer in Settings or stale actions/UART endpoint; independent local presets and alert edits persist across restart and recover interrupted active save; independent recovery console remains available",
+  "observed": {
+    "settings_and_former_touch": "passed",
+    "stale_actions": "rejected",
+    "configuration_endpoint": "absent",
+    "existing_revision": 23,
+    "retained_slot": "Watch local",
+    "saved_pwm_threshold": 82,
+    "restart_and_recovery": "passed",
+    "independent_recovery_uart": "available"
+  },
+  "source_sha256": {
+    "watch/main.js": "7dcae8604783a159a9f071fae0a7f69bac4e0e26885cc30a0148d9677f5868dd",
+    "watch/app.js": "3b4a79516acc2f962b1f052324e249e6ac96b7b0c2fb36bc811d4a298f800eee",
+    "watch/controls.js": "6d7cb7030d490841922b64b766790844527ce853758c396554cb0522145296e3",
+    "watch/render.js": "b89ac1d2805bcf3d450ee70b2e74a6171047fc3fec4efccd27d9ca0d291d6594",
+    "watch/store.js": "bf69ae5b56a0a9cec823c579d237bd5f6675a29572ec484dc9024bf070529a39",
+    "watch/boot.js": "17bcadbe43c2c2a7b2935f1453f5a05ecb191da171f1cbbb07e6b3d7cc3b2cb7",
+    "watch/tests/local-configuration.cjs": "fa4a74db77eed0d7bdb385fd38a3a128c32c96d746dc38e8a36ee5a9b9db1d46",
+    "watch/tests/runtime.cjs": "9012c76ecc7c975bfdd5bc144b6bbe0eddcc4c59fd7f39b7b4c43310060498a3"
+  },
+  "physical_operation": "none; physical flash atomicity, radio and update deployment acceptance remain separate"
+}

@@ -4,8 +4,7 @@ exports.targets=function(state){
   function target(rect,label,action,payload){return {rect:rect,label:label,action:action,payload:payload||{}};}
   if(state.screen==='settings')return [
     target([12,26,228,52],state.transport&&(state.transport.active||state.transport.connected)?'Disconnect wheel':'Connect wheel','transport_toggle'),
-    target([12,60,228,110],'Sleep screen','sleep'),target([12,120,228,170],'Vibration alerts','alerts_begin'),target([12,180,228,224],'Transfer configuration','transfer_begin')];
-  if(state.screen==='transfer')return [target([12,170,228,210],'Return to riding','transfer_return')];
+    target([12,60,228,110],'Sleep screen','sleep'),target([12,120,228,170],'Vibration alerts','alerts_begin')];
   if(state.screen==='alerts'&&state.alerts_draft){
     var name=['pwm','speed','battery','lost'][state.alert_page],setting=state.alerts_draft[name];
     var rows=[target([168,31,228,65],setting.enabled?'ON':'OFF','alerts_update',{alert:name,enabled:!setting.enabled})];

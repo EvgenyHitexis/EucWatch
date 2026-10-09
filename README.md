@@ -30,17 +30,18 @@ Run checks with `./scripts/check.sh`. Acceptance scenarios and evidence are in
 [docs/acceptance/laptop.md](docs/acceptance/laptop.md). Physical acceptance remains
 separate: no live horn, riding experiment or watch deployment is authorized here.
 
-The panel includes four saved presets, alert editing, configuration backup and
-review, reusable controlled scenarios, and explicit wheel/watch discovery.
-Saved configuration uses the XDG configuration directory. Configuration transfer
-starts with the wheel disconnected and requires explicit review and Transfer;
-uncertain activation requires saved-content readback. The simulated watch and
-each selected real watch retain separate reconciliation histories. Live wheel
+The panel includes four saved presets, alert editing, local configuration
+backup/import/restore, reusable controlled scenarios, and
+explicit wheel discovery. Saved laptop configuration uses the XDG configuration
+directory; the watch retains its own presets and alert preferences in native
+Storage. Each environment operates independently and preserves existing local
+configuration across restart and compatible updates. See the
+[local configuration checks](docs/acceptance/local-configuration.md). Live wheel
 control requires a fresh selected session; replay always remains read-only.
 
 The original P22 Espruino 2v14 application lives in [watch/](watch/).
 Its 240×240 monochrome interface, bounded control and alert behavior, native
-Storage adapter and Nordic UART endpoint are exercised offline. Follow
+Storage adapter and independent recovery UART are exercised offline. Follow
 [installation preparation](docs/acceptance/installation.md) to build and rehearse
 a local versioned bundle; deployment requires later acceptance and authorization.
 For real Chrome flows using fake transports, run

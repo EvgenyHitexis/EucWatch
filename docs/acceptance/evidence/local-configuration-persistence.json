@@ -1,0 +1,20 @@
+{
+  "issue": 40,
+  "provenance": "aiohttp public API / actual Application and FileStore / temporary files / synthetic clock and wheel",
+  "expected": "Existing schema-1 local slots/preferences need no re-entry; local edits survive restart; interrupted restore and corrupt active content recover last-known-good; retired reconciliation files are ignored",
+  "observed": {
+    "existing_revision": 17,
+    "retained_slot": "Laptop local",
+    "saved_pwm_threshold": 72,
+    "restart_and_recovery": "passed",
+    "local_export_review_cancel": "passed",
+    "historical_files_unchanged": true
+  },
+  "source_sha256": {
+    "laptop/eucwatch/application.py": "12ad79fc5091c76bc45fe973d86fdc07d595a9b70d6c24b49ec5ccd2de326144",
+    "laptop/eucwatch/server.py": "e078a419e389be6b63a8eab9adf333f79c61337618d8f601bf9a090f0cf92ebc",
+    "laptop/eucwatch/persistence.py": "8d9ec9491695a32c93382a3ef518eb3b9aad632112f00abb0a8611dc940778ec",
+    "tests/test_local_configuration.py": "250a99f49a97d92770172e74ddadcd7f7f6748d6679259e12e5d612ca2785bbf"
+  },
+  "physical_operation": "none"
+}

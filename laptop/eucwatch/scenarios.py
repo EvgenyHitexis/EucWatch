@@ -133,8 +133,6 @@ class ScenarioRunner:
         self.error: str | None = None
 
     def start(self, application: Application) -> None:
-        if application.view()["transfer"]["active"]:
-            raise ValueError("Return from configuration transfer before starting a scenario")
         application.action("stop")
         application.action("simulator_configure", **self.definition["simulator"])
         state = application.action("simulator_start", controlled=True)

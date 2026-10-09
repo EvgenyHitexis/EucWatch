@@ -30,17 +30,7 @@ exports.draw = function (g, state) {
   } else if (state.screen === 'settings') {
     text('SETTINGS',120,10,15);
     controls();
-    text(state.horn_feedback?state.horn_feedback.message:state.validation_error?'Fresh stopped telemetry required':state.persistence_error?'Configuration needs review':'Swipe right to return',120,228,9);
-  }else if(state.screen==='transfer'){
-    text('CONFIGURATION TRANSFER',120,9,15);
-    text('Wheel disconnected for laptop BLE',120,36,11);
-    text('Wheel commands unavailable',120,53,11);
-    var transfer=state.transfer||{};
-    text(transfer.phase||'Preparing transfer',120,84,13);
-    text('Staged bytes: '+(transfer.received||0),120,108,12);
-    if(transfer.error)text(String(transfer.error).slice(0,36),120,134,10);
-    else text('Review and Transfer on laptop',120,134,11);
-    controls();if(state.horn_feedback)text(state.horn_feedback.message,120,227,9);
+    text(state.horn_feedback?state.horn_feedback.message:state.validation_error?state.validation_error:state.persistence_error?'Configuration needs review':'Swipe right to return',120,228,9);
   }else if(state.screen==='alerts'){
     var name=['pwm','speed','battery','lost'][state.alert_page];
     text('VIBRATION ALERTS '+(state.alert_page+1)+'/4',120,9,14);

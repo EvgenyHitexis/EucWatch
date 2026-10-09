@@ -1,5 +1,15 @@
 # Watch configuration transfer — offline evidence
 
+> Historical record — configuration synchronization/transfer and its review/conflict
+> gates (#28/#29/#35) were superseded on 2026-10-09 by
+> [the resolved owner correction](https://github.com/EvgenyHitexis/EucWatch/issues/39#issuecomment-6082478274)
+> and [issue #40](https://github.com/EvgenyHitexis/EucWatch/issues/40).
+> The workflow, endpoint and referenced transfer test commands have been removed.
+> Retained evidence below preserves its original provenance and applies only to
+> the previous scope; it is not acceptance of the revised product. Use
+> [local configuration checks](local-configuration.md) for the replacement gates.
+
+
 This is implementation evidence for [#35](https://github.com/EvgenyHitexis/EucWatch/issues/35), under the accepted [#17 specification](https://github.com/EvgenyHitexis/EucWatch/issues/17). It does not establish real watch BLE, flash persistence, memory fit, installation or riding behavior. No hardware operations or deployment were performed.
 
 From the repository root, run:

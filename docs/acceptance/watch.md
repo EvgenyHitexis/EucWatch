@@ -79,8 +79,9 @@ motor onset. The ordinary 50 ms behavior tick evaluates independently of
 rendering; raw frames also evaluate immediately. Missed pattern phases are
 discarded after a long clock gap. Save stages/read-verifies complete version1
 configuration and writes a validated old/default backup before active
-replacement. This is a usable persistence foundation; #35 still owns transfer,
-revision reconciliation and uncertain commit acknowledgement behavior.
+replacement. The same local persistence format and recovery adapter remain in
+use after #40 removed configuration exchange; see
+[local configuration checks](local-configuration.md).
 
 Production sources use ES5-compatible syntax and Storage module names `sw-*`.
 The eventual installation bundle must rewrite those module references to its
@@ -97,6 +98,7 @@ touch origin/rotation, full wake button cycles, charger/ADC indication, and a
 10-minute stationary live session with loss/recovery. Owner review must cover
 readability indoors/daylight and physical controls. Alert software is
 implemented; physical vibration and owner pattern recognition remain pending.
-Presets/horn and configuration transfer retain subsequent implementation and
-physical checks. No firmware replacement, riding experiment, deployment, radio scan,
+Preset/horn software traces are recorded in [watch controls](watch-controls.md);
+their physical checks remain separate. Configuration-transfer gates were
+superseded by #40; their retained artifacts describe the former scope only. No firmware replacement, riding experiment, deployment, radio scan,
 physical connection or horn operation was performed for this evidence.

@@ -1,0 +1,34 @@
+{
+  "issue": 40,
+  "provenance": "aiohttp public API / actual Application and FileStore / temporary files / synthetic clock and wheel",
+  "expected": "Every former transfer and Nordic action is rejected without replacing local content or ending the wheel session",
+  "observed": {
+    "rejected_actions": [
+      "transfer_begin",
+      "transfer_preview",
+      "transfer_choose",
+      "transfer_send",
+      "transfer_reconcile",
+      "transfer_cancel",
+      "transfer_return",
+      "transfer_activate",
+      "transfer_exit",
+      "transfer_scenario",
+      "transfer_watch_edit",
+      "nordic_discover",
+      "nordic_select",
+      "nordic_disconnect"
+    ],
+    "status": 400,
+    "configuration_unchanged": true,
+    "wheel_session_unchanged": true,
+    "transfer_and_nordic_state_absent": true
+  },
+  "source_sha256": {
+    "laptop/eucwatch/application.py": "12ad79fc5091c76bc45fe973d86fdc07d595a9b70d6c24b49ec5ccd2de326144",
+    "laptop/eucwatch/server.py": "e078a419e389be6b63a8eab9adf333f79c61337618d8f601bf9a090f0cf92ebc",
+    "laptop/eucwatch/persistence.py": "8d9ec9491695a32c93382a3ef518eb3b9aad632112f00abb0a8611dc940778ec",
+    "tests/test_local_configuration.py": "250a99f49a97d92770172e74ddadcd7f7f6748d6679259e12e5d612ca2785bbf"
+  },
+  "physical_operation": "none"
+}

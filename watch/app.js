@@ -11,7 +11,6 @@ exports.create = function (options) {
   var lastView = '', feedback = '', paintCount = 0, receivedAt = null;
   var paintDuration=0,maxPaintDuration=0,visibleReceipt=null,maxReceiptToPaint=0;
   var core, devices=[], recoveryCalled=false;
-  var transferActive=false;
   var config=configuration.defaults(),draft=null,persistenceError=null,validationError=null,alertPage=0,thresholdInput=null;
   if(options.store){try{var saved=options.store.load();if(saved!==null&&saved!==undefined)config=configuration.validate(saved);persistenceError=options.store.warning||null;}catch(error){persistenceError='Saved configuration requires review: '+String(error);}}
   var alerts=require('sw-alerts').create({output:options.vibration_output,settings:config.alerts});
@@ -31,7 +30,7 @@ exports.create = function (options) {
     if(horn.view())feedback=horn.view().message;
   }
   function requestHorn(){
-    var reason=recovery?'recovery mode':transferActive?'configuration transfer':control.pending()?'preset applying':!awake||!fresh()?'connection unavailable':!options.command_output?'control transport unavailable':null;
+    var reason=recovery?'recovery mode':control.pending()?'preset applying':!awake||!fresh()?'connection unavailable':!options.command_output?'control transport unavailable':null;
     if(reason)horn.show('Horn unavailable: '+reason,clock.now(),session);else horn.request(clock.now(),session);
     feedback=horn.view().message;
   }
@@ -44,7 +43,7 @@ exports.create = function (options) {
   function view() {
     var live = fresh(), values = telemetry,vibration=alerts.view(),controlState=control.view();
     vibration.output=options.vibration_status?options.vibration_status():null;
-    return { mode: transferActive?'transfer':'watch', transfer:options.transferStatus?options.transferStatus():{active:transferActive},session: session, elapsed_s: clock.now(), connected: connected,
+    return { mode: 'watch',session: session, elapsed_s: clock.now(), connected: connected,
       fresh: live, awake: awake, screen: screen, recovery: recovery,
       established_connection: established, button: { down: buttonDown, wake_cycle: wakeCycle }, feedback: feedback,
       telemetry: values, watch_battery: watchBattery,
@@ -76,14 +75,14 @@ exports.create = function (options) {
     commandEligible:function(row){
       if(!row||typeof row!=='object')return false;
       updateControl();
-      if(transferActive||!fresh()||recovery||row.session!==session)return false;
+      if(!fresh()||recovery||row.session!==session)return false;
       if(row.kind==='horn')return awake&&!control.pending()&&horn.eligible(row.request,session)&&row.packet_hex===require('sw-horn').packet;
       if(row.kind!=='preset')return false;
       var attempt=control.view().attempt;if(!attempt||!attempt.pending||attempt.status!=='submitting'||row.attempt!==attempt.id||row.index!==attempt.awaiting)return false;
       var name=Object.keys(attempt.fields)[row.index];return row.field===name&&row.value===attempt.fields[name].requested&&row.packet_hex===require('sw-preset-control').hex(require('sw-preset-control').command(name,row.value));
     },
     receive: function (token, raw) {
-      if (transferActive||token !== session || !connected) return;
+      if (token !== session || !connected) return;
       updateControl();
       updateAlerts();
       var previous = parser.status().rejected_frames;
@@ -97,11 +96,11 @@ exports.create = function (options) {
       core.tick();
     },
     action: function (name, payload) {
+      if(typeof name==='string'&&/^(transfer_|nordic_)/.test(name))throw new Error('Unknown action: '+name);
       payload = payload || {};
       core.tick();
-      if(transferActive&&['session_start','swipe','sleep','open_connection','preset_apply','alerts_begin','alerts_update','alerts_save','alerts_cancel','alerts_page','alerts_adjust','threshold_begin','threshold_key','threshold_done','threshold_cancel','alert_test'].indexOf(name)>=0)throw new Error('Return from configuration transfer before using riding controls');
       if (name === 'session_start') resetSession();
-      else if (name === 'connected' && payload.session === session&&!transferActive) { connected = true; established = true; awake = true; }
+      else if (name === 'connected' && payload.session === session) { connected = true; established = true; awake = true; }
       else if (name === 'disconnect' && payload.session === session) resetSession();
       else if (name === 'swipe' && awake && !recovery) {
         if (payload.direction === 'left' && screen === 'dashboard') screen = 'presets';
@@ -129,18 +128,11 @@ exports.create = function (options) {
       }else if(name==='horn_result'){
         if(typeof payload.success!=='boolean'||typeof payload.request!=='number'||typeof payload.session!=='number')throw new Error('Explicit horn transport result required');
         horn.result(payload,clock.now());
-      }else if(name==='transfer_begin'){
-        var transferReason=transferActive||!awake||screen!=='settings'||recovery?'Open Transfer configuration from awake Settings':(established||connected)&&(!fresh()||!telemetry||telemetry.speed_kmh!==0)?'Fresh stopped telemetry is required for transfer':null;
-        if(transferReason){validationError=transferReason;feedback=transferReason;throw new Error(transferReason);}
-        transferActive=true;resetSession();control.invalidate(clock.now(),'Configuration transfer');draft=null;thresholdInput=null;validationError=null;awake=true;screen='transfer';feedback='Configuration transfer · wheel disconnected';
-      }else if(name==='transfer_return'){
-        if(!transferActive)throw new Error('Configuration transfer is inactive');
-        transferActive=false;resetSession();control.invalidate(clock.now(),'Configuration transfer ended');awake=true;screen='dashboard';feedback='Riding mode · fresh wheel telemetry required';
       }else if(name==='configuration_reload'){
         if(!options.store)throw new Error('Saved configuration adapter unavailable');
         var loaded=configuration.validate(options.store.load()||configuration.defaults());
         if(!configuration.equal(loaded,config))control.invalidate(clock.now(),'Saved configuration changed');
-        config=loaded;draft=null;thresholdInput=null;screen=transferActive?'transfer':'dashboard';alerts.configure(config.alerts,clock.now());persistenceError=options.store.warning||null;
+        config=loaded;draft=null;thresholdInput=null;screen='dashboard';alerts.configure(config.alerts,clock.now());persistenceError=options.store.warning||null;
       }
       else if(name==='alert_test')alerts.test(payload.alert,clock.now());
       else if(name==='alerts_begin'){
@@ -194,10 +186,10 @@ exports.create = function (options) {
       updateAlerts();
       if (now - lastBattery >= 30) { watchBattery = battery(); lastBattery = now; }
       if (buttonDown && buttonStarted !== null && now - buttonStarted >= 30) { recovery = true; awake = true; feedback = 'Recovery mode'; if (options.recover&&!recoveryCalled) {recoveryCalled=true;options.recover();} }
-      if (!established && !buttonDown && !recovery && !draft && !transferActive && now - lastInteraction >= 30) awake = false;
+      if (!established && !buttonDown && !recovery && !draft && now - lastInteraction >= 30) awake = false;
       if (options.present && now - lastPaint >= 0.2 - 0.000000001) {
         state = view();
-        signature = JSON.stringify([state.awake,state.screen,state.recovery,state.dashboard,state.feedback,state.devices,state.transport,state.transfer,state.alerts_draft,state.alert_page,state.threshold_input,state.validation_error,state.persistence_error,state.presets,state.preset_attempt,state.confirmed_preset,state.actual_settings,state.horn_feedback]);
+        signature = JSON.stringify([state.awake,state.screen,state.recovery,state.dashboard,state.feedback,state.devices,state.transport,state.alerts_draft,state.alert_page,state.threshold_input,state.validation_error,state.persistence_error,state.presets,state.preset_attempt,state.confirmed_preset,state.actual_settings,state.horn_feedback]);
         if (signature !== lastView) {
           lastPaint = now; lastView = signature; paintCount++;
           options.present(state);paintDuration=Math.max(0,clock.now()-now);maxPaintDuration=Math.max(maxPaintDuration,paintDuration);

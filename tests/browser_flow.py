@@ -3,6 +3,7 @@ import asyncio
 import base64
 from contextlib import suppress
 import json
+import hashlib
 from pathlib import Path
 import socket
 import subprocess
@@ -442,92 +443,26 @@ async def run():
                             'expected':'saved-only export, preview noactivation, Cancelpreserves, explicitrestore, unknownversionrefused, no commands',
                             'observed':'passed','migration':'Only existing schema1; compatible updates preserve meaning; unknown versions require review'}
                         (output/'backup.json').write_text(json.dumps(backup_result,indent=2)+'\n')
-                        await scenario(25,138,45)
-                        await cdp.wait("document.querySelector('canvas').dataset.fresh==='true'",session)
                         await cdp.pointer('#watch',(120,10),(120,110),session)
                         await cdp.wait("document.querySelector('canvas').dataset.screen==='settings'",session)
+                        assert await cdp.evaluate("!document.querySelector('[id^=transfer-],[id^=nordic-]')",session)
+                        assert await cdp.evaluate("!/transfer|synchron|reconcil|conflict/i.test(document.querySelector('.panel').innerText + document.querySelector('canvas').getAttribute('aria-label'))",session)
+                        before_removed_touch=behavior.view()
                         await cdp.pointer('#watch',(120,202),(120,202),session)
-                        await cdp.wait("document.querySelector('#message').textContent.includes('stopped')",session)
-                        assert behavior.view()['mode']=='simulator'
-                        await scenario(0,138,45)
-                        await cdp.pointer('#watch',(120,202),(120,202),session)
-                        await cdp.wait("document.querySelector('canvas').dataset.screen==='transfer'",session)
-                        assert not behavior.view()['connected']
-                        commands_before_transfer=len(behavior.view()['command_events'])
-                        await cdp.wait("document.querySelector('#transfer-choices select')",session)
-                        while behavior.view()['transfer']['preview']['candidate'] is None:
-                            await cdp.wait("!document.querySelector('#transfer-review').disabled",session)
-                            await cdp.evaluate("(() => {const choice=[...document.querySelectorAll('#transfer-choices select')].find(s=>!s.value); choice.value='laptop'; choice.dispatchEvent(new Event('change'));})()",session)
-                            await cdp.wait("!document.querySelector('#transfer-review').disabled",session)
-                        await cdp.wait("!document.querySelector('#transfer-send').disabled",session)
-                        before_cancel=behavior.view()['transfer']['watch_config']
-                        await cdp.pointer('#watch',(64,208),(64,208),session)
-                        await cdp.wait("document.querySelector('#transfer-status').textContent.includes('cancelled')",session)
-                        assert behavior.view()['transfer']['watch_config']==before_cancel
-                        await cdp.wait("!document.querySelector('#transfer-review').disabled",session)
-                        await cdp.evaluate("document.querySelector('#transfer-review').click()",session)
-                        await cdp.wait("document.querySelector('#transfer-choices select')",session)
-                        while behavior.view()['transfer']['preview']['candidate'] is None:
-                            await cdp.wait("!document.querySelector('#transfer-review').disabled",session)
-                            await cdp.evaluate("(() => {const choice=[...document.querySelectorAll('#transfer-choices select')].find(s=>!s.value); choice.value='laptop'; choice.dispatchEvent(new Event('change'));})()",session)
-                            await cdp.wait("!document.querySelector('#transfer-review').disabled",session)
-                        await cdp.wait("!document.querySelector('#transfer-send').disabled",session)
-                        await cdp.pointer('#watch',(120,166),(120,166),session)
-                        await cdp.wait("document.querySelector('#transfer-status').textContent.includes('success')",session)
-                        assert behavior.view()['screen']=='dashboard' and not behavior.view()['fresh']
-                        assert behavior.view()['transfer']['watch_config']==behavior.view()['config']
-                        assert len(behavior.view()['command_events'])==commands_before_transfer
-                        await cdp.wait("!document.querySelector('#emit').disabled",session)
-                        await cdp.evaluate("document.querySelector('#emit').click()",session)
-                        await cdp.wait("document.querySelector('canvas').dataset.fresh==='true'",session)
-                        transfer_result={'issue':28,'provenance':'actual Canvas entry / HTML saved preview, choices, Cancel and Transfer / aiohttp / encoded simulated protocol',
-                            'expected':'moving entry refused; stopped entry disconnects; Cancel preserves; verified saved copies; return requires fresh frame; no wheel commands',
-                            'observed':'passed','endpoint':'Simulated watch','physical_transfer':'not attempted'}
-                        (output/'transfer.json').write_text(json.dumps(transfer_result,indent=2)+'\n')
-                        await cdp.pointer('#watch',(120,10),(120,110),session)
                         await cdp.wait("document.querySelector('canvas').dataset.screen==='settings'",session)
-                        await cdp.pointer('#watch',(120,202),(120,202),session)
-                        await cdp.wait("document.querySelector('canvas').dataset.screen==='transfer'",session)
-                        await cdp.wait("!document.querySelector('#transfer-watch-editor button').disabled",session)
-                        await cdp.evaluate("document.querySelector('#transfer-watch-enabled').checked=true;document.querySelector('#transfer-watch-threshold').value='75';document.querySelector('#transfer-watch-editor').requestSubmit()",session)
-                        await cdp.wait("!document.querySelector('#alerts-edit').disabled",session)
-                        await cdp.evaluate("document.querySelector('#alerts-edit').click()",session)
-                        await cdp.wait("!document.querySelector('#alert-pwm-threshold').disabled",session)
-                        await cdp.evaluate("document.querySelector('#alert-pwm-threshold').value='80';document.querySelector('#alert-pwm-threshold').dispatchEvent(new Event('change'))",session)
-                        await cdp.wait("!document.querySelector('#alerts-save').disabled",session)
-                        await cdp.evaluate("document.querySelector('#alerts-editor').requestSubmit()",session)
-                        await cdp.wait("document.querySelector('#alerts-status').textContent.includes('Saved')",session)
-                        await cdp.wait("!document.querySelector('#transfer-send').disabled",session)
-                        await cdp.pointer('#watch',(120,166),(120,166),session)
-                        await cdp.wait("document.querySelector('#transfer-error').textContent.includes('changed')",session)
-                        await cdp.wait("document.querySelector('#transfer-choices select[data-path=\"alerts.pwm.threshold\"]')",session)
-                        await cdp.evaluate("const choice=document.querySelector('#transfer-choices select');choice.value='watch';choice.dispatchEvent(new Event('change'))",session)
-                        await cdp.wait("!document.querySelector('#transfer-send').disabled",session)
-                        await cdp.pointer('#watch',(120,166),(120,166),session)
-                        await cdp.wait("document.querySelector('#transfer-status').textContent.includes('success')",session)
-                        assert behavior.view()['config']['alerts']['pwm']['threshold']==75
-                        await cdp.wait("!document.querySelector('#emit').disabled",session)
-                        await cdp.evaluate("document.querySelector('#emit').click()",session)
-                        await cdp.wait("document.querySelector('canvas').dataset.fresh==='true'",session)
-                        await cdp.pointer('#watch',(120,10),(120,110),session)
-                        await cdp.wait("document.querySelector('canvas').dataset.screen==='settings'",session)
-                        await cdp.pointer('#watch',(120,202),(120,202),session)
-                        await cdp.wait("!document.querySelector('#transfer-scenario button').disabled",session)
-                        await cdp.evaluate("document.querySelector('#transfer-commit').value='lost_ack';document.querySelector('#transfer-scenario').requestSubmit()",session)
-                        await cdp.wait("!document.querySelector('#transfer-send').disabled",session)
-                        await cdp.pointer('#watch',(120,166),(120,166),session)
-                        await cdp.wait("document.querySelector('#transfer-status').textContent.includes('unknown')",session)
-                        assert behavior.view()['transfer']['active']
-                        assert await cdp.evaluate("document.querySelector('#transfer-send').disabled",session)
-                        await cdp.wait("!document.querySelector('#transfer-reconcile').disabled",session)
-                        await cdp.evaluate("document.querySelector('#transfer-reconcile').click()",session)
-                        await cdp.wait("document.querySelector('#transfer-status').textContent.includes('success')",session)
-                        assert behavior.view()['transfer']['watch_config']==behavior.view()['config']
-                        assert not behavior.view()['fresh']
-                        reconciliation_result={'issue':29,'provenance':'actual Canvas transfer / HTML local alert edits, simulated watch edits, stale preview, conflict choice, lost-ack injection and readback / aiohttp',
-                            'expected':'stale preview refreshes without overwriting edits; shared-base samefieldconflict choice preserved; unknown blocksretry; explicit readback verifies success; freshrequired',
-                            'observed':'passed','physical':'not attempted'}
-                        (output/'reconciliation.json').write_text(json.dumps(reconciliation_result,indent=2)+'\n')
+                        assert behavior.view()['config']==before_removed_touch['config']
+                        assert behavior.view()['session']==before_removed_touch['session']
+                        assert behavior.view()['connected']==before_removed_touch['connected']
+                        (output/'local-configuration-browser.json').write_text(json.dumps({
+                            'issue':40,
+                            'provenance':'built Canvas and HTML panel / Chrome CDP / aiohttp / simulated wheel',
+                            'expected':'no transfer, synchronization or conflict entries; former touch leaves Settings, configuration and wheel session unchanged; local backup/import/restore remains usable',
+                            'observed':'passed; saved Backup slot and preferences preserved; backup export, review, Cancel, restore and invalid-import refusal exercised earlier in this flow',
+                            'source_sha256':{source:hashlib.sha256(Path(source).read_bytes()).hexdigest() for source in ['frontend/src/main.ts','frontend/src/backup.ts','laptop/eucwatch/server.py','tests/browser_flow.py']},
+                            'physical_operation':'none'
+                        },indent=2)+'\n')
+                        await cdp.pointer('#watch',(20,120),(215,120),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard'",session)
                         await cdp.wait("!document.querySelector('#scenario-save').disabled",session)
                         await cdp.evaluate("document.querySelector('#scenario-name').value='Reproducible dashboard';document.querySelector('#scenario-save').click()",session)
                         await cdp.wait("document.querySelector('#scenario-status').textContent.includes('saved locally')",session)

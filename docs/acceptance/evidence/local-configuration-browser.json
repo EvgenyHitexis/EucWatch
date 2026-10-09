@@ -1,0 +1,13 @@
+{
+  "issue": 40,
+  "provenance": "built Canvas and HTML panel / Chrome CDP / aiohttp / simulated wheel",
+  "expected": "no transfer, synchronization or conflict entries; former touch leaves Settings, configuration and wheel session unchanged; local backup/import/restore remains usable",
+  "observed": "passed; saved Backup slot and preferences preserved; backup export, review, Cancel, restore and invalid-import refusal exercised earlier in this flow",
+  "source_sha256": {
+    "frontend/src/main.ts": "11a49abd6e48432f7b9abb0e4c378e60635322f106d21494b9f8e30198431169",
+    "frontend/src/backup.ts": "fa9c7acce752f61b6d525f1b3ee9f0d797e4ec757f200c42d175ea087e342175",
+    "laptop/eucwatch/server.py": "e078a419e389be6b63a8eab9adf333f79c61337618d8f601bf9a090f0cf92ebc",
+    "tests/browser_flow.py": "d03fa2be9fca0cf34344c22c693d14cfb83c03d59fb04766a7af123cd0684866"
+  },
+  "physical_operation": "none"
+}
