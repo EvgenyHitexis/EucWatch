@@ -7,13 +7,13 @@ env.context.Bluetooth={on:(name,handler)=>serialHandlers[name]=handler,setConsol
 env.context.NRF.setServices=(value,options)=>services.push(options);
 const saved=env.context.require('sw-configuration').defaults();
 saved.revision=23;
-saved.presets[0]={id:1,name:'Watch local',configured:true,pedal_sensitivity:60,dynamic_assist:50,pedal_dip_compensation:25};
+saved.presets[0]={id:1,name:'Watch local',configured:true,pedal_sensitivity:60,dynamic_assist:50,pedal_dip_compensation:25,dip_included:true};
 saved.alerts.pwm={enabled:true,threshold:80};
 env.context.storage['sw-config.json']=JSON.stringify(saved);
 env.context.storage['sw-config-stage.json']='{"partial historical stage"';
 const running=env.start();
 env.advance(200);
-assert.equal(JSON.stringify(running.core.view().config),JSON.stringify(saved),'existing watch schema-1 content needs no re-entry');
+assert.equal(JSON.stringify(running.core.view().config),JSON.stringify(saved),'existing watch schema-2 content needs no re-entry');
 env.touch(0,120,10);env.touch(1,120,90);
 assert.equal(running.core.view().screen,'settings');
 env.touch(5,120,202);
@@ -59,7 +59,7 @@ const root=path.resolve(__dirname,'../..');
 const sources=['watch/main.js','watch/app.js','watch/controls.js','watch/render.js','watch/store.js','watch/boot.js','watch/tests/local-configuration.cjs','watch/tests/runtime.cjs'];
 fs.writeFileSync(path.join(root,'watch/evidence/local-configuration.json'),JSON.stringify({
   issue:40,
-  provenance:'Node VM executes production watch main/app/hardware/Storage/boot; fake pins/radio/native drivers/clock; preexisting schema-1 watch configuration',
+  provenance:'Node VM executes production watch main/app/hardware/Storage/boot; fake pins/radio/native drivers/clock; preexisting schema-2 watch configuration',
   expected:'no transfer in Settings or stale actions/UART endpoint; independent local presets and alert edits persist across restart and recover interrupted active save; independent recovery console remains available',
   observed:{settings_and_former_touch:'passed',stale_actions:'rejected',configuration_endpoint:'absent',existing_revision:23,retained_slot:'Watch local',saved_pwm_threshold:82,restart_and_recovery:'passed',independent_recovery_uart:'available'},
   source_sha256:Object.fromEntries(sources.map(source=>[source,crypto.createHash('sha256').update(fs.readFileSync(path.join(root,source))).digest('hex')])),

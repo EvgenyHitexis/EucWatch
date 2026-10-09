@@ -20,7 +20,7 @@ exports.create=function(options){
     options.send({kind:'preset',attempt:attempt.id,session:attempt.session,index:attempt.awaiting,field:name,value:value,packet_hex:exports.hex(exports.command(name,value)),at_s:now});
   }
   api={pending:pending,invalidate:function(now,reason){confirmed=null;finish(now,reason);},start:function(preset,revision,session,now,kind){
-      var selected={};fields.forEach(function(name){if(Object.prototype.hasOwnProperty.call(preset,name))selected[name]={requested:preset[name],actual:null,state:'unknown',submitted_s:null,matches:0};});
+      var selected={};fields.forEach(function(name){if(Object.prototype.hasOwnProperty.call(preset,name)&&(name!=='pedal_dip_compensation'||preset.dip_included===true||kind==='editor'))selected[name]={requested:preset[name],actual:null,state:'unknown',submitted_s:null,matches:0};});
       confirmed=null;attempt={id:nextId++,kind:kind||'preset',slot:preset.id,name:preset.name,revision:revision,session:session,status:'submitting',pending:true,requested_s:now,submitted_s:null,finished_s:null,reason:'',fields:selected,readbacks:[],matching_frames:0,next_index:0,awaiting:null};dispatch(now);
     },result:function(row,now){
       if(!pending()||row.attempt!==attempt.id||row.session!==attempt.session||row.index!==attempt.awaiting)return;

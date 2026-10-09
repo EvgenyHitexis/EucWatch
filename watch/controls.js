@@ -25,7 +25,7 @@ exports.targets=function(state){
     if(state.preset_attempt&&state.preset_attempt.pending)return [back];
     var field=require('sw-preset-editor').fields[state.preset_page],value=state.preset_draft[field];
     var edit=[target([12,2,62,30],'<','preset_page',{page:(state.preset_page+3)%4}),target([178,2,228,30],'>','preset_page',{page:(state.preset_page+1)%4}),target([12,65,228,103],value===undefined?'Omitted':String(value),'preset_input_begin')];
-    if(field==='pedal_dip_compensation')edit.push(target([12,111,228,141],value===undefined?'Include dip (local)':'Omit dip (local)','preset_include_dip',{included:value===undefined}));
+    if(field==='pedal_dip_compensation')edit.push(target([12,111,228,141],!state.preset_draft.dip_included?'Include dip (local)':'Omit dip (local)','preset_include_dip',{included:!state.preset_draft.dip_included}));
     return edit.concat([back,target([82,207,180,237],state.persistence_error?'Retry save':'Save slot','preset_save'),target([186,207,228,237],'Clear','preset_clear_begin',{slot:state.preset_draft.id})]);
   }
   if(state.screen==='alerts'&&state.alerts_draft){

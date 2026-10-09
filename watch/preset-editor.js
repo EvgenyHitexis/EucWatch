@@ -21,15 +21,15 @@ exports.create=function(){
       values=configuration.copy(settings);
       if(request.status!=='waiting'||exports.fields.slice(1).some(function(field){return settings[field]===null||settings[field]===undefined;}))return;
       var saved=config.presets[request.slot-1];
-      draft={id:saved.id,name:saved.name,configured:true,pedal_sensitivity:settings.pedal_sensitivity,dynamic_assist:settings.dynamic_assist};
-      if(Object.prototype.hasOwnProperty.call(saved,'pedal_dip_compensation'))draft.pedal_dip_compensation=settings.pedal_dip_compensation;
+      draft={id:saved.id,name:saved.name,configured:true,pedal_sensitivity:settings.pedal_sensitivity,dynamic_assist:settings.dynamic_assist,pedal_dip_compensation:saved.pedal_dip_compensation,dip_included:saved.dip_included};
+      if(saved.dip_included)draft.pedal_dip_compensation=settings.pedal_dip_compensation;
       request.status='ready';request.seeded_s=now;
     },
     update:function(config,changes){
       if(!draft)throw new Error('Wait for fresh settings before editing');
       var names=Object.keys(changes),field=names[0],proposed=configuration.copy(draft);
-      if(names.length!==1||exports.fields.indexOf(field)<0)throw new Error('Complete one field adjustment at a time');
-      if(field==='pedal_dip_compensation'&&changes[field]===null)delete proposed[field];else proposed[field]=changes[field];
+      if(names.length!==1||exports.fields.concat(['dip_included']).indexOf(field)<0)throw new Error('Complete one field adjustment at a time');
+      if(field==='pedal_dip_compensation'&&changes[field]===null)proposed.dip_included=false;else {proposed[field]=changes[field];if(field==='pedal_dip_compensation')proposed.dip_included=true;}
       var configNext=exports.replacement(config,proposed);draft=proposed;return configNext;
     },
     view:function(){return {request:configuration.copy(request),draft:configuration.copy(draft),values:configuration.copy(values)};}

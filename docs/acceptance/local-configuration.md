@@ -106,3 +106,18 @@ save, invalid/unknown/oversized refusal, included zero/nonzero packets, existing
 backup/revision/control checks, built UI flow and typechecking. Editor transaction
 and gesture changes belong to #46/#48. Offline results do not establish owner,
 wheel or watch hardware acceptance.
+
+## Matching watch configuration — slice #45
+
+The production watch uses the same schema-2 contract and literal migration inputs.
+`watch/evidence/local-presets/defaults.json` retains native Storage effects, Graphics
+operations, exact GATT chunks and source hashes from `node watch/tests/preset-defaults.cjs`.
+Fresh and mixed/all-empty legacy startup, repeated startup, saved alert/custom
+preservation, legacy-only backup, staging refusal, partial activation, invalid,
+unknown and oversized input all passed. Both native preset lists use saved names;
+each default applies through native touch with dip 83 remaining unchanged.
+
+Focused regressions passed: `node watch/tests/control.cjs`,
+`node watch/tests/runtime.cjs`, `node watch/tests/alerts-runtime.cjs`, and
+`node watch/tests/local-configuration.cjs`. Syntax checks passed for changed ES5
+modules. Physical flash guarantees, memory fit and hardware acceptance are pending.

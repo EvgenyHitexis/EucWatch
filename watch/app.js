@@ -157,12 +157,11 @@ exports.create = function (options) {
         if(control.pending())throw new Error('Wait for the current wheel operation');
         var current=editor.view(),dip=null;
         if(!current.draft||typeof payload.included!=='boolean')throw new Error('Open the editor and choose dip inclusion');
-        if(payload.included){dip=current.values&&current.values.pedal_dip_compensation;if(!fresh()||dip===null||dip===undefined)throw new Error('Current dip setting unavailable');}
-        saveEditor(editor.update(config,{pedal_dip_compensation:dip}));
+        saveEditor(editor.update(config,{dip_included:payload.included}));
       }else if(name==='preset_clear'){
         if(control.pending())throw new Error('Wait for the current wheel operation');
         var clearing=config.presets[require('sw-preset-editor').slot(payload.slot)-1];
-        if(saveEditor(require('sw-preset-editor').replacement(config,{id:clearing.id,name:clearing.name,configured:false}))){leaveEditor();screen='preset_slots';}
+        if(saveEditor(require('sw-preset-editor').replacement(config,configuration.defaults().presets[clearing.id-1]))){leaveEditor();screen='preset_slots';}
       }else if(name==='preset_page'){
         if(control.pending()||!editor.view().draft||presetInput)throw new Error('Wait for the current wheel operation');
         if(typeof payload.page!=='number'||Math.floor(payload.page)!==payload.page||payload.page<0||payload.page>3)throw new Error('Invalid preset page');

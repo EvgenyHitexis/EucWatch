@@ -1,0 +1,1237 @@
+{
+  "issue": 45,
+  "provenance": "production main, native Storage, CST816, Graphics, parser and GATT; simulated pins, flash, clock and BLE; no hardware operations",
+  "results": [
+    {
+      "name": "fresh",
+      "expected": {
+        "version": 2,
+        "revision": 0,
+        "presets": [
+          {
+            "id": 1,
+            "name": "Jump",
+            "configured": true,
+            "pedal_sensitivity": 0,
+            "dynamic_assist": 0,
+            "pedal_dip_compensation": 0,
+            "dip_included": false
+          },
+          {
+            "id": 2,
+            "name": "Forest",
+            "configured": true,
+            "pedal_sensitivity": 70,
+            "dynamic_assist": 0,
+            "pedal_dip_compensation": 0,
+            "dip_included": false
+          },
+          {
+            "id": 3,
+            "name": "Road",
+            "configured": true,
+            "pedal_sensitivity": 30,
+            "dynamic_assist": 25,
+            "pedal_dip_compensation": 10,
+            "dip_included": false
+          },
+          {
+            "id": 4,
+            "name": "Drag",
+            "configured": true,
+            "pedal_sensitivity": 20,
+            "dynamic_assist": 70,
+            "pedal_dip_compensation": 5,
+            "dip_included": false
+          }
+        ],
+        "alerts": {
+          "pwm": {
+            "enabled": false,
+            "threshold": null
+          },
+          "speed": {
+            "enabled": false,
+            "threshold": null
+          },
+          "battery": {
+            "enabled": false,
+            "threshold": null
+          },
+          "lost": {
+            "enabled": true
+          }
+        }
+      },
+      "observed": {
+        "version": 2,
+        "revision": 1,
+        "presets": [
+          {
+            "id": 1,
+            "name": "Jump",
+            "configured": true,
+            "pedal_sensitivity": 0,
+            "dynamic_assist": 0,
+            "pedal_dip_compensation": 0,
+            "dip_included": false
+          },
+          {
+            "id": 2,
+            "name": "Forest",
+            "configured": true,
+            "pedal_sensitivity": 70,
+            "dynamic_assist": 0,
+            "pedal_dip_compensation": 0,
+            "dip_included": false
+          },
+          {
+            "id": 3,
+            "name": "Road",
+            "configured": true,
+            "pedal_sensitivity": 30,
+            "dynamic_assist": 25,
+            "pedal_dip_compensation": 10,
+            "dip_included": false
+          },
+          {
+            "id": 4,
+            "name": "Drag",
+            "configured": true,
+            "pedal_sensitivity": 20,
+            "dynamic_assist": 70,
+            "pedal_dip_compensation": 5,
+            "dip_included": false
+          }
+        ],
+        "alerts": {
+          "pwm": {
+            "enabled": false,
+            "threshold": 74
+          },
+          "speed": {
+            "enabled": false,
+            "threshold": null
+          },
+          "battery": {
+            "enabled": false,
+            "threshold": null
+          },
+          "lost": {
+            "enabled": true
+          }
+        }
+      },
+      "rendering": [
+        {
+          "kind": "text",
+          "value": "RIDING PRESETS",
+          "x": 120,
+          "y": 10,
+          "size": 15,
+          "align": 0
+        },
+        {
+          "kind": "rect",
+          "x1": 9,
+          "y1": 43,
+          "x2": 114,
+          "y2": 114
+        },
+        {
+          "kind": "text",
+          "value": "Jump",
+          "x": 62,
+          "y": 65,
+          "size": 14,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "Unavailable",
+          "x": 62,
+          "y": 91,
+          "size": 10,
+          "align": 0
+        },
+        {
+          "kind": "rect",
+          "x1": 124,
+          "y1": 43,
+          "x2": 229,
+          "y2": 114
+        },
+        {
+          "kind": "text",
+          "value": "Forest",
+          "x": 177,
+          "y": 65,
+          "size": 14,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "Unavailable",
+          "x": 177,
+          "y": 91,
+          "size": 10,
+          "align": 0
+        },
+        {
+          "kind": "rect",
+          "x1": 9,
+          "y1": 124,
+          "x2": 114,
+          "y2": 195
+        },
+        {
+          "kind": "text",
+          "value": "Road",
+          "x": 62,
+          "y": 146,
+          "size": 14,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "Unavailable",
+          "x": 62,
+          "y": 172,
+          "size": 10,
+          "align": 0
+        },
+        {
+          "kind": "rect",
+          "x1": 124,
+          "y1": 124,
+          "x2": 229,
+          "y2": 195
+        },
+        {
+          "kind": "text",
+          "value": "Drag",
+          "x": 177,
+          "y": 146,
+          "size": 14,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "Unavailable",
+          "x": 177,
+          "y": 172,
+          "size": 10,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "Swipe right to return",
+          "x": 120,
+          "y": 216,
+          "size": 11,
+          "align": 0
+        }
+      ],
+      "storage": [
+        {
+          "key": "sw-config-stage.json",
+          "value": "{\"version\":2,\"revision\":1,\"presets\":[{\"id\":1,\"name\":\"Jump\",\"configured\":true,\"pedal_sensitivity\":0,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":2,\"name\":\"Forest\",\"configured\":true,\"pedal_sensitivity\":70,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":3,\"name\":\"Road\",\"configured\":true,\"pedal_sensitivity\":30,\"dynamic_assist\":25,\"pedal_dip_compensation\":10,\"dip_included\":false},{\"id\":4,\"name\":\"Drag\",\"configured\":true,\"pedal_sensitivity\":20,\"dynamic_assist\":70,\"pedal_dip_compensation\":5,\"dip_included\":false}],\"alerts\":{\"pwm\":{\"enabled\":false,\"threshold\":74},\"speed\":{\"enabled\":false,\"threshold\":null},\"battery\":{\"enabled\":false,\"threshold\":null},\"lost\":{\"enabled\":true}}}",
+          "failed": false
+        },
+        {
+          "key": "sw-config-backup.json",
+          "value": "{\"version\":2,\"revision\":0,\"presets\":[{\"id\":1,\"name\":\"Jump\",\"configured\":true,\"pedal_sensitivity\":0,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":2,\"name\":\"Forest\",\"configured\":true,\"pedal_sensitivity\":70,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":3,\"name\":\"Road\",\"configured\":true,\"pedal_sensitivity\":30,\"dynamic_assist\":25,\"pedal_dip_compensation\":10,\"dip_included\":false},{\"id\":4,\"name\":\"Drag\",\"configured\":true,\"pedal_sensitivity\":20,\"dynamic_assist\":70,\"pedal_dip_compensation\":5,\"dip_included\":false}],\"alerts\":{\"pwm\":{\"enabled\":false,\"threshold\":null},\"speed\":{\"enabled\":false,\"threshold\":null},\"battery\":{\"enabled\":false,\"threshold\":null},\"lost\":{\"enabled\":true}}}",
+          "failed": false
+        },
+        {
+          "key": "sw-config.json",
+          "value": "{\"version\":2,\"revision\":1,\"presets\":[{\"id\":1,\"name\":\"Jump\",\"configured\":true,\"pedal_sensitivity\":0,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":2,\"name\":\"Forest\",\"configured\":true,\"pedal_sensitivity\":70,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":3,\"name\":\"Road\",\"configured\":true,\"pedal_sensitivity\":30,\"dynamic_assist\":25,\"pedal_dip_compensation\":10,\"dip_included\":false},{\"id\":4,\"name\":\"Drag\",\"configured\":true,\"pedal_sensitivity\":20,\"dynamic_assist\":70,\"pedal_dip_compensation\":5,\"dip_included\":false}],\"alerts\":{\"pwm\":{\"enabled\":false,\"threshold\":74},\"speed\":{\"enabled\":false,\"threshold\":null},\"battery\":{\"enabled\":false,\"threshold\":null},\"lost\":{\"enabled\":true}}}",
+          "failed": false
+        }
+      ]
+    },
+    {
+      "name": "mixed",
+      "expected": {
+        "version": 2,
+        "revision": 17,
+        "presets": [
+          {
+            "id": 1,
+            "name": "Custom zero",
+            "configured": true,
+            "pedal_sensitivity": 31,
+            "dynamic_assist": 26,
+            "pedal_dip_compensation": 0,
+            "dip_included": true
+          },
+          {
+            "id": 2,
+            "name": "Custom dip",
+            "configured": true,
+            "pedal_sensitivity": 42,
+            "dynamic_assist": 18,
+            "pedal_dip_compensation": 11,
+            "dip_included": true
+          },
+          {
+            "id": 3,
+            "name": "My road",
+            "configured": true,
+            "pedal_sensitivity": 33,
+            "dynamic_assist": 27,
+            "pedal_dip_compensation": 10,
+            "dip_included": false
+          },
+          {
+            "id": 4,
+            "name": "Drag",
+            "configured": true,
+            "pedal_sensitivity": 20,
+            "dynamic_assist": 70,
+            "pedal_dip_compensation": 5,
+            "dip_included": false
+          }
+        ],
+        "alerts": {
+          "pwm": {
+            "enabled": true,
+            "threshold": 72
+          },
+          "speed": {
+            "enabled": false,
+            "threshold": null
+          },
+          "battery": {
+            "enabled": false,
+            "threshold": null
+          },
+          "lost": {
+            "enabled": true
+          }
+        }
+      },
+      "observed": {
+        "version": 2,
+        "revision": 18,
+        "presets": [
+          {
+            "id": 1,
+            "name": "Custom zero",
+            "configured": true,
+            "pedal_sensitivity": 31,
+            "dynamic_assist": 26,
+            "pedal_dip_compensation": 0,
+            "dip_included": true
+          },
+          {
+            "id": 2,
+            "name": "Custom dip",
+            "configured": true,
+            "pedal_sensitivity": 42,
+            "dynamic_assist": 18,
+            "pedal_dip_compensation": 11,
+            "dip_included": true
+          },
+          {
+            "id": 3,
+            "name": "My road",
+            "configured": true,
+            "pedal_sensitivity": 33,
+            "dynamic_assist": 27,
+            "dip_included": false,
+            "pedal_dip_compensation": 10
+          },
+          {
+            "id": 4,
+            "name": "Drag",
+            "configured": true,
+            "pedal_sensitivity": 20,
+            "dynamic_assist": 70,
+            "pedal_dip_compensation": 5,
+            "dip_included": false
+          }
+        ],
+        "alerts": {
+          "pwm": {
+            "enabled": true,
+            "threshold": 74
+          },
+          "speed": {
+            "enabled": false,
+            "threshold": null
+          },
+          "battery": {
+            "enabled": false,
+            "threshold": null
+          },
+          "lost": {
+            "enabled": true
+          }
+        }
+      },
+      "rendering": [
+        {
+          "kind": "text",
+          "value": "RIDING PRESETS",
+          "x": 120,
+          "y": 10,
+          "size": 15,
+          "align": 0
+        },
+        {
+          "kind": "rect",
+          "x1": 9,
+          "y1": 43,
+          "x2": 114,
+          "y2": 114
+        },
+        {
+          "kind": "text",
+          "value": "Custom zero",
+          "x": 62,
+          "y": 65,
+          "size": 14,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "Unavailable",
+          "x": 62,
+          "y": 91,
+          "size": 10,
+          "align": 0
+        },
+        {
+          "kind": "rect",
+          "x1": 124,
+          "y1": 43,
+          "x2": 229,
+          "y2": 114
+        },
+        {
+          "kind": "text",
+          "value": "Custom dip",
+          "x": 177,
+          "y": 65,
+          "size": 14,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "Unavailable",
+          "x": 177,
+          "y": 91,
+          "size": 10,
+          "align": 0
+        },
+        {
+          "kind": "rect",
+          "x1": 9,
+          "y1": 124,
+          "x2": 114,
+          "y2": 195
+        },
+        {
+          "kind": "text",
+          "value": "My road",
+          "x": 62,
+          "y": 146,
+          "size": 14,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "Unavailable",
+          "x": 62,
+          "y": 172,
+          "size": 10,
+          "align": 0
+        },
+        {
+          "kind": "rect",
+          "x1": 124,
+          "y1": 124,
+          "x2": 229,
+          "y2": 195
+        },
+        {
+          "kind": "text",
+          "value": "Drag",
+          "x": 177,
+          "y": 146,
+          "size": 14,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "Unavailable",
+          "x": 177,
+          "y": 172,
+          "size": 10,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "Swipe right to return",
+          "x": 120,
+          "y": 216,
+          "size": 11,
+          "align": 0
+        }
+      ],
+      "storage": [
+        {
+          "key": "sw-config-stage.json",
+          "value": "{\"version\":2,\"revision\":18,\"presets\":[{\"id\":1,\"name\":\"Custom zero\",\"configured\":true,\"pedal_sensitivity\":31,\"dynamic_assist\":26,\"pedal_dip_compensation\":0,\"dip_included\":true},{\"id\":2,\"name\":\"Custom dip\",\"configured\":true,\"pedal_sensitivity\":42,\"dynamic_assist\":18,\"pedal_dip_compensation\":11,\"dip_included\":true},{\"id\":3,\"name\":\"My road\",\"configured\":true,\"pedal_sensitivity\":33,\"dynamic_assist\":27,\"dip_included\":false,\"pedal_dip_compensation\":10},{\"id\":4,\"name\":\"Drag\",\"configured\":true,\"pedal_sensitivity\":20,\"dynamic_assist\":70,\"pedal_dip_compensation\":5,\"dip_included\":false}],\"alerts\":{\"pwm\":{\"enabled\":true,\"threshold\":74},\"speed\":{\"enabled\":false,\"threshold\":null},\"battery\":{\"enabled\":false,\"threshold\":null},\"lost\":{\"enabled\":true}}}",
+          "failed": false
+        },
+        {
+          "key": "sw-config-backup.json",
+          "value": "{\"version\":2,\"revision\":17,\"presets\":[{\"id\":1,\"name\":\"Custom zero\",\"configured\":true,\"pedal_sensitivity\":31,\"dynamic_assist\":26,\"pedal_dip_compensation\":0,\"dip_included\":true},{\"id\":2,\"name\":\"Custom dip\",\"configured\":true,\"pedal_sensitivity\":42,\"dynamic_assist\":18,\"pedal_dip_compensation\":11,\"dip_included\":true},{\"id\":3,\"name\":\"My road\",\"configured\":true,\"pedal_sensitivity\":33,\"dynamic_assist\":27,\"dip_included\":false,\"pedal_dip_compensation\":10},{\"id\":4,\"name\":\"Drag\",\"configured\":true,\"pedal_sensitivity\":20,\"dynamic_assist\":70,\"pedal_dip_compensation\":5,\"dip_included\":false}],\"alerts\":{\"pwm\":{\"enabled\":true,\"threshold\":72},\"speed\":{\"enabled\":false,\"threshold\":null},\"battery\":{\"enabled\":false,\"threshold\":null},\"lost\":{\"enabled\":true}}}",
+          "failed": false
+        },
+        {
+          "key": "sw-config.json",
+          "value": "{\"version\":2,\"revision\":18,\"presets\":[{\"id\":1,\"name\":\"Custom zero\",\"configured\":true,\"pedal_sensitivity\":31,\"dynamic_assist\":26,\"pedal_dip_compensation\":0,\"dip_included\":true},{\"id\":2,\"name\":\"Custom dip\",\"configured\":true,\"pedal_sensitivity\":42,\"dynamic_assist\":18,\"pedal_dip_compensation\":11,\"dip_included\":true},{\"id\":3,\"name\":\"My road\",\"configured\":true,\"pedal_sensitivity\":33,\"dynamic_assist\":27,\"dip_included\":false,\"pedal_dip_compensation\":10},{\"id\":4,\"name\":\"Drag\",\"configured\":true,\"pedal_sensitivity\":20,\"dynamic_assist\":70,\"pedal_dip_compensation\":5,\"dip_included\":false}],\"alerts\":{\"pwm\":{\"enabled\":true,\"threshold\":74},\"speed\":{\"enabled\":false,\"threshold\":null},\"battery\":{\"enabled\":false,\"threshold\":null},\"lost\":{\"enabled\":true}}}",
+          "failed": false
+        }
+      ]
+    },
+    {
+      "name": "all-unconfigured",
+      "expected": {
+        "version": 2,
+        "revision": 0,
+        "presets": [
+          {
+            "id": 1,
+            "name": "Jump",
+            "configured": true,
+            "pedal_sensitivity": 0,
+            "dynamic_assist": 0,
+            "pedal_dip_compensation": 0,
+            "dip_included": false
+          },
+          {
+            "id": 2,
+            "name": "Forest",
+            "configured": true,
+            "pedal_sensitivity": 70,
+            "dynamic_assist": 0,
+            "pedal_dip_compensation": 0,
+            "dip_included": false
+          },
+          {
+            "id": 3,
+            "name": "Road",
+            "configured": true,
+            "pedal_sensitivity": 30,
+            "dynamic_assist": 25,
+            "pedal_dip_compensation": 10,
+            "dip_included": false
+          },
+          {
+            "id": 4,
+            "name": "Drag",
+            "configured": true,
+            "pedal_sensitivity": 20,
+            "dynamic_assist": 70,
+            "pedal_dip_compensation": 5,
+            "dip_included": false
+          }
+        ],
+        "alerts": {
+          "pwm": {
+            "enabled": false,
+            "threshold": null
+          },
+          "speed": {
+            "enabled": false,
+            "threshold": null
+          },
+          "battery": {
+            "enabled": false,
+            "threshold": null
+          },
+          "lost": {
+            "enabled": true
+          }
+        }
+      },
+      "observed": {
+        "version": 2,
+        "revision": 1,
+        "presets": [
+          {
+            "id": 1,
+            "name": "Jump",
+            "configured": true,
+            "pedal_sensitivity": 0,
+            "dynamic_assist": 0,
+            "pedal_dip_compensation": 0,
+            "dip_included": false
+          },
+          {
+            "id": 2,
+            "name": "Forest",
+            "configured": true,
+            "pedal_sensitivity": 70,
+            "dynamic_assist": 0,
+            "pedal_dip_compensation": 0,
+            "dip_included": false
+          },
+          {
+            "id": 3,
+            "name": "Road",
+            "configured": true,
+            "pedal_sensitivity": 30,
+            "dynamic_assist": 25,
+            "pedal_dip_compensation": 10,
+            "dip_included": false
+          },
+          {
+            "id": 4,
+            "name": "Drag",
+            "configured": true,
+            "pedal_sensitivity": 20,
+            "dynamic_assist": 70,
+            "pedal_dip_compensation": 5,
+            "dip_included": false
+          }
+        ],
+        "alerts": {
+          "pwm": {
+            "enabled": false,
+            "threshold": 74
+          },
+          "speed": {
+            "enabled": false,
+            "threshold": null
+          },
+          "battery": {
+            "enabled": false,
+            "threshold": null
+          },
+          "lost": {
+            "enabled": true
+          }
+        }
+      },
+      "rendering": [
+        {
+          "kind": "text",
+          "value": "RIDING PRESETS",
+          "x": 120,
+          "y": 10,
+          "size": 15,
+          "align": 0
+        },
+        {
+          "kind": "rect",
+          "x1": 9,
+          "y1": 43,
+          "x2": 114,
+          "y2": 114
+        },
+        {
+          "kind": "text",
+          "value": "Jump",
+          "x": 62,
+          "y": 65,
+          "size": 14,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "Unavailable",
+          "x": 62,
+          "y": 91,
+          "size": 10,
+          "align": 0
+        },
+        {
+          "kind": "rect",
+          "x1": 124,
+          "y1": 43,
+          "x2": 229,
+          "y2": 114
+        },
+        {
+          "kind": "text",
+          "value": "Forest",
+          "x": 177,
+          "y": 65,
+          "size": 14,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "Unavailable",
+          "x": 177,
+          "y": 91,
+          "size": 10,
+          "align": 0
+        },
+        {
+          "kind": "rect",
+          "x1": 9,
+          "y1": 124,
+          "x2": 114,
+          "y2": 195
+        },
+        {
+          "kind": "text",
+          "value": "Road",
+          "x": 62,
+          "y": 146,
+          "size": 14,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "Unavailable",
+          "x": 62,
+          "y": 172,
+          "size": 10,
+          "align": 0
+        },
+        {
+          "kind": "rect",
+          "x1": 124,
+          "y1": 124,
+          "x2": 229,
+          "y2": 195
+        },
+        {
+          "kind": "text",
+          "value": "Drag",
+          "x": 177,
+          "y": 146,
+          "size": 14,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "Unavailable",
+          "x": 177,
+          "y": 172,
+          "size": 10,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "Swipe right to return",
+          "x": 120,
+          "y": 216,
+          "size": 11,
+          "align": 0
+        }
+      ],
+      "storage": [
+        {
+          "key": "sw-config-stage.json",
+          "value": "{\"version\":2,\"revision\":1,\"presets\":[{\"id\":1,\"name\":\"Jump\",\"configured\":true,\"pedal_sensitivity\":0,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":2,\"name\":\"Forest\",\"configured\":true,\"pedal_sensitivity\":70,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":3,\"name\":\"Road\",\"configured\":true,\"pedal_sensitivity\":30,\"dynamic_assist\":25,\"pedal_dip_compensation\":10,\"dip_included\":false},{\"id\":4,\"name\":\"Drag\",\"configured\":true,\"pedal_sensitivity\":20,\"dynamic_assist\":70,\"pedal_dip_compensation\":5,\"dip_included\":false}],\"alerts\":{\"pwm\":{\"enabled\":false,\"threshold\":74},\"speed\":{\"enabled\":false,\"threshold\":null},\"battery\":{\"enabled\":false,\"threshold\":null},\"lost\":{\"enabled\":true}}}",
+          "failed": false
+        },
+        {
+          "key": "sw-config-backup.json",
+          "value": "{\"version\":2,\"revision\":0,\"presets\":[{\"id\":1,\"name\":\"Jump\",\"configured\":true,\"pedal_sensitivity\":0,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":2,\"name\":\"Forest\",\"configured\":true,\"pedal_sensitivity\":70,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":3,\"name\":\"Road\",\"configured\":true,\"pedal_sensitivity\":30,\"dynamic_assist\":25,\"pedal_dip_compensation\":10,\"dip_included\":false},{\"id\":4,\"name\":\"Drag\",\"configured\":true,\"pedal_sensitivity\":20,\"dynamic_assist\":70,\"pedal_dip_compensation\":5,\"dip_included\":false}],\"alerts\":{\"pwm\":{\"enabled\":false,\"threshold\":null},\"speed\":{\"enabled\":false,\"threshold\":null},\"battery\":{\"enabled\":false,\"threshold\":null},\"lost\":{\"enabled\":true}}}",
+          "failed": false
+        },
+        {
+          "key": "sw-config.json",
+          "value": "{\"version\":2,\"revision\":1,\"presets\":[{\"id\":1,\"name\":\"Jump\",\"configured\":true,\"pedal_sensitivity\":0,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":2,\"name\":\"Forest\",\"configured\":true,\"pedal_sensitivity\":70,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":3,\"name\":\"Road\",\"configured\":true,\"pedal_sensitivity\":30,\"dynamic_assist\":25,\"pedal_dip_compensation\":10,\"dip_included\":false},{\"id\":4,\"name\":\"Drag\",\"configured\":true,\"pedal_sensitivity\":20,\"dynamic_assist\":70,\"pedal_dip_compensation\":5,\"dip_included\":false}],\"alerts\":{\"pwm\":{\"enabled\":false,\"threshold\":74},\"speed\":{\"enabled\":false,\"threshold\":null},\"battery\":{\"enabled\":false,\"threshold\":null},\"lost\":{\"enabled\":true}}}",
+          "failed": false
+        }
+      ]
+    },
+    {
+      "mode": "stage",
+      "observed": {
+        "version": 2,
+        "revision": 0,
+        "presets": [
+          {
+            "id": 1,
+            "name": "Jump",
+            "configured": true,
+            "pedal_sensitivity": 0,
+            "dynamic_assist": 0,
+            "pedal_dip_compensation": 0,
+            "dip_included": false
+          },
+          {
+            "id": 2,
+            "name": "Forest",
+            "configured": true,
+            "pedal_sensitivity": 70,
+            "dynamic_assist": 0,
+            "pedal_dip_compensation": 0,
+            "dip_included": false
+          },
+          {
+            "id": 3,
+            "name": "Road",
+            "configured": true,
+            "pedal_sensitivity": 30,
+            "dynamic_assist": 25,
+            "pedal_dip_compensation": 10,
+            "dip_included": false
+          },
+          {
+            "id": 4,
+            "name": "Drag",
+            "configured": true,
+            "pedal_sensitivity": 20,
+            "dynamic_assist": 70,
+            "pedal_dip_compensation": 5,
+            "dip_included": false
+          }
+        ],
+        "alerts": {
+          "pwm": {
+            "enabled": false,
+            "threshold": null
+          },
+          "speed": {
+            "enabled": false,
+            "threshold": null
+          },
+          "battery": {
+            "enabled": false,
+            "threshold": null
+          },
+          "lost": {
+            "enabled": true
+          }
+        }
+      },
+      "warning": null,
+      "storage": [
+        {
+          "key": "sw-config-stage.json",
+          "value": "{\"version\":2,\"revision\":1,\"presets\":[{\"id\":1,\"name\":\"Jump\",\"configured\":true,\"pedal_sensitivity\":0,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":2,\"name\":\"Forest\",\"configured\":true,\"pedal_sensitivity\":70,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":3,\"name\":\"Road\",\"configured\":true,\"pedal_sensitivity\":30,\"dynamic_assist\":25,\"pedal_dip_compensation\":10,\"dip_included\":false},{\"id\":4,\"name\":\"Drag\",\"configured\":true,\"pedal_sensitivity\":20,\"dynamic_assist\":70,\"pedal_dip_compensation\":5,\"dip_included\":false}],\"alerts\":{\"pwm\":{\"enabled\":false,\"threshold\":76},\"speed\":{\"enabled\":false,\"threshold\":null},\"battery\":{\"enabled\":false,\"threshold\":null},\"lost\":{\"enabled\":true}}}",
+          "failed": true
+        }
+      ]
+    },
+    {
+      "mode": "active",
+      "observed": {
+        "version": 2,
+        "revision": 0,
+        "presets": [
+          {
+            "id": 1,
+            "name": "Jump",
+            "configured": true,
+            "pedal_sensitivity": 0,
+            "dynamic_assist": 0,
+            "pedal_dip_compensation": 0,
+            "dip_included": false
+          },
+          {
+            "id": 2,
+            "name": "Forest",
+            "configured": true,
+            "pedal_sensitivity": 70,
+            "dynamic_assist": 0,
+            "pedal_dip_compensation": 0,
+            "dip_included": false
+          },
+          {
+            "id": 3,
+            "name": "Road",
+            "configured": true,
+            "pedal_sensitivity": 30,
+            "dynamic_assist": 25,
+            "pedal_dip_compensation": 10,
+            "dip_included": false
+          },
+          {
+            "id": 4,
+            "name": "Drag",
+            "configured": true,
+            "pedal_sensitivity": 20,
+            "dynamic_assist": 70,
+            "pedal_dip_compensation": 5,
+            "dip_included": false
+          }
+        ],
+        "alerts": {
+          "pwm": {
+            "enabled": false,
+            "threshold": null
+          },
+          "speed": {
+            "enabled": false,
+            "threshold": null
+          },
+          "battery": {
+            "enabled": false,
+            "threshold": null
+          },
+          "lost": {
+            "enabled": true
+          }
+        }
+      },
+      "warning": "Recovered previous good configuration: SyntaxError: Expected ':' after property name in JSON at position 10 (line 1 column 11)",
+      "storage": [
+        {
+          "key": "sw-config-stage.json",
+          "value": "{\"version\":2,\"revision\":1,\"presets\":[{\"id\":1,\"name\":\"Jump\",\"configured\":true,\"pedal_sensitivity\":0,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":2,\"name\":\"Forest\",\"configured\":true,\"pedal_sensitivity\":70,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":3,\"name\":\"Road\",\"configured\":true,\"pedal_sensitivity\":30,\"dynamic_assist\":25,\"pedal_dip_compensation\":10,\"dip_included\":false},{\"id\":4,\"name\":\"Drag\",\"configured\":true,\"pedal_sensitivity\":20,\"dynamic_assist\":70,\"pedal_dip_compensation\":5,\"dip_included\":false}],\"alerts\":{\"pwm\":{\"enabled\":false,\"threshold\":76},\"speed\":{\"enabled\":false,\"threshold\":null},\"battery\":{\"enabled\":false,\"threshold\":null},\"lost\":{\"enabled\":true}}}",
+          "failed": false
+        },
+        {
+          "key": "sw-config-backup.json",
+          "value": "{\"version\":2,\"revision\":0,\"presets\":[{\"id\":1,\"name\":\"Jump\",\"configured\":true,\"pedal_sensitivity\":0,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":2,\"name\":\"Forest\",\"configured\":true,\"pedal_sensitivity\":70,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":3,\"name\":\"Road\",\"configured\":true,\"pedal_sensitivity\":30,\"dynamic_assist\":25,\"pedal_dip_compensation\":10,\"dip_included\":false},{\"id\":4,\"name\":\"Drag\",\"configured\":true,\"pedal_sensitivity\":20,\"dynamic_assist\":70,\"pedal_dip_compensation\":5,\"dip_included\":false}],\"alerts\":{\"pwm\":{\"enabled\":false,\"threshold\":null},\"speed\":{\"enabled\":false,\"threshold\":null},\"battery\":{\"enabled\":false,\"threshold\":null},\"lost\":{\"enabled\":true}}}",
+          "failed": false
+        },
+        {
+          "key": "sw-config.json",
+          "value": "{\"version\":2,\"revision\":1,\"presets\":[{\"id\":1,\"name\":\"Jump\",\"configured\":true,\"pedal_sensitivity\":0,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":2,\"name\":\"Forest\",\"configured\":true,\"pedal_sensitivity\":70,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":3,\"name\":\"Road\",\"configured\":true,\"pedal_sensitivity\":30,\"dynamic_assist\":25,\"pedal_dip_compensation\":10,\"dip_included\":false},{\"id\":4,\"name\":\"Drag\",\"configured\":true,\"pedal_sensitivity\":20,\"dynamic_assist\":70,\"pedal_dip_compensation\":5,\"dip_included\":false}],\"alerts\":{\"pwm\":{\"enabled\":false,\"threshold\":76},\"speed\":{\"enabled\":false,\"threshold\":null},\"battery\":{\"enabled\":false,\"threshold\":null},\"lost\":{\"enabled\":true}}}",
+          "failed": true
+        }
+      ]
+    },
+    {
+      "mode": "legacy-backup",
+      "observed": {
+        "version": 2,
+        "revision": 17,
+        "presets": [
+          {
+            "id": 1,
+            "name": "Custom zero",
+            "configured": true,
+            "pedal_sensitivity": 31,
+            "dynamic_assist": 26,
+            "pedal_dip_compensation": 0,
+            "dip_included": true
+          },
+          {
+            "id": 2,
+            "name": "Custom dip",
+            "configured": true,
+            "pedal_sensitivity": 42,
+            "dynamic_assist": 18,
+            "pedal_dip_compensation": 11,
+            "dip_included": true
+          },
+          {
+            "id": 3,
+            "name": "My road",
+            "configured": true,
+            "pedal_sensitivity": 33,
+            "dynamic_assist": 27,
+            "dip_included": false,
+            "pedal_dip_compensation": 10
+          },
+          {
+            "id": 4,
+            "name": "Drag",
+            "configured": true,
+            "pedal_sensitivity": 20,
+            "dynamic_assist": 70,
+            "pedal_dip_compensation": 5,
+            "dip_included": false
+          }
+        ],
+        "alerts": {
+          "pwm": {
+            "enabled": true,
+            "threshold": 72
+          },
+          "speed": {
+            "enabled": false,
+            "threshold": null
+          },
+          "battery": {
+            "enabled": false,
+            "threshold": null
+          },
+          "lost": {
+            "enabled": true
+          }
+        }
+      },
+      "warning": "Recovered previous good configuration: SyntaxError: Expected ':' after property name in JSON at position 10 (line 1 column 11)",
+      "storage": [
+        {
+          "key": "sw-config-stage.json",
+          "value": "{\"version\":2,\"revision\":18,\"presets\":[{\"id\":1,\"name\":\"Custom zero\",\"configured\":true,\"pedal_sensitivity\":31,\"dynamic_assist\":26,\"pedal_dip_compensation\":0,\"dip_included\":true},{\"id\":2,\"name\":\"Custom dip\",\"configured\":true,\"pedal_sensitivity\":42,\"dynamic_assist\":18,\"pedal_dip_compensation\":11,\"dip_included\":true},{\"id\":3,\"name\":\"My road\",\"configured\":true,\"pedal_sensitivity\":33,\"dynamic_assist\":27,\"dip_included\":false,\"pedal_dip_compensation\":10},{\"id\":4,\"name\":\"Drag\",\"configured\":true,\"pedal_sensitivity\":20,\"dynamic_assist\":70,\"pedal_dip_compensation\":5,\"dip_included\":false}],\"alerts\":{\"pwm\":{\"enabled\":true,\"threshold\":76},\"speed\":{\"enabled\":false,\"threshold\":null},\"battery\":{\"enabled\":false,\"threshold\":null},\"lost\":{\"enabled\":true}}}",
+          "failed": false
+        },
+        {
+          "key": "sw-config.json",
+          "value": "{\"version\":2,\"revision\":18,\"presets\":[{\"id\":1,\"name\":\"Custom zero\",\"configured\":true,\"pedal_sensitivity\":31,\"dynamic_assist\":26,\"pedal_dip_compensation\":0,\"dip_included\":true},{\"id\":2,\"name\":\"Custom dip\",\"configured\":true,\"pedal_sensitivity\":42,\"dynamic_assist\":18,\"pedal_dip_compensation\":11,\"dip_included\":true},{\"id\":3,\"name\":\"My road\",\"configured\":true,\"pedal_sensitivity\":33,\"dynamic_assist\":27,\"dip_included\":false,\"pedal_dip_compensation\":10},{\"id\":4,\"name\":\"Drag\",\"configured\":true,\"pedal_sensitivity\":20,\"dynamic_assist\":70,\"pedal_dip_compensation\":5,\"dip_included\":false}],\"alerts\":{\"pwm\":{\"enabled\":true,\"threshold\":76},\"speed\":{\"enabled\":false,\"threshold\":null},\"battery\":{\"enabled\":false,\"threshold\":null},\"lost\":{\"enabled\":true}}}",
+          "failed": true
+        }
+      ]
+    },
+    {
+      "mode": "unknown",
+      "observed": {
+        "version": 2,
+        "revision": 0,
+        "presets": [
+          {
+            "id": 1,
+            "name": "Jump",
+            "configured": true,
+            "pedal_sensitivity": 0,
+            "dynamic_assist": 0,
+            "pedal_dip_compensation": 0,
+            "dip_included": false
+          },
+          {
+            "id": 2,
+            "name": "Forest",
+            "configured": true,
+            "pedal_sensitivity": 70,
+            "dynamic_assist": 0,
+            "pedal_dip_compensation": 0,
+            "dip_included": false
+          },
+          {
+            "id": 3,
+            "name": "Road",
+            "configured": true,
+            "pedal_sensitivity": 30,
+            "dynamic_assist": 25,
+            "pedal_dip_compensation": 10,
+            "dip_included": false
+          },
+          {
+            "id": 4,
+            "name": "Drag",
+            "configured": true,
+            "pedal_sensitivity": 20,
+            "dynamic_assist": 70,
+            "pedal_dip_compensation": 5,
+            "dip_included": false
+          }
+        ],
+        "alerts": {
+          "pwm": {
+            "enabled": false,
+            "threshold": null
+          },
+          "speed": {
+            "enabled": false,
+            "threshold": null
+          },
+          "battery": {
+            "enabled": false,
+            "threshold": null
+          },
+          "lost": {
+            "enabled": true
+          }
+        }
+      },
+      "warning": "Saved configuration requires review: Error: Invalid or unsupported configuration",
+      "storage": []
+    },
+    {
+      "mode": "oversized",
+      "observed": {
+        "version": 2,
+        "revision": 0,
+        "presets": [
+          {
+            "id": 1,
+            "name": "Jump",
+            "configured": true,
+            "pedal_sensitivity": 0,
+            "dynamic_assist": 0,
+            "pedal_dip_compensation": 0,
+            "dip_included": false
+          },
+          {
+            "id": 2,
+            "name": "Forest",
+            "configured": true,
+            "pedal_sensitivity": 70,
+            "dynamic_assist": 0,
+            "pedal_dip_compensation": 0,
+            "dip_included": false
+          },
+          {
+            "id": 3,
+            "name": "Road",
+            "configured": true,
+            "pedal_sensitivity": 30,
+            "dynamic_assist": 25,
+            "pedal_dip_compensation": 10,
+            "dip_included": false
+          },
+          {
+            "id": 4,
+            "name": "Drag",
+            "configured": true,
+            "pedal_sensitivity": 20,
+            "dynamic_assist": 70,
+            "pedal_dip_compensation": 5,
+            "dip_included": false
+          }
+        ],
+        "alerts": {
+          "pwm": {
+            "enabled": false,
+            "threshold": null
+          },
+          "speed": {
+            "enabled": false,
+            "threshold": null
+          },
+          "battery": {
+            "enabled": false,
+            "threshold": null
+          },
+          "lost": {
+            "enabled": true
+          }
+        }
+      },
+      "warning": "Saved configuration requires review: Error: Saved configuration exceeds supported size",
+      "storage": []
+    },
+    {
+      "mode": "corrupt",
+      "observed": {
+        "version": 2,
+        "revision": 0,
+        "presets": [
+          {
+            "id": 1,
+            "name": "Jump",
+            "configured": true,
+            "pedal_sensitivity": 0,
+            "dynamic_assist": 0,
+            "pedal_dip_compensation": 0,
+            "dip_included": false
+          },
+          {
+            "id": 2,
+            "name": "Forest",
+            "configured": true,
+            "pedal_sensitivity": 70,
+            "dynamic_assist": 0,
+            "pedal_dip_compensation": 0,
+            "dip_included": false
+          },
+          {
+            "id": 3,
+            "name": "Road",
+            "configured": true,
+            "pedal_sensitivity": 30,
+            "dynamic_assist": 25,
+            "pedal_dip_compensation": 10,
+            "dip_included": false
+          },
+          {
+            "id": 4,
+            "name": "Drag",
+            "configured": true,
+            "pedal_sensitivity": 20,
+            "dynamic_assist": 70,
+            "pedal_dip_compensation": 5,
+            "dip_included": false
+          }
+        ],
+        "alerts": {
+          "pwm": {
+            "enabled": false,
+            "threshold": null
+          },
+          "speed": {
+            "enabled": false,
+            "threshold": null
+          },
+          "battery": {
+            "enabled": false,
+            "threshold": null
+          },
+          "lost": {
+            "enabled": true
+          }
+        }
+      },
+      "warning": "Saved configuration requires review: SyntaxError: Expected property name or '}' in JSON at position 1 (line 1 column 2)",
+      "storage": []
+    },
+    {
+      "slot": 1,
+      "expected_packets": [
+        "4c6441700f0102808080007a5bddc6",
+        "4c6441701f01028080808080808080808080808080808080808000475e8255"
+      ],
+      "observed_chunks": [
+        "4c6441700f0102808080007a5bddc6",
+        "4c6441701f010280808080808080808080808080",
+        "80808080808000475e8255"
+      ],
+      "dip": 83
+    },
+    {
+      "slot": 2,
+      "expected_packets": [
+        "4c6441700f010280808046e5e43963",
+        "4c6441701f01028080808080808080808080808080808080808000475e8255"
+      ],
+      "observed_chunks": [
+        "4c6441700f010280808046e5e43963",
+        "4c6441701f010280808080808080808080808080",
+        "80808080808000475e8255"
+      ],
+      "dip": 83
+    },
+    {
+      "slot": 3,
+      "expected_packets": [
+        "4c6441700f01028080801e8054e0a5",
+        "4c6441701f0102808080808080808080808080808080808080801923352a95"
+      ],
+      "observed_chunks": [
+        "4c6441700f01028080801e8054e0a5",
+        "4c6441701f010280808080808080808080808080",
+        "8080808080801923352a95"
+      ],
+      "dip": 83
+    },
+    {
+      "slot": 4,
+      "expected_packets": [
+        "4c6441700f010280808014608109bb",
+        "4c6441701f01028080808080808080808080808080808080808046d8e166f0"
+      ],
+      "observed_chunks": [
+        "4c6441700f010280808014608109bb",
+        "4c6441701f010280808080808080808080808080",
+        "80808080808046d8e166f0"
+      ],
+      "dip": 83
+    }
+  ],
+  "source_sha256": {
+    "watch/alerts.js": "37e778e87f1cf7c4224a3b87a1dd4982a84095cf5d24f0378aab162f3edd0e99",
+    "watch/app.js": "78ffc7ba2e3bbe8977a2eb4cf6c983a955e08789d45ff64e2be2c14513ffab2b",
+    "watch/boot.js": "17bcadbe43c2c2a7b2935f1453f5a05ecb191da171f1cbbb07e6b3d7cc3b2cb7",
+    "watch/configuration.js": "6995ac545efe8f1d8f732249560614f1facd0ca2040d1648881fb8eb49975bfd",
+    "watch/controls.js": "a320a345f0b3960ed6f457418b7624a0a5de5d1356716542e3dab7ba7e284d0a",
+    "watch/display.js": "6471e8383ad163f9bae99a7e711bddd4a4a377deccf2e54191175d006de5f4ae",
+    "watch/hardware.js": "e302199b8971581e489849ee708989ec909d646c13ef06d71df20adb5652cc42",
+    "watch/horn.js": "d03479b8306fe88289b4b4932375b3efb4e696f44e8cad8deea9a93b83bd756c",
+    "watch/main.js": "7dcae8604783a159a9f071fae0a7f69bac4e0e26885cc30a0148d9677f5868dd",
+    "watch/motor.js": "7814a91690a99773458bbb9282be0b95ae863b1142dbac1892336b56de2a7cae",
+    "watch/preset-control.js": "616486d1ebe6fa7b6da63abbf285b6a7aea9794035abe5fb4a693e6a09160d1a",
+    "watch/preset-editor.js": "93b368051b4a8b1789188dd3c63dffc80fb1a97480542c69d12ec187156357a6",
+    "watch/protocol.js": "173c2d4d534747a7e251ae06fb0b28a0578af8e3db229afd676ac2f6a2ab11b8",
+    "watch/render.js": "b0e23c1d29d1c12b2af340b6c53a1d097be5d1935d80a83368622a057e3b555d",
+    "watch/store.js": "bf69ae5b56a0a9cec823c579d237bd5f6675a29572ec484dc9024bf070529a39",
+    "watch/transport.js": "ee51d586a555e7dbc4557702442c386fda43648b3a21b7ab1df74ebab2005a56"
+  }
+}

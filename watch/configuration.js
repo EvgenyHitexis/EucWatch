@@ -9,7 +9,7 @@ exports.equal=function(left,right){
   if(!left||!right||typeof left!=='object'||typeof right!=='object'||Array.isArray(left)!==Array.isArray(right))return false;
   var names=Object.keys(left);return names.length===Object.keys(right).length&&names.every(function(key){return Object.prototype.hasOwnProperty.call(right,key)&&exports.equal(left[key],right[key]);});
 };
-exports.defaults=function(){return {version:1,revision:0,presets:[1,2,3,4].map(function(id){return {id:id,name:'Preset '+id,configured:false};}),
+exports.defaults=function(){return {version:2,revision:0,presets:[['Jump',0,0,0],['Forest',70,0,0],['Road',30,25,10],['Drag',20,70,5]].map(function(row,index){return {id:index+1,name:row[0],configured:true,pedal_sensitivity:row[1],dynamic_assist:row[2],pedal_dip_compensation:row[3],dip_included:false};}),
   alerts:{pwm:{enabled:false,threshold:null},speed:{enabled:false,threshold:null},battery:{enabled:false,threshold:null},lost:{enabled:true}}};};
 function keys(value,expected){return value&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).length===expected.length&&expected.every(function(key){return Object.prototype.hasOwnProperty.call(value,key);});}
 function readableName(text){
@@ -42,15 +42,25 @@ exports.validateAlerts=function(alerts){
   return exports.copy(alerts);
 };
 exports.validate=function(config){
-  if(!keys(config,['version','revision','presets','alerts'])||config.version!==1||typeof config.revision!=='number'||!isFinite(config.revision)||config.revision<0||Math.floor(config.revision)!==config.revision)throw new Error('Invalid or unsupported configuration');
+  if(!keys(config,['version','revision','presets','alerts'])||(config.version!==1&&config.version!==2)||typeof config.revision!=='number'||!isFinite(config.revision)||config.revision<0||Math.floor(config.revision)!==config.revision)throw new Error('Invalid or unsupported configuration');
   exports.validateAlerts(config.alerts);
   if(!Array.isArray(config.presets)||config.presets.length!==4)throw new Error('Exactly four fixed preset slots are required');
   config.presets.forEach(function(preset,index){
     var required=['id','name','configured'],fields=['pedal_sensitivity','dynamic_assist','pedal_dip_compensation'];
     if(!preset||preset.id!==index+1||typeof preset.configured!=='boolean'||!readableName(preset.name))throw new Error('Invalid fixed preset slot');
     if(preset.configured){required.push(fields[0],fields[1]);if(Object.prototype.hasOwnProperty.call(preset,fields[2]))required.push(fields[2]);}
+    if(config.version===2){if(!preset.configured||typeof preset.dip_included!=='boolean')throw new Error('Explicit dip inclusion required');if(required.indexOf(fields[2])<0)required.push(fields[2]);required.push('dip_included');}
     if(!keys(preset,required))throw new Error('Invalid preset fields');
     fields.forEach(function(field){if(Object.prototype.hasOwnProperty.call(preset,field)&&(typeof preset[field]!=='number'||preset[field]<0||preset[field]>100||Math.floor(preset[field])!==preset[field]))throw new Error('Invalid preset percentage');});
   });
-  return exports.copy(config);
+  var normalized=exports.copy(config);
+  if(config.version===1){
+    var defaults=exports.defaults();
+    normalized.presets.forEach(function(preset,index){
+      if(!preset.configured)normalized.presets[index]=defaults.presets[index];
+      else {preset.dip_included=Object.prototype.hasOwnProperty.call(preset,'pedal_dip_compensation');if(!preset.dip_included)preset.pedal_dip_compensation=defaults.presets[index].pedal_dip_compensation;}
+    });
+    normalized.version=2;
+  }
+  return normalized;
 };

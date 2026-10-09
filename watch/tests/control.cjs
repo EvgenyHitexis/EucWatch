@@ -14,7 +14,7 @@ function frame(settings={pedal_sensitivity:31,dynamic_assist:26,pedal_dip_compen
 }
 function scenario(extra={}){
  let time=0;const writes=[];let config=load('sw-configuration').defaults();
- config.presets[0]={id:1,name:'Road',configured:true,pedal_sensitivity:31,dynamic_assist:26};
+ config.presets[0]={id:1,name:'Road',configured:true,pedal_sensitivity:31,dynamic_assist:26,pedal_dip_compensation:0,dip_included:false};
  const store={load:()=>JSON.parse(JSON.stringify(config)),save:value=>{config=JSON.parse(JSON.stringify(value));}};
  const app=load('sw-app').create({clock:{now:()=>time},battery:()=>({percent:50,charging:false}),store,command_output:row=>writes.push(JSON.parse(JSON.stringify(row))),...extra});
  const token=app.action('session_start').session;app.action('connected',{session:token});app.receive(token,frame({pedal_sensitivity:30,dynamic_assist:25,pedal_dip_compensation:10}));
@@ -23,7 +23,7 @@ function scenario(extra={}){
 function testMoving(){const moving=scenario();moving.app.action('swipe',{direction:'left'});
 assert.equal(moving.app.view().presets.length,4);
 const controls=load('sw-controls');assert.equal(controls.targets(moving.app.view()).length,4);
-assert.equal(controls.hit(moving.app.view(),175,79),null,'unconfigured rendered slot is disabled');
+assert.equal(controls.hit(moving.app.view(),175,79).action,'preset_apply','configured default is available');
 const tap=controls.hit(moving.app.view(),61,79);assert.equal(tap.action,'preset_apply');
 let state=moving.app.action(tap.action,tap.payload);
 assert.equal(state.screen,'dashboard');assert.equal(state.preset_attempt.pending,true);assert.match(state.feedback,/Road.*Applying/);
@@ -84,8 +84,8 @@ function testFailureTraces(){
  assert.equal(confirmation.app.view().preset_attempt.pending,false);assert.match(confirmation.app.view().preset_attempt.reason,/Confirmation timeout/);
  const stale=scenario();stale.app.action('preset_apply',{slot:1});stale.at(1.01);stale.receive();assert.equal(stale.app.view().preset_attempt.pending,false,'late fresh frame cannot revive stale attempt');
  const changed=scenario();changed.app.action('preset_apply',{slot:1});changed.result(changed.writes[0]);changed.result(changed.writes[1]);changed.at(.1);changed.receive();changed.at(.2);changed.receive();
- const config=changed.app.view().config;config.revision++;config.presets[0]={id:1,name:'Preset 1',configured:false};changed.store.save(config);changed.app.action('configuration_reload');assert.equal(changed.app.view().confirmed_preset,null);assert.equal(changed.writes.length,2);
- const dip=scenario();const dipConfig=dip.app.view().config;dipConfig.presets[0].pedal_dip_compensation=11;dip.store.save(dipConfig);dip.app.action('configuration_reload');dip.app.action('preset_apply',{slot:1});dip.result(dip.writes[0]);dip.result(dip.writes[1]);dip.result(dip.writes[2]);
+ const config=changed.app.view().config;config.revision++;config.presets[0].name='Changed';changed.store.save(config);changed.app.action('configuration_reload');assert.equal(changed.app.view().confirmed_preset,null);assert.equal(changed.writes.length,2);
+ const dip=scenario();const dipConfig=dip.app.view().config;dipConfig.presets[0].pedal_dip_compensation=11;dipConfig.presets[0].dip_included=true;dip.store.save(dipConfig);dip.app.action('configuration_reload');dip.app.action('preset_apply',{slot:1});dip.result(dip.writes[0]);dip.result(dip.writes[1]);dip.result(dip.writes[2]);
  assert.equal(dip.writes[2].packet_hex,'4c6441702101028080808080808080808080808080808080808080800b672ed25c');
  dip.at(.1);dip.receive();dip.at(.2);dip.receive();assert.equal(dip.app.view().confirmed_preset,null,'included dip must match in both complete frames');
  dip.at(.3);dip.receive({pedal_sensitivity:31,dynamic_assist:26,pedal_dip_compensation:11});dip.at(.4);dip.receive({pedal_sensitivity:31,dynamic_assist:26,pedal_dip_compensation:11});assert.ok(dip.app.view().confirmed_preset);
@@ -109,7 +109,7 @@ from eucwatch.configuration import default_configuration
 from eucwatch.persistence import MemoryStore
 data=json.load(sys.stdin);observed=[]
 for steps in data['traces']:
- clock=ManualClock();writes=[];config=default_configuration();config['presets'][0]={'id':1,'name':'Road','configured':True,'pedal_sensitivity':31,'dynamic_assist':26}
+ clock=ManualClock();writes=[];config=default_configuration();config['presets'][0]={'id':1,'name':'Road','configured':True,'pedal_sensitivity':31,'dynamic_assist':26,'pedal_dip_compensation':0,'dip_included':False}
  app=Application(clock=clock,store=MemoryStore(config),command_output=writes.append);app.action('connect');app.receive(app.session,bytes.fromhex(data['initial']))
  output=[]
  for step in steps:
@@ -145,7 +145,7 @@ async function testWriter(){
  now=.1;emit();now=.2;emit();assert.equal(test.app.view().confirmed_preset.name,'Road');
  test.app.action('button_down');await flush();test.app.action('button_up');assert.equal(written.at(-1).toString('hex'),'4c6b41700e0080808001ca87e66f');assert.equal(test.app.view().horn_feedback.message,'Horn request sent');
  characteristic.properties.writeWithoutResponse=false;test.app.action('button_down');await flush();test.app.action('button_up');assert.match(test.app.view().horn_feedback.message,/write-without-response/);assert.equal(written.length,4);
- characteristic.properties.writeWithoutResponse=true;const config=test.app.view().config;config.presets[0].pedal_dip_compensation=11;test.store.save(config);test.app.action('configuration_reload');rejectAt=7;test.app.action('preset_apply',{slot:1});await flush();
+ characteristic.properties.writeWithoutResponse=true;const config=test.app.view().config;config.presets[0].pedal_dip_compensation=11;config.presets[0].dip_included=true;test.store.save(config);test.app.action('configuration_reload');rejectAt=7;test.app.action('preset_apply',{slot:1});await flush();
  assert.equal(written.length,7);assert.equal(test.app.view().preset_attempt.pending,false);assert.match(test.app.view().preset_attempt.reason,/Controlled partial write failure/);assert.ok(!written.some(bytes=>bytes[4]===33),'native chunk rejection prevents the unsent dip command');
  hang=true;test.app.action('preset_apply',{slot:1});await flush();assert.equal(written.length,8);
  for(let step=3;step<=32;step++){now=step/10;emit();test.app.tick();adapter.tick();for(const [token,task]of [...tasks])if(task.due<=now){tasks.delete(token);task.fn();}await flush();}
