@@ -252,6 +252,13 @@ function text(value: string, x: number, y: number, size: number, color = '#fffff
   ctx.fillText(value, x, y);
 }
 
+const settingsButtons = [
+  { label: 'Sleep screen', top: 68, action: 'sleep' },
+  { label: 'Vibration alerts', top: 120, action: 'alerts_begin' },
+  { label: 'Presets', top: 172, action: 'preset_slots' },
+];
+const settingsButtonHeight = 40;
+
 function render(view: View | null): void {
   const key = JSON.stringify([view, available, alertPage, watchError, thresholdEntry, presetError, liveError]);
   if (key === rendered) return;
@@ -345,12 +352,10 @@ function render(view: View | null): void {
       canvas.setAttribute('aria-label', `Preset menu. Four fixed slots: ${names}. ${view?.presets_menu?.some(slot=>slot.available) && available ? 'Tap one eligible slot to apply immediately.' : 'Application unavailable.'} Swipe right to return without applying.${view?.horn_feedback ? ` ${view.horn_feedback.message}` : ''}`);
     } else {
       ctx.strokeStyle = '#ffffff';
-      ctx.strokeRect(12, 60, 216, 50);
-      text('Sleep screen', 120, 107, 20, '#ffffff', 'center');
-      ctx.strokeRect(12, 120, 216, 50);
-      text('Vibration alerts', 120, 152, 18, '#ffffff', 'center');
-      ctx.strokeRect(12, 180, 216, 32);
-      text('Presets', 120, 202, 18, '#ffffff', 'center');
+      for (const button of settingsButtons) {
+        ctx.strokeRect(12, button.top, 216, settingsButtonHeight);
+        text(button.label, 120, button.top + settingsButtonHeight / 2 + 6, 16, '#ffffff', 'center');
+      }
       canvas.setAttribute('aria-label', 'Settings. Sleep screen. Vibration alerts. Presets. Swipe up to return without saving.'+(view?.horn_feedback ? ` ${view.horn_feedback.message}` : ''));
     }
     text(view?.horn_feedback?.message ?? (screen === 'presets' ? '‹ Swipe right to return' : 'Swipe up to return'), 120, 228, 11, '#ffffff', 'center');
@@ -661,9 +666,13 @@ canvas.addEventListener('pointerup', event => {
     watchPresets.tap(current, end.x, end.y);
   } else if (Math.abs(dx) < 12 && Math.abs(dy) < 12 && current?.screen === 'settings') {
     if (current.alerts_draft) watchAlertTap(end.x, end.y);
-    else if (end.x >= 12 && end.x <= 228 && end.y >= 60 && end.y <= 110) enqueueWatch('sleep');
-    else if (end.x >= 12 && end.x <= 228 && end.y >= 120 && end.y <= 170) { alertPage = 0; thresholdEntry = null; enqueueWatch('alerts_begin'); }
-    else if (end.x >= 12 && end.x <= 228 && end.y >= 180 && end.y <= 212) enqueueWatch('preset_slots');
+    else if (end.x >= 12 && end.x <= 228) {
+      const button = settingsButtons.find(item => end.y >= item.top && end.y <= item.top + settingsButtonHeight);
+      if (button) {
+        if (button.action === 'alerts_begin') { alertPage = 0; thresholdEntry = null; }
+        enqueueWatch(button.action);
+      }
+    }
   } else if (Math.abs(dx)<12 && Math.abs(dy)<12 && current?.screen==='presets') {
     const column=end.x>=124 ? 1 : 0;
     const row=end.y>=124 ? 1 : 0;

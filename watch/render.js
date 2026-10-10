@@ -5,7 +5,7 @@ exports.draw = function (g, state) {
     g.setColor(1); g.setFont('Vector', size); g.setFontAlign(align || 0, -1);
     g.drawString(String(value), x, y);
   }
-  function controls(){require('sw-controls').targets(state).forEach(function(target){var r=target.rect,preset=state.screen==='preset_slots'||state.screen==='preset_editor',size=preset?Math.max(8,Math.min(15,Math.floor((r[2]-r[0]-8)/(target.label.length*0.65)))):target.label.length>12?13:15;g.setColor(1);g.drawRect(r[0],r[1],r[2],r[3]);text(target.label,(r[0]+r[2])/2,(r[1]+r[3])/2-(preset?size/2:7),size);});}
+  function controls(){require('sw-controls').targets(state).forEach(function(target){var r=target.rect,preset=state.screen==='preset_slots'||state.screen==='preset_editor',settings=state.screen==='settings',size=settings?16:preset?Math.max(8,Math.min(15,Math.floor((r[2]-r[0]-8)/(target.label.length*0.65)))):target.label.length>12?13:15;g.setColor(1);g.drawRect(r[0],r[1],r[2],r[3]);text(target.label,(r[0]+r[2])/2,(r[1]+r[3])/2-(preset||settings?size/2:7),size);});}
   g.clear();
   if (!state.awake) return;
   if (state.recovery) { text('RECOVERY',120,90,24); text('Wheel controls unavailable',120,125,12); g.flip(); return; }

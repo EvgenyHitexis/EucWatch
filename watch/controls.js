@@ -3,9 +3,9 @@ exports.targets=function(state){
   if(!state.awake||state.recovery)return [];
   function target(rect,label,action,payload){payload=payload||{};if(action.indexOf('preset_')===0&&state.preset_editor){payload.editor_id=state.preset_editor.id;if(state.preset_input)payload.entry_id=state.preset_input.id;}return {rect:rect,label:label,action:action,payload:payload};}
   if(state.screen==='settings')return [
-    target([12,26,228,52],state.transport&&(state.transport.active||state.transport.connected)?'Disconnect wheel':'Connect wheel','transport_toggle'),
-    target([12,60,228,110],'Sleep screen','sleep'),target([12,120,228,170],'Vibration alerts','alerts_begin'),
-    target([12,180,228,212],'Presets','preset_slots')];
+    target([12,28,228,68],state.transport&&(state.transport.active||state.transport.connected)?'Disconnect wheel':'Connect wheel','transport_toggle'),
+    target([12,76,228,116],'Sleep screen','sleep'),target([12,124,228,164],'Vibration alerts','alerts_begin'),
+    target([12,172,228,212],'Presets','preset_slots')];
   if(state.screen==='preset_slots')return state.presets.map(function(slot,index){var y=36+index*44;return target([12,y,228,y+38],slot.id+' '+slot.name,'preset_begin',{slot:slot.id});});
   if(state.screen==='preset_editor'){
     if(!state.preset_draft)return [];
