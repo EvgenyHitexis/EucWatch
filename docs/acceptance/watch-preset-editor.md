@@ -4,11 +4,14 @@ Production main, CST816 touch, controls, Graphics, parser/transport and native
 Storage implement the local laptop editor contract. Each saved slot opens
 immediately without a wheel. Whole-editor Save/Cancel work from name and numeric
 keypads. Top field buttons retain input; the character-page button remains
-independent. Dip value and inclusion are separate. No preset Clear, editor Back,
+independent. Dip value and inclusion are separate; inclusion stays reachable below
+the active dip keypad. Invalid Name input is identified from any field. No preset Clear, editor Back,
 Save slot or per-field Set/Done target remains.
 
 Only Save publishes a validated stored replacement. Failure retains the prior
-active configuration and complete draft. Retry is local. Operation IDs reject
+saved configuration and complete draft. An unverified active Storage copy is
+retired so restart uses the previous-good backup, including when a failed write
+leaves valid but incorrect content. Retry is local. Operation IDs reject
 stale/duplicate completion; configuration reload retires an editor. Incoming
 settings and reconnects cannot replace draft input. Committed revisions invalidate
 riding-menu requests and stop unsent native writes as before.

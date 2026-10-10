@@ -877,7 +877,7 @@
           }
         }
       },
-      "warning": "Recovered previous good configuration: SyntaxError: Expected ':' after property name in JSON at position 10 (line 1 column 11)",
+      "warning": "Recovered previous good configuration: active copy missing",
       "storage": [
         {
           "key": "sw-config-stage.json",
@@ -893,6 +893,10 @@
           "key": "sw-config.json",
           "value": "{\"version\":2,\"revision\":1,\"presets\":[{\"id\":1,\"name\":\"Jump\",\"configured\":true,\"pedal_sensitivity\":0,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":2,\"name\":\"Forest\",\"configured\":true,\"pedal_sensitivity\":70,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":3,\"name\":\"Road\",\"configured\":true,\"pedal_sensitivity\":30,\"dynamic_assist\":25,\"pedal_dip_compensation\":10,\"dip_included\":false},{\"id\":4,\"name\":\"Drag\",\"configured\":true,\"pedal_sensitivity\":20,\"dynamic_assist\":70,\"pedal_dip_compensation\":5,\"dip_included\":false}],\"alerts\":{\"pwm\":{\"enabled\":false,\"threshold\":76},\"speed\":{\"enabled\":false,\"threshold\":null},\"battery\":{\"enabled\":false,\"threshold\":null},\"lost\":{\"enabled\":true}}}",
           "failed": true
+        },
+        {
+          "key": "sw-config.json",
+          "erased": true
         }
       ]
     },
@@ -957,7 +961,7 @@
           }
         }
       },
-      "warning": "Recovered previous good configuration: SyntaxError: Expected ':' after property name in JSON at position 10 (line 1 column 11)",
+      "warning": "Recovered previous good configuration: active copy missing",
       "storage": [
         {
           "key": "sw-config-stage.json",
@@ -968,6 +972,10 @@
           "key": "sw-config.json",
           "value": "{\"version\":2,\"revision\":18,\"presets\":[{\"id\":1,\"name\":\"Custom zero\",\"configured\":true,\"pedal_sensitivity\":31,\"dynamic_assist\":26,\"pedal_dip_compensation\":0,\"dip_included\":true},{\"id\":2,\"name\":\"Custom dip\",\"configured\":true,\"pedal_sensitivity\":42,\"dynamic_assist\":18,\"pedal_dip_compensation\":11,\"dip_included\":true},{\"id\":3,\"name\":\"My road\",\"configured\":true,\"pedal_sensitivity\":33,\"dynamic_assist\":27,\"dip_included\":false,\"pedal_dip_compensation\":10},{\"id\":4,\"name\":\"Drag\",\"configured\":true,\"pedal_sensitivity\":20,\"dynamic_assist\":70,\"pedal_dip_compensation\":5,\"dip_included\":false}],\"alerts\":{\"pwm\":{\"enabled\":true,\"threshold\":76},\"speed\":{\"enabled\":false,\"threshold\":null},\"battery\":{\"enabled\":false,\"threshold\":null},\"lost\":{\"enabled\":true}}}",
           "failed": true
+        },
+        {
+          "key": "sw-config.json",
+          "erased": true
         }
       ]
     },
@@ -1253,8 +1261,8 @@
     "watch/alerts.js": "37e778e87f1cf7c4224a3b87a1dd4982a84095cf5d24f0378aab162f3edd0e99",
     "watch/app.js": "24a260c5f241bc4d4e46f35c353a9a1c9eff22f41462f74a0055a6add05bfefc",
     "watch/boot.js": "17bcadbe43c2c2a7b2935f1453f5a05ecb191da171f1cbbb07e6b3d7cc3b2cb7",
-    "watch/configuration.js": "6995ac545efe8f1d8f732249560614f1facd0ca2040d1648881fb8eb49975bfd",
-    "watch/controls.js": "ae4570e16c6606fb91aefa8d1356f1f2b7876230254308288f93bd57c605cb5c",
+    "watch/configuration.js": "2c8983c6e8bc7ce48a9bda6e9de167aad2c502ddf3f825f3d67a3b8636339120",
+    "watch/controls.js": "511fce3d9f4ee7657c13c55048285adcb1ba0a9ceec08685f9b15353039a9a64",
     "watch/display.js": "6471e8383ad163f9bae99a7e711bddd4a4a377deccf2e54191175d006de5f4ae",
     "watch/hardware.js": "932d9d2a2c5599304b4f764e4344f72269b050c942f476c5928cebc876131f03",
     "watch/horn.js": "d03479b8306fe88289b4b4932375b3efb4e696f44e8cad8deea9a93b83bd756c",
@@ -1264,7 +1272,7 @@
     "watch/preset-editor.js": "f610e0f396a3c55d96095409d7dd47cde73e9ba370f9e75052f021d6b2407981",
     "watch/protocol.js": "173c2d4d534747a7e251ae06fb0b28a0578af8e3db229afd676ac2f6a2ab11b8",
     "watch/render.js": "de894687c07e3638ed0791e4fb908c2fd02c416a7840289624f6174a4a6a85b9",
-    "watch/store.js": "bf69ae5b56a0a9cec823c579d237bd5f6675a29572ec484dc9024bf070529a39",
+    "watch/store.js": "6bec86fdaa17ccc97f711ef91485929dbfc267c8f255ae250d1c5aae6aa1d32b",
     "watch/transport.js": "ee51d586a555e7dbc4557702442c386fda43648b3a21b7ab1df74ebab2005a56"
   }
 }

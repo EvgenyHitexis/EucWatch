@@ -18,6 +18,7 @@ exports.targets=function(state){
         target([12,185,54,209],'a/A','preset_input_key',{key:'a/A'}),target([57,185,102,209],'Space','preset_input_key',{key:' '}),
         target([105,185,150,209],'Clear','preset_input_key',{key:'Clear'}),target([153,185,183,209],'<','preset_input_key',{key:'<'}),
         target([186,185,228,209],(input.letters+1)+'/3','preset_input_page',{delta:1})]);
+      if(input.field==='pedal_dip_compensation')rows.push(target([12,185,228,209],state.preset_draft.dip_included?'Dip included':'Dip omitted','preset_include_dip',{included:!state.preset_draft.dip_included}));
     }else{
       rows.push(target([12,65,228,103],String(state.preset_draft[field]),'preset_input_begin'));
       if(field==='pedal_dip_compensation')rows.push(target([12,111,228,141],state.preset_draft.dip_included?'Dip included':'Dip omitted','preset_include_dip',{included:!state.preset_draft.dip_included}));

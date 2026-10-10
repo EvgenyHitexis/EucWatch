@@ -2,112 +2,112 @@
   "issue": 50,
   "manifest": {
     "schema": 1,
-    "version": "b4bd9077",
+    "version": "fb665b8a",
     "runtime": {
       "BOARD": "P22",
       "VERSION": "2v14"
     },
-    "main": "sw-b4bd9077-main",
-    "recovery": "sw-b4bd9077-boot",
+    "main": "sw-fb665b8a-main",
+    "recovery": "sw-fb665b8a-boot",
     "files": [
       {
-        "name": "sw-b4bd9077-alerts",
+        "name": "sw-fb665b8a-alerts",
         "bytes": 4696,
         "sha256": "37e778e87f1cf7c4224a3b87a1dd4982a84095cf5d24f0378aab162f3edd0e99",
         "crc32": "9150e3c8"
       },
       {
-        "name": "sw-b4bd9077-app",
+        "name": "sw-fb665b8a-app",
         "bytes": 21683,
-        "sha256": "f98b2f11c9a50674148db2442ab79e95887f63a18812d9f6f12f232420d33aac",
-        "crc32": "94f62f86"
+        "sha256": "27bc550b238327cbaafc852889b8424b7c580048ae5677ff325e59a320777637",
+        "crc32": "a3a34920"
       },
       {
-        "name": "sw-b4bd9077-boot",
+        "name": "sw-fb665b8a-boot",
         "bytes": 1322,
         "sha256": "17bcadbe43c2c2a7b2935f1453f5a05ecb191da171f1cbbb07e6b3d7cc3b2cb7",
         "crc32": "86c503ff"
       },
       {
-        "name": "sw-b4bd9077-configuration",
-        "bytes": 5188,
-        "sha256": "6995ac545efe8f1d8f732249560614f1facd0ca2040d1648881fb8eb49975bfd",
-        "crc32": "2cc308f2"
+        "name": "sw-fb665b8a-configuration",
+        "bytes": 5264,
+        "sha256": "2c8983c6e8bc7ce48a9bda6e9de167aad2c502ddf3f825f3d67a3b8636339120",
+        "crc32": "a9c83760"
       },
       {
-        "name": "sw-b4bd9077-controls",
-        "bytes": 4391,
-        "sha256": "fa8980992440272e636d1878ebe400ccc11c2418dc353841a3bbf957552ccb9b",
-        "crc32": "e99a260a"
+        "name": "sw-fb665b8a-controls",
+        "bytes": 4602,
+        "sha256": "e9da93db00a1a79cadf71dd630b867f4381a349cd2b3983f4f23cdd9c2367288",
+        "crc32": "ade6acc3"
       },
       {
-        "name": "sw-b4bd9077-display",
+        "name": "sw-fb665b8a-display",
         "bytes": 6744,
         "sha256": "6471e8383ad163f9bae99a7e711bddd4a4a377deccf2e54191175d006de5f4ae",
         "crc32": "47b7ad9d"
       },
       {
-        "name": "sw-b4bd9077-hardware",
+        "name": "sw-fb665b8a-hardware",
         "bytes": 3135,
-        "sha256": "cef6d7f1a0be5309debc59b4dadd97baf54a288ade900eee385b7ef9e21212b0",
-        "crc32": "737afee7"
+        "sha256": "e16102329dde9a84d59994ac56271f40c06eacce0e937873dd554e9dcb06ca14",
+        "crc32": "dfdab01d"
       },
       {
-        "name": "sw-b4bd9077-horn",
+        "name": "sw-fb665b8a-horn",
         "bytes": 1358,
         "sha256": "d03479b8306fe88289b4b4932375b3efb4e696f44e8cad8deea9a93b83bd756c",
         "crc32": "7020dd6a"
       },
       {
-        "name": "sw-b4bd9077-main",
+        "name": "sw-fb665b8a-main",
         "bytes": 2211,
-        "sha256": "3ed6ce7dce2aefafb04f2609accf63584c37607d6050c6f0a46eabd3ac1c0940",
-        "crc32": "82cfd88d"
+        "sha256": "ad62218debaf0ee0dc3c109f260b282e377eccbbd2fdca44f99ba448914d71cc",
+        "crc32": "998009a6"
       },
       {
-        "name": "sw-b4bd9077-motor",
+        "name": "sw-fb665b8a-motor",
         "bytes": 1327,
         "sha256": "7814a91690a99773458bbb9282be0b95ae863b1142dbac1892336b56de2a7cae",
         "crc32": "a87e41b0"
       },
       {
-        "name": "sw-b4bd9077-preset-control",
+        "name": "sw-fb665b8a-preset-control",
         "bytes": 5389,
-        "sha256": "63c94419c4c691d03696be74290a42257263a5ae8383d3a3fe7993d215556313",
-        "crc32": "095628af"
+        "sha256": "52ab909e7bf49837d1e1973b60784e3b94399bb0a1f16becb6af9200adfe656d",
+        "crc32": "0ef89589"
       },
       {
-        "name": "sw-b4bd9077-preset-editor",
+        "name": "sw-fb665b8a-preset-editor",
         "bytes": 2478,
-        "sha256": "727ef448cf9705a422918b4aa74b40053c4499b024b8ead5c56127f679beeef2",
-        "crc32": "c49c79e3"
+        "sha256": "73c7641175d1271a7c657612b09441a42a578a4a2ab51afb31c33ce62f0ec01d",
+        "crc32": "58cfc5a6"
       },
       {
-        "name": "sw-b4bd9077-protocol",
+        "name": "sw-fb665b8a-protocol",
         "bytes": 2261,
         "sha256": "173c2d4d534747a7e251ae06fb0b28a0578af8e3db229afd676ac2f6a2ab11b8",
         "crc32": "c5ce248d"
       },
       {
-        "name": "sw-b4bd9077-render",
+        "name": "sw-fb665b8a-render",
         "bytes": 6127,
-        "sha256": "7f6edea31a2b8118b52c4279203f810d3429d8efa3307d9a5d3fb234209d9fc6",
-        "crc32": "c486f09e"
+        "sha256": "a7fd409aed38d9ae37a2c3a62df7350fd0bb351792f6c44b60ca2f40c887f490",
+        "crc32": "d7d45ebf"
       },
       {
-        "name": "sw-b4bd9077-store",
-        "bytes": 2608,
-        "sha256": "cbd2facb2182669546931c658ea3ffcfcbb42a4baf645e3c77ff95c6f9c3ca89",
-        "crc32": "0c363e3c"
+        "name": "sw-fb665b8a-store",
+        "bytes": 2866,
+        "sha256": "9713ee8a20f46bae7472978b35ddfe2509a3ca4136561d6d4a9b717b96eec4d8",
+        "crc32": "f96a97c1"
       },
       {
-        "name": "sw-b4bd9077-transport",
+        "name": "sw-fb665b8a-transport",
         "bytes": 10994,
         "sha256": "ee51d586a555e7dbc4557702442c386fda43648b3a21b7ab1df74ebab2005a56",
         "crc32": "3a4b322d"
       },
       {
-        "name": "sw-b4bd9077-notice",
+        "name": "sw-fb665b8a-notice",
         "bytes": 4958,
         "sha256": "6611699176860c4dd1527c3922743d435a7380123fc24fc05b47de62cc2511c5",
         "crc32": "76d7ef9b"
@@ -116,33 +116,33 @@
   },
   "rehearsal": {
     "status": "local-bundle-verified",
-    "version": "b4bd9077",
+    "version": "fb665b8a",
     "files": 17,
-    "bytes": 86870,
+    "bytes": 87415,
     "deployment": "not performed; full application, laptop acceptance and separate authorization required",
     "provenance": "synthetic Storage/runtime/authorization only",
     "plan": {
-      "required_bytes": 89494,
+      "required_bytes": 90042,
       "available_bytes": 1000000,
       "first_install": true,
       "writes": [
-        "sw-b4bd9077-alerts",
-        "sw-b4bd9077-app",
-        "sw-b4bd9077-boot",
-        "sw-b4bd9077-configuration",
-        "sw-b4bd9077-controls",
-        "sw-b4bd9077-display",
-        "sw-b4bd9077-hardware",
-        "sw-b4bd9077-horn",
-        "sw-b4bd9077-main",
-        "sw-b4bd9077-motor",
-        "sw-b4bd9077-preset-control",
-        "sw-b4bd9077-preset-editor",
-        "sw-b4bd9077-protocol",
-        "sw-b4bd9077-render",
-        "sw-b4bd9077-store",
-        "sw-b4bd9077-transport",
-        "sw-b4bd9077-notice"
+        "sw-fb665b8a-alerts",
+        "sw-fb665b8a-app",
+        "sw-fb665b8a-boot",
+        "sw-fb665b8a-configuration",
+        "sw-fb665b8a-controls",
+        "sw-fb665b8a-display",
+        "sw-fb665b8a-hardware",
+        "sw-fb665b8a-horn",
+        "sw-fb665b8a-main",
+        "sw-fb665b8a-motor",
+        "sw-fb665b8a-preset-control",
+        "sw-fb665b8a-preset-editor",
+        "sw-fb665b8a-protocol",
+        "sw-fb665b8a-render",
+        "sw-fb665b8a-store",
+        "sw-fb665b8a-transport",
+        "sw-fb665b8a-notice"
       ],
       "activation_last": "sw-active.json",
       "deletions": []
@@ -151,23 +151,23 @@
       "status": "verified"
     },
     "writes": [
-      "sw-b4bd9077-alerts",
-      "sw-b4bd9077-app",
-      "sw-b4bd9077-boot",
-      "sw-b4bd9077-configuration",
-      "sw-b4bd9077-controls",
-      "sw-b4bd9077-display",
-      "sw-b4bd9077-hardware",
-      "sw-b4bd9077-horn",
-      "sw-b4bd9077-main",
-      "sw-b4bd9077-motor",
-      "sw-b4bd9077-preset-control",
-      "sw-b4bd9077-preset-editor",
-      "sw-b4bd9077-protocol",
-      "sw-b4bd9077-render",
-      "sw-b4bd9077-store",
-      "sw-b4bd9077-transport",
-      "sw-b4bd9077-notice",
+      "sw-fb665b8a-alerts",
+      "sw-fb665b8a-app",
+      "sw-fb665b8a-boot",
+      "sw-fb665b8a-configuration",
+      "sw-fb665b8a-controls",
+      "sw-fb665b8a-display",
+      "sw-fb665b8a-hardware",
+      "sw-fb665b8a-horn",
+      "sw-fb665b8a-main",
+      "sw-fb665b8a-motor",
+      "sw-fb665b8a-preset-control",
+      "sw-fb665b8a-preset-editor",
+      "sw-fb665b8a-protocol",
+      "sw-fb665b8a-render",
+      "sw-fb665b8a-store",
+      "sw-fb665b8a-transport",
+      "sw-fb665b8a-notice",
       ".bootrst",
       "sw-active.json"
     ],
@@ -299,6 +299,10 @@
           "key": "sw-starting",
           "value": "1",
           "failed": false
+        },
+        {
+          "key": "sw-starting",
+          "erased": true
         },
         {
           "key": "sw-config-stage.json",
@@ -445,6 +449,10 @@
           "failed": false
         },
         {
+          "key": "sw-starting",
+          "erased": true
+        },
+        {
           "key": "sw-config-stage.json",
           "value": "{\"version\":2,\"revision\":18,\"presets\":[{\"id\":1,\"name\":\"Custom zero\",\"configured\":true,\"pedal_sensitivity\":31,\"dynamic_assist\":26,\"pedal_dip_compensation\":0,\"dip_included\":true},{\"id\":2,\"name\":\"Custom dip\",\"configured\":true,\"pedal_sensitivity\":42,\"dynamic_assist\":18,\"pedal_dip_compensation\":11,\"dip_included\":true},{\"id\":3,\"name\":\"My road\",\"configured\":true,\"pedal_sensitivity\":33,\"dynamic_assist\":27,\"dip_included\":false,\"pedal_dip_compensation\":10},{\"id\":4,\"name\":\"Versioned\",\"configured\":true,\"pedal_sensitivity\":32,\"dynamic_assist\":70,\"pedal_dip_compensation\":5,\"dip_included\":false}],\"alerts\":{\"pwm\":{\"enabled\":true,\"threshold\":72},\"speed\":{\"enabled\":false,\"threshold\":null},\"battery\":{\"enabled\":false,\"threshold\":null},\"lost\":{\"enabled\":true}}}",
           "failed": false
@@ -589,6 +597,10 @@
           "failed": false
         },
         {
+          "key": "sw-starting",
+          "erased": true
+        },
+        {
           "key": "sw-config-stage.json",
           "value": "{\"version\":2,\"revision\":1,\"presets\":[{\"id\":1,\"name\":\"Jump\",\"configured\":true,\"pedal_sensitivity\":0,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":2,\"name\":\"Forest\",\"configured\":true,\"pedal_sensitivity\":70,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":3,\"name\":\"Road\",\"configured\":true,\"pedal_sensitivity\":30,\"dynamic_assist\":25,\"pedal_dip_compensation\":10,\"dip_included\":false},{\"id\":4,\"name\":\"Versioned\",\"configured\":true,\"pedal_sensitivity\":32,\"dynamic_assist\":70,\"pedal_dip_compensation\":5,\"dip_included\":false}],\"alerts\":{\"pwm\":{\"enabled\":false,\"threshold\":null},\"speed\":{\"enabled\":false,\"threshold\":null},\"battery\":{\"enabled\":false,\"threshold\":null},\"lost\":{\"enabled\":true}}}",
           "failed": false
@@ -609,27 +621,27 @@
   ],
   "versioned_runtime": "fresh/migrated/custom local configuration and Save survive compatible startup; no draft, command or confirmation replay",
   "native_imports": [
-    "sw-b4bd9077-main",
-    "sw-b4bd9077-hardware",
-    "sw-b4bd9077-display",
-    "sw-b4bd9077-motor",
-    "sw-b4bd9077-render",
-    "sw-b4bd9077-store",
-    "sw-b4bd9077-configuration",
-    "sw-b4bd9077-app",
-    "sw-b4bd9077-protocol",
-    "sw-b4bd9077-configuration",
-    "sw-b4bd9077-preset-editor",
-    "sw-b4bd9077-configuration",
-    "sw-b4bd9077-alerts",
-    "sw-b4bd9077-preset-control",
-    "sw-b4bd9077-protocol",
-    "sw-b4bd9077-horn",
-    "sw-b4bd9077-transport",
-    "sw-b4bd9077-controls",
-    "sw-b4bd9077-controls"
+    "sw-fb665b8a-main",
+    "sw-fb665b8a-hardware",
+    "sw-fb665b8a-display",
+    "sw-fb665b8a-motor",
+    "sw-fb665b8a-render",
+    "sw-fb665b8a-store",
+    "sw-fb665b8a-configuration",
+    "sw-fb665b8a-app",
+    "sw-fb665b8a-protocol",
+    "sw-fb665b8a-configuration",
+    "sw-fb665b8a-preset-editor",
+    "sw-fb665b8a-configuration",
+    "sw-fb665b8a-alerts",
+    "sw-fb665b8a-preset-control",
+    "sw-fb665b8a-protocol",
+    "sw-fb665b8a-horn",
+    "sw-fb665b8a-transport",
+    "sw-fb665b8a-controls",
+    "sw-fb665b8a-controls"
   ],
   "recovery": "held button bypasses imports; absent main retains recovery guard",
-  "artifact": ".test-output/watch-preset-editor/b4bd9077",
+  "artifact": ".test-output/watch-preset-editor/fb665b8a",
   "hardware": "all hardware, flash capacity and authorization are simulated; display/input/vibration, memory fit, live controls and deployment pending"
 }

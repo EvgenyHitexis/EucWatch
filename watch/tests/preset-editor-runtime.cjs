@@ -26,6 +26,21 @@ async function replay(file,name){
     const targets=env.context.require('sw-controls').targets(state);
     assert.ok(!targets.some(t=>['preset_clear','preset_clear_begin','preset_clear_done','preset_input_done','preset_input_cancel'].includes(t.action)));
     if(state.screen==='preset_editor')assert.ok(targets.some(t=>t.label==='Save')&&targets.some(t=>t.label==='Cancel'));
+    if(state.preset_input&&state.preset_input.field==='pedal_dip_compensation'){
+      assert.ok(targets.some(t=>t.action==='preset_include_dip'),'inclusion remains reachable with active numeric input');
+      if((event.end||[])[1]===196){
+        assert.equal(state.preset_input.text,'11');
+        assert.equal(state.preset_draft.dip_included,!states.at(-1).draft.dip_included);
+        assert.equal(state.config.presets[state.preset_draft.id-1].dip_included,false);
+        snapshot(env,'slot-'+state.preset_draft.id+'-dip-input');
+      }
+    }
+    if(state.validation_error&&state.preset_draft.name===''){
+      assert.match(state.validation_error,/name must contain/i);
+      assert.equal(state.preset_input.field,'pedal_sensitivity');
+      assert.ok(env.context.graphics.ops.some(op=>op.kind==='text'&&/name must contain/i.test(op.value)));
+      snapshot(env,'invalid-name-save');
+    }
     states.push({input:event,screen:state.screen,page:state.preset_page,draft:state.preset_draft,keypad:state.preset_input,config:state.config,validation:state.validation_error,storage_error:state.persistence_error,storage_effects:env.storageEffects.length});
     if(state.preset_input&&(event.end||[])[1]===73&&state.preset_draft){
       const key='slot-'+state.preset_draft.id+'-'+state.preset_input.field;
@@ -41,12 +56,14 @@ async function replay(file,name){
 exports.replay=replay;
 async function failures(){
   const results=[];
-  for(const mode of ['stage','active','legacy-only']){
-    const env=environment();if(mode==='legacy-only'){const f=JSON.parse(fs.readFileSync('docs/acceptance/scenarios/local-presets.json'));env.context.storage['sw-config-backup.json']=JSON.stringify(f.cases[0].input);env.context.storage['sw-config.json']='{partial';}
+  for(const mode of ['stage','active','legacy-only','valid-but-wrong']){
+    const env=environment(),f=JSON.parse(fs.readFileSync('docs/acceptance/scenarios/local-presets.json'));
+    if(mode==='legacy-only'){env.context.storage['sw-config-backup.json']=JSON.stringify(f.cases[0].input);env.context.storage['sw-config.json']='{partial';}
+    if(mode==='valid-but-wrong')env.context.storage['sw-config.json']=JSON.stringify(f.cases[0].input);
     let running=env.start();const initial=plain(running.core.view().config);
     running.core.action('preset_begin',{slot:4});let id=running.core.view().preset_editor.id;
     running.core.action('preset_update',{editor_id:id,name:'Retry local',pedal_dip_compensation:17});
-    env.storageFailure(mode==='stage'?'sw-config-stage.json':'sw-config.json',true);
+    env.storageFailure(mode==='stage'?'sw-config-stage.json':'sw-config.json',mode==='valid-but-wrong'?JSON.stringify(f.fresh):true);
     running.core.action('preset_save',{editor_id:id});assert.ok(running.core.view().persistence_error);assert.deepEqual(plain(running.core.view().config),initial);
     assert.equal(running.core.view().preset_draft.name,'Retry local');
     // Retry while running and a separate interrupted restart both retain meaning.

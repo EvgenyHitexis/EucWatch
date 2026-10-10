@@ -56,6 +56,21 @@ class PresetEditor:
         chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'[start:start+12]
         return list(chars.lower() if self.input['lowercase'] else chars)
 
+    def set_reason(self, reason: str) -> None:
+        assert self.request is not None
+        self.request['reason'] = reason
+
+    def include_dip(self, included: Any) -> None:
+        if type(included) is not bool:
+            raise ValueError('Choose explicit dip inclusion')
+        assert self.draft is not None
+        self.draft['dip_included'] = included
+
+    def input_page(self, delta: Any) -> None:
+        if self.input is None or self.input['field'] != 'name' or type(delta) is not int or delta not in (-1, 1):
+            raise ValueError('Invalid name keypad page')
+        self.input['letters'] = (self.input['letters'] + delta) % 3
+
     def begin_input(self) -> None:
         assert self.draft is not None
         field = FIELDS[self.page]

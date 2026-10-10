@@ -37,7 +37,6 @@ const labels = ['Name', 'Pedal sensitivity', 'Dynamic assist', 'Pedal dip compen
 export class WatchPresets {
   constructor(private ctx: CanvasRenderingContext2D, private canvas: HTMLCanvasElement,
               private enqueue: (action: string, payload?: Record<string, unknown>) => Promise<unknown>) {}
-  stateKey(): string { return ''; }
   private text(value: string, x: number, y: number, size = 14): void {
     this.ctx.fillStyle = '#ffffff'; this.ctx.font = `${size}px sans-serif`;
     this.ctx.textAlign = 'center'; this.ctx.fillText(value, x, y, 216);
@@ -71,6 +70,7 @@ export class WatchPresets {
         this.button('Clear', 105, 185, 45, 24); this.button('<', 153, 185, 30, 24);
         this.button(`${input.letters + 1}/3`, 186, 185, 42, 24);
       }
+      if (input.field === 'pedal_dip_compensation') this.button(draft.dip_included ? 'Dip included' : 'Dip omitted', 12, 185, 216, 24);
       // Feedback replaces the value line while input remains available for correction.
       if (notice) {
         const reason = notice.replace('Configuration save failed: ', 'Save failed: ');
@@ -102,6 +102,8 @@ export class WatchPresets {
       if (input.field === 'name' && y >= 185 && y <= 209) {
         if (x >= 186) send('preset_input_page', {delta: 1});
         else send('preset_input_key', {key: x < 54 ? 'a/A' : x < 102 ? ' ' : x < 150 ? 'Clear' : '<'});
+      } else if (input.field === 'pedal_dip_compensation' && x >= 12 && x <= 228 && y >= 185 && y <= 209) {
+        send('preset_include_dip', {included: !view.preset_draft.dip_included});
       } else if (x >= 16 && x < 222 && y >= 59 && y < 180) {
         const key = this.keys(input)[Math.floor((y - 59) / 31) * 3 + Math.floor((x - 16) / 70)];
         if (key) send('preset_input_key', {key});

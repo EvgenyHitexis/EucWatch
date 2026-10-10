@@ -44,7 +44,18 @@ function environment(){
   const modules={};context.imports=[];
   context.require=name=>{
     context.imports.push(name);
-    if(name==='Storage')return{read:key=>storage[key],readJSON:key=>storage[key]?JSON.parse(storage[key]):undefined,write:(key,value)=>{storageEffects.push({key,value,failed:key===failedStorageKey});if(key===failedStorageKey){if(partialStorage)storage[key]='{"partial"';return false;}storage[key]=value;},erase:key=>delete storage[key]};
+    if(name==='Storage')return{
+      read:key=>storage[key],readJSON:key=>storage[key]?JSON.parse(storage[key]):undefined,
+      write:(key,value)=>{
+        storageEffects.push({key,value,failed:key===failedStorageKey});
+        if(key===failedStorageKey){
+          if(partialStorage)storage[key]=typeof partialStorage==='string'?partialStorage:'{"partial"';
+          return typeof partialStorage==='string'?undefined:false;
+        }
+        storage[key]=value;
+      },
+      erase:key=>{storageEffects.push({key,erased:true});return delete storage[key];}
+    };
     if(modules[name])return modules[name];
     const module={exports:{}};const sandbox={...context,module,exports:module.exports};
     const content=Object.prototype.hasOwnProperty.call(storage,name)?storage[name]:fs.readFileSync(path.join(root,name.replace(/^sw-/,'')+'.js'),'utf8');

@@ -30,8 +30,14 @@ exports.create=function(options){
         try{previous=read('sw-config-backup.json');}catch(ignoredBackup){}
         if(!previous)write('sw-config-backup.json',JSON.stringify(configuration.defaults()));
       }
-      write('sw-config.json',text);
-      if(!configuration.equal(read('sw-config.json'),proposed))throw new Error('Active configuration verification failed');
+      try{
+        write('sw-config.json',text);
+        if(!configuration.equal(read('sw-config.json'),proposed))throw new Error('Active configuration verification failed');
+      }catch(error){
+        /* A valid but mismatched active copy is unverified too. Force recovery
+           from the retained previous good copy after any activation failure. */
+        storage.erase('sw-config.json');throw error;
+      }
       adapter.warning=null;
     },save:function(value){adapter.stage(value);adapter.activate(value);},discard:function(){storage.erase('sw-config-stage.json');}
   };

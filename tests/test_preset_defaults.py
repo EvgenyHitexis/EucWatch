@@ -101,3 +101,21 @@ class PresetDefaultsTests(unittest.TestCase):
             with patch('os.replace',side_effect=partial):state=app.action('configuration_import_commit')
             self.assertEqual(state['config'],before);self.assertIn('save failed',state['persistence_error'])
             self.assertEqual(Application(store=FileStore(path)).view()['config'],before)
+
+    def test_valid_but_wrong_active_readback_is_not_accepted_on_restart(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'configuration.json';path.write_text(json.dumps(FIXTURE['cases'][0]['input']))
+            app=Application(clock=ManualClock(),store=FileStore(path));before=app.view()['config']
+            opened=app.action('preset_begin',slot=1);identity=opened['preset_editor']['id']
+            app.action('preset_update',editor_id=identity,name='Requested')
+            original_replace=__import__('os').replace
+            def wrong(source,target):
+                original_replace(source,target)
+                if target==path:target.write_text(json.dumps(FIXTURE['fresh']))
+            with patch('os.replace',side_effect=wrong):state=app.action('preset_save',editor_id=identity)
+            self.assertEqual(state['config'],before);self.assertIn('readback failed',state['persistence_error'])
+            self.assertEqual(state['preset_draft']['name'],'Requested')
+            self.assertEqual(Application(store=FileStore(path)).view()['config'],before)
+            state=app.action('preset_save',editor_id=identity)
+            self.assertEqual(state['config']['presets'][0]['name'],'Requested')
+            self.assertEqual(Application(store=FileStore(path)).view()['config'],state['config'])

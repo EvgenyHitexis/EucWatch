@@ -5,6 +5,8 @@ without a wheel connection. Input and dip inclusion change only one transient
 draft. Name input supports case, spaces, digits, character clearing and backspace.
 Top arrows select fields even with a keypad open; the `1/3` character button pages
 letters independently. Empty numeric text survives page changes.
+Dip inclusion remains available below the numeric keypad, preserving its entered
+value. Invalid Name input is identified even when Save is tapped on another field.
 
 Save validates the whole definition, including active input and omitted dip,
 then commits one slot and returns to selection. Cancel discards the entire draft

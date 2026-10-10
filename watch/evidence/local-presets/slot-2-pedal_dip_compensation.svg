@@ -27,6 +27,8 @@
 <text x="119" y="173.5" font-size="15" text-anchor="middle">0</text>
 <rect x="156" y="152" width="66" height="28" fill="none" stroke="white"/>
 <text x="189" y="173.5" font-size="15" text-anchor="middle">&lt;</text>
+<rect x="12" y="185" width="216" height="24" fill="none" stroke="white"/>
+<text x="120" y="204.5" font-size="15" text-anchor="middle">Dip omitted</text>
 <rect x="12" y="214" width="104" height="24" fill="none" stroke="white"/>
 <text x="64" y="233.5" font-size="15" text-anchor="middle">Cancel</text>
 <rect x="124" y="214" width="104" height="24" fill="none" stroke="white"/>

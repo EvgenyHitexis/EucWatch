@@ -1,0 +1,7 @@
+{
+  "issue": 31,
+  "provenance": "actual saved-file backend / Chrome export/import/review/start/step; fixed inputs seed0 controlled raw parser",
+  "expected": "complete bounded definition saves/exports; review noactivation; explicit freshstart; three deterministicsteps; no commands",
+  "observed": "passed",
+  "owner_review_and_live_acceptance": "pending"
+}

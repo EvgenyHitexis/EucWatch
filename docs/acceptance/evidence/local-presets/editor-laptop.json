@@ -301,6 +301,72 @@
     {
       "input": "tap",
       "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        196
+      ],
+      "end": [
+        120,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        196
+      ],
+      "end": [
+        120,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
         49,
         166
       ],
@@ -785,6 +851,72 @@
     {
       "input": "tap",
       "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        196
+      ],
+      "end": [
+        120,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        196
+      ],
+      "end": [
+        120,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
         49,
         166
       ],
@@ -1269,6 +1401,72 @@
     {
       "input": "tap",
       "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        196
+      ],
+      "end": [
+        120,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        196
+      ],
+      "end": [
+        120,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
         49,
         166
       ],
@@ -1753,6 +1951,72 @@
     {
       "input": "tap",
       "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        196
+      ],
+      "end": [
+        120,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        196
+      ],
+      "end": [
+        120,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
         49,
         166
       ],
@@ -1946,6 +2210,105 @@
       "end": [
         119,
         135
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        64,
+        226
+      ],
+      "end": [
+        64,
+        226
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        80,
+        55
+      ],
+      "end": [
+        80,
+        55
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        120,
+        80
+      ],
+      "end": [
+        120,
+        80
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        125,
+        196
+      ],
+      "end": [
+        125,
+        196
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        176,
+        226
+      ],
+      "end": [
+        176,
+        226
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "input": "tap",
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
       ]
     },
     {
@@ -2214,12 +2577,20 @@
       "label": "Preset editor slot 1. Name: Ab 1. name keypad. Input Ab 1. Swipe left/right through fields; up cancels.  Whole-editor Save or Cancel. "
     },
     {
+      "file": "slot-1-dip-input.png",
+      "label": "Preset editor slot 1. Pedal dip compensation: 11. pedal_dip_compensation keypad. Input 11. Swipe left/right through fields; up cancels. Dip omitted. Whole-editor Save or Cancel. "
+    },
+    {
       "file": "slot-1-numeric.png",
       "label": "Preset editor slot 1. Dynamic assist: 26. dynamic_assist keypad. Input 26. Swipe left/right through fields; up cancels.  Whole-editor Save or Cancel. "
     },
     {
       "file": "slot-2-name.png",
       "label": "Preset editor slot 2. Name: Ab 2. name keypad. Input Ab 2. Swipe left/right through fields; up cancels.  Whole-editor Save or Cancel. "
+    },
+    {
+      "file": "slot-2-dip-input.png",
+      "label": "Preset editor slot 2. Pedal dip compensation: 11. pedal_dip_compensation keypad. Input 11. Swipe left/right through fields; up cancels. Dip omitted. Whole-editor Save or Cancel. "
     },
     {
       "file": "slot-2-numeric.png",
@@ -2230,6 +2601,10 @@
       "label": "Preset editor slot 3. Name: Ab 3. name keypad. Input Ab 3. Swipe left/right through fields; up cancels.  Whole-editor Save or Cancel. "
     },
     {
+      "file": "slot-3-dip-input.png",
+      "label": "Preset editor slot 3. Pedal dip compensation: 11. pedal_dip_compensation keypad. Input 11. Swipe left/right through fields; up cancels. Dip omitted. Whole-editor Save or Cancel. "
+    },
+    {
       "file": "slot-3-numeric.png",
       "label": "Preset editor slot 3. Dynamic assist: 26. dynamic_assist keypad. Input 26. Swipe left/right through fields; up cancels.  Whole-editor Save or Cancel. "
     },
@@ -2238,8 +2613,16 @@
       "label": "Preset editor slot 4. Name: Ab 4. name keypad. Input Ab 4. Swipe left/right through fields; up cancels.  Whole-editor Save or Cancel. "
     },
     {
+      "file": "slot-4-dip-input.png",
+      "label": "Preset editor slot 4. Pedal dip compensation: 11. pedal_dip_compensation keypad. Input 11. Swipe left/right through fields; up cancels. Dip omitted. Whole-editor Save or Cancel. "
+    },
+    {
       "file": "slot-4-numeric.png",
       "label": "Preset editor slot 4. Dynamic assist: 26. dynamic_assist keypad. Input 26. Swipe left/right through fields; up cancels.  Whole-editor Save or Cancel. "
+    },
+    {
+      "file": "invalid-name-save.png",
+      "label": "Preset editor slot 1. Pedal sensitivity: 31. pedal_sensitivity keypad. Input 31. Swipe left/right through fields; up cancels.  Whole-editor Save or Cancel. Preset name must contain 1\u201324 readable characters"
     },
     {
       "file": "invalid-save.png",
@@ -2322,20 +2705,20 @@
     "laptop/eucwatch/horn.py": "b08abb4d884fa8d664fdbaf3071e5e335a3769ec254db0742089ba2dc75e4240",
     "laptop/eucwatch/protocol.py": "08b8728c39de23640f4f3281f8bda4b7b4ea9c6999534e60c95d06b7340a5ad4",
     "laptop/eucwatch/installation.py": "57de9ba903ec940e4f31a5855545a36cbc3e10aaae58f2178ba68ba2256136e7",
-    "laptop/eucwatch/presets.py": "89ac4c92d9fe2f8a4cd8b9a3c859f5910470ebfc0e2e24365f69538ebcdf0dfa",
+    "laptop/eucwatch/presets.py": "97d8e2bba47d640599b56b6daaded3949d695857e19b82baecc21c0c2f316ac1",
     "laptop/eucwatch/recording.py": "fbf021f8238a854257d47ac58b979211de423c60ca5e0cb0988dffaecc049bc9",
     "laptop/eucwatch/server.py": "eea35ec2eb0fb36a2b40281bf6312853c9f617fcb2807c8eec3c61bdfde71440",
     "laptop/eucwatch/clock.py": "880f2fe3c7af6f5a0087bd0b3c1998306684456c294ef20de4fbb7d31ed7f219",
     "laptop/eucwatch/live.py": "794450dbcf19b58a3895f36f9f9cb32d20d0c5ceae4e12693af6ca25722231b0",
     "laptop/eucwatch/live_control.py": "b70f9d49b80aeb84eca9cf837e99fe8edb3e6aa721434b8ce83121a04c9a13d0",
-    "laptop/eucwatch/application.py": "ebc02f69b83e867b5fec343feb4741e0c2a99a41c03629b76027a4c0b0d3b95d",
-    "laptop/eucwatch/persistence.py": "6b62cf86878e387fe8b106e4cfff41e66638fd8a959ffa461e8551d121a9744f",
+    "laptop/eucwatch/application.py": "4f4df7afeddb6a46c5b3b9745c123b0e2b643f97b88c700ed0156a9b39e4c76a",
+    "laptop/eucwatch/persistence.py": "4a76403911bdcbb4ef1e6219b4f61daa35ab7d56b3dc6d7951b27a95c511554b",
     "laptop/eucwatch/__init__.py": "117d2ce7b89f227b3a013afcb87c32cad3a5b44d45fba7d9f5076a5ca38336bf",
     "laptop/eucwatch/alerts.py": "142e3d81cd810b15667ffd8b6bfbec3d54e2a28ff01a5313bc0c28f7bccd24d8",
     "laptop/eucwatch/simulator.py": "3ddecb614f2567b8b8032825c7b6dee7bddf91023bdaaf174543f882ca0f5305",
-    "frontend/src/main.ts": "6c999e83e0408cfbfab37a630d5e5513ab801bf61bfc28554284bd7f1048b353",
+    "frontend/src/main.ts": "6ed8241785f483d7377f319d287bd9bafac7630e370b5e44fbb44f0d45a1cd6a",
     "frontend/src/scenarios.ts": "5c434107b4925d6cbfa4bdb3148f9af3442a7f61e71551a8a71b8f34b2a111da",
-    "frontend/src/preset-editor.ts": "a25a7d380f0fe3b01129ec8cb840f48ac88a1b541fa90258940a2d1b304b7669",
+    "frontend/src/preset-editor.ts": "135c2690b2b79426ab9f5b8e52d77819d920d9290c90ffc730d604224dc9554d",
     "frontend/src/backup.ts": "fa9c7acce752f61b6d525f1b3ee9f0d797e4ec757f200c42d175ea087e342175",
     "/home/evbu13/dev/EucWatch/tests/browser_local_presets.py": "039015242c8be63aa0321d13100d4442a25592afb864a81a63697cc59d4bf531"
   }

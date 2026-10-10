@@ -598,14 +598,11 @@ class Application:
             if name != "preset_cancel" and (not self.awake or self.recovery):
                 raise ValueError("Preset editing unavailable")
             payload.pop("source", None)
-            assert self.editor.draft is not None and self.editor.request is not None
-            self.editor.request["reason"] = ""
+            self.editor.set_reason("")
             if name == "preset_update":
                 self.editor.update(payload)
             elif name == "preset_include_dip":
-                if type(payload.get("included")) is not bool:
-                    raise ValueError("Choose explicit dip inclusion")
-                self.editor.draft["dip_included"] = payload["included"]
+                self.editor.include_dip(payload.get("included"))
             elif name == "preset_page":
                 self.editor.set_page(payload.get("page"))
             elif name == "preset_input_begin":
@@ -613,10 +610,7 @@ class Application:
             elif name == "preset_input_key":
                 self.editor.key(payload.get("key"))
             elif name == "preset_input_page":
-                entry = self.editor.input
-                if entry is None or entry["field"] != "name" or payload.get("delta") not in (-1, 1):
-                    raise ValueError("Invalid name keypad page")
-                entry["letters"] = (entry["letters"] + payload["delta"]) % 3
+                self.editor.input_page(payload.get("delta"))
             elif name == "preset_cancel":
                 self._leave_editor()
                 self.screen = "preset_slots"
@@ -624,7 +618,7 @@ class Application:
                 try:
                     proposed = self.editor.validated(self.config)
                 except ValueError as exc:
-                    self.editor.request["reason"] = str(exc)
+                    self.editor.set_reason(str(exc))
                 else:
                     if self._save_editor(proposed):
                         self._leave_editor()

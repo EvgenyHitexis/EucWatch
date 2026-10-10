@@ -1,6 +1,6 @@
-............................................................................................................................................................
+.............................................................................................................................................................
 ----------------------------------------------------------------------
-Ran 156 tests in 4.985s
+Ran 157 tests in 5.236s
 
 OK
 
@@ -14,8 +14,8 @@ rendering chunks...
 computing gzip size...
 dist/index.html                  0.47 kB │ gzip:  0.30 kB
 dist/assets/index-DROWm6mP.css   3.92 kB │ gzip:  1.48 kB
-dist/assets/index-Dr1-fL0U.js   42.55 kB │ gzip: 13.46 kB
-✓ built in 229ms
+dist/assets/index-Bm8YSO3Z.js   42.76 kB │ gzip: 13.46 kB
+✓ built in 220ms
 defaults-laptop: passed
 editor-laptop: passed
 navigation-laptop: passed
@@ -74,4 +74,4 @@ watch defaults/migration/recovery/native lists/application: passed
 watch local drafts, retry, stale completion/reload and retired actions: passed
 watch native local editor: laptop trace, Graphics, Storage faults, restart and stopped continuation passed
 watch exact laptop swipe trace, input, rendering, Storage and alert hierarchy: passed
-complete versioned watch bundle, synthetic staging/activation and independent recovery: passed (b4bd9077)
+complete versioned watch bundle, synthetic staging/activation and independent recovery: passed (fb665b8a)

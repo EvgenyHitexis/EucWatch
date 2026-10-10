@@ -253,7 +253,7 @@ function text(value: string, x: number, y: number, size: number, color = '#fffff
 }
 
 function render(view: View | null): void {
-  const key = JSON.stringify([view, available, alertPage, watchError, thresholdEntry, presetError, liveError, watchPresets.stateKey()]);
+  const key = JSON.stringify([view, available, alertPage, watchError, thresholdEntry, presetError, liveError]);
   if (key === rendered) return;
   rendered = key;
   ctx.fillStyle = '#000000';

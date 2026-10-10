@@ -47,7 +47,8 @@ exports.validate=function(config){
   if(!Array.isArray(config.presets)||config.presets.length!==4)throw new Error('Exactly four fixed preset slots are required');
   config.presets.forEach(function(preset,index){
     var required=['id','name','configured'],fields=['pedal_sensitivity','dynamic_assist','pedal_dip_compensation'];
-    if(!preset||preset.id!==index+1||typeof preset.configured!=='boolean'||!readableName(preset.name))throw new Error('Invalid fixed preset slot');
+    if(!preset||preset.id!==index+1||typeof preset.configured!=='boolean')throw new Error('Invalid fixed preset slot');
+    if(!readableName(preset.name))throw new Error('Preset name must contain 1-24 readable characters');
     if(preset.configured){required.push(fields[0],fields[1]);if(Object.prototype.hasOwnProperty.call(preset,fields[2]))required.push(fields[2]);}
     if(config.version===2){if(!preset.configured||typeof preset.dip_included!=='boolean')throw new Error('Explicit dip inclusion required');if(required.indexOf(fields[2])<0)required.push(fields[2]);required.push('dip_included');}
     if(!keys(preset,required))throw new Error('Invalid preset fields');
