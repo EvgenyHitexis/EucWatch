@@ -33,8 +33,10 @@ function environment(){
       clear(){new Uint8Array(this.buffer).fill(0);this.ops=[];return this;},
       setColor(value){this.color=value;return this;},setRotation(){return this;},
       setFont(name,size){this.font=size;return this;},setFontAlign(value){this.align=value;return this;},
+      // Synthetic variable-width glyph metrics at the native Graphics boundary.
+      stringWidth(value){return Array.from(String(value)).reduce((width,character)=>width+(character==='W'?1:character==='i'?.25:.55)*this.font,0);},
       setPixel(x,y,value){const n=y*240+x;const bytes=new Uint8Array(this.buffer);if(value)bytes[n>>3]|=1<<(n&7);else bytes[n>>3]&=~(1<<(n&7));return this;},
-      drawString(value,x,y){this.ops.push({kind:'text',value,x,y,size:this.font,align:this.align});return this;},
+      drawString(value,x,y){this.ops.push({kind:'text',value,x,y,size:this.font,align:this.align,width:this.stringWidth(value)});return this;},
       drawRect(x1,y1,x2,y2){this.ops.push({kind:'rect',x1,y1,x2,y2});return this;},
       fillRect(x1,y1,x2,y2){this.ops.push({kind:'fill',x1,y1,x2,y2});return this;},
       drawLine(x1,y1,x2,y2){this.ops.push({kind:'line',x1,y1,x2,y2});return this;}};

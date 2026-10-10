@@ -40,24 +40,24 @@ async def exercise(cdp, session, app, output):
     for slot in range(1,5):
         before=app.view()['config']
         await tap(80,55+(slot-1)*44);await wait(f'Preset editor slot {slot}. Name:')
-        await tap(120,80);await tap(125,196) # Character clear, not preset deletion.
-        await tap(49,73);await tap(30,196);await tap(119,73) # A then lowercase b.
-        await tap(80,196) # Space.
-        await tap(205,196);await tap(205,196) # Digits page.
+        await tap(120,80);await tap(120,174) # Character clear, not preset deletion.
+        await tap(49,73);await tap(32,174);await tap(92,60) # A then lowercase b.
+        await tap(76,174) # Space.
+        await tap(208,174);await tap(208,174) # Digits page.
         # 0,1,2,3 are indices 2..5 on the last character page.
-        i=slot+2;await tap(49+i%3*70,73+i//3*31)
-        await tap(49,73);await tap(166,196) # Add/remove y.
+        i=slot+2;await tap(36+i%4*56,60+i//4*38)
+        await tap(49,73);await tap(164,174) # Add/remove y.
         name=f'Ab {slot}';await wait('Input '+name)
         # OK accepts the name, then whole-preset Save persists it.
         await snap(f'slot-{slot}-name');await tap(176,226);await wait('Whole-preset Save');await tap(176,226);await wait('Settings Presets.')
         assert app.view()['config']['presets'][slot-1]['name']==name
         await tap(80,55+(slot-1)*44);await page(3)
         assert app.view()['preset_draft']['dip_included'] is False
-        await tap(120,126);await tap(120,126) # Inclusion does not erase stored value.
+        await tap(120,162);await tap(120,162) # Inclusion does not erase stored value.
         await number('11')
         # Inclusion remains reachable after input opens, in this same transaction.
         for included in (True,False):
-            await tap(120,196);await wait('Dip '+('included' if included else 'omitted')+'.')
+            await tap(186,24);await wait('Dip '+('included' if included else 'omitted')+'.')
             assert app.view()['preset_draft']['dip_included'] is included
             assert app.view()['preset_input']['text']=='11'
             assert app.view()['config']['presets'][slot-1]['dip_included'] is False
@@ -73,7 +73,7 @@ async def exercise(cdp, session, app, output):
         observed.append({'slot':slot,'expected':expected,'observed':app.view()['config']['presets'][slot-1]})
     saved=app.view()['config']
     # Invalid OK keeps this field's entry open without changing its draft.
-    await tap(80,55);await tap(120,80);await tap(125,196)
+    await tap(80,55);await tap(120,80);await tap(120,174)
     await tap(176,226);await wait('name must contain');await snap('invalid-name-save')
     assert app.view()['preset_draft']['name']=='Ab 1'
     assert app.view()['preset_input']['field']=='name'
@@ -100,4 +100,4 @@ async def exercise(cdp, session, app, output):
 
 if __name__=='__main__':
     from browser_local_presets import run
-    asyncio.run(run(exercise,'editor-laptop','preset-values'))
+    asyncio.run(run(exercise,'editor-laptop','touch-layout'))

@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),crypto=require('node:crypto');
 const {environment,flush}=require('./runtime.cjs');
 const {snapshot,dispatchRecordedInput}=require('./preset-editor-runtime.cjs');
-const laptop=JSON.parse(fs.readFileSync('docs/acceptance/evidence/preset-values/navigation-laptop.json'));
+const laptop=JSON.parse(fs.readFileSync('docs/acceptance/evidence/touch-layout/navigation-laptop.json'));
 const plain=value=>JSON.parse(JSON.stringify(value));
 (async()=>{
  const env=environment();let running=env.start(),now=200;env.advance(now);const states=[];
@@ -18,6 +18,6 @@ const plain=value=>JSON.parse(JSON.stringify(value));
  // Shared Settings hierarchy retains independent alert Cancel/back behavior.
  env.advance(now+=200);env.touch(0,120,10);env.touch(1,120,110);env.touch(5,120,155);assert.equal(running.core.view().screen,'alerts');env.touch(2,120,20);assert.equal(running.core.view().screen,'settings');env.touch(2,120,20);assert.equal(running.core.view().screen,'dashboard');
  running.stop();
- fs.writeFileSync('watch/evidence/preset-values/navigation.json',JSON.stringify({spec:'docs/design/preset-value-editor.md',provenance:'exact laptop pointer trace through production CST816 interrupts/main/controls/Graphics/native Storage; simulated inputs, clock, BLE, flash; no device operations',states,saved,storage:env.storageEffects,packets:[],outcome:'passed',source_sha256:Object.fromEntries(fs.readdirSync('watch').filter(n=>n.endsWith('.js')).map(n=>['watch/'+n,crypto.createHash('sha256').update(fs.readFileSync('watch/'+n)).digest('hex')]))},null,2)+'\n');
+ fs.writeFileSync('watch/evidence/touch-layout/navigation.json',JSON.stringify({spec:'docs/design/preset-value-editor.md',provenance:'exact laptop pointer trace through production CST816 interrupts/main/controls/Graphics/native Storage; simulated inputs, clock, BLE, flash; no device operations',states,saved,storage:env.storageEffects,packets:[],outcome:'passed',source_sha256:Object.fromEntries(fs.readdirSync('watch').filter(n=>n.endsWith('.js')).map(n=>['watch/'+n,crypto.createHash('sha256').update(fs.readFileSync('watch/'+n)).digest('hex')]))},null,2)+'\n');
  console.log('watch exact laptop swipe trace, input, rendering, Storage and alert hierarchy: passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});

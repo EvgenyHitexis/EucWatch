@@ -1,5 +1,8 @@
 """Watch-sized alert acceptance through pointer input and the actual backend."""
 import json
+import base64
+import asyncio
+from pathlib import Path
 
 from eucwatch import Application
 
@@ -20,21 +23,31 @@ async def exercise(cdp, session, app, clock):
     async def tap(x, y):
         await pointer((x, y), (x, y))
 
+    async def snapshot(name):
+        output = Path('docs/acceptance/evidence/touch-layout')
+        output.mkdir(parents=True, exist_ok=True)
+        data = await cdp.evaluate("document.querySelector('#watch').toDataURL().split(',')[1]", session)
+        (output / (name + '.png')).write_bytes(base64.b64decode(data))
+
     initial = app.view()['config']
     await pointer((120, 10), (120, 110))
     await label('Settings.')
+    await snapshot('settings')
     await tap(120, 140)
     await label('Alert editor 1 of 4')
+    await snapshot('alerts')
     await tap(120, 88)
     await label('; enabled;')
     await tap(176, 217)
     await label('Error:')
+    await snapshot('alerts-validation')
     assert app.view()['config'] == initial
     assert app.view()['alerts_draft']['pwm'] == {'enabled': True, 'threshold': None}
 
     # All value entry is on the watch; the desktop editor is not used.
     await tap(120, 135)
     await label('Watch threshold keypad.')
+    await snapshot('alert-keypad')
     await tap(49, 140)  # 7
     await label('threshold 7 %')
     await tap(119, 173)  # 0
@@ -44,7 +57,12 @@ async def exercise(cdp, session, app, clock):
     await label('threshold 70 %')
     assert app.view()['alerts_draft']['pwm'] == {'enabled': True, 'threshold': 70}
     assert app.view()['config'] == initial
-    await tap(176, 217)
+    await tap(120, 217)  # The visible gap must not save or discard the draft.
+    await asyncio.sleep(.15)
+    await label('Alert editor 1 of 4')
+    assert app.view()['config'] == initial
+    assert app.view()['alerts_draft']['pwm'] == {'enabled': True, 'threshold': 70}
+    await tap(220, 200)  # Upper edge of the enlarged Save button.
     await label('Settings.')
     expected = json.loads(json.dumps(initial))
     expected['revision'] += 1

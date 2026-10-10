@@ -407,14 +407,16 @@ async def run():
                         assert await cdp.evaluate("!/transfer|synchron|reconcil|conflict/i.test(document.querySelector('.panel').innerText + document.querySelector('canvas').getAttribute('aria-label'))",session)
                         before_removed_touch=behavior.view()
                         await cdp.pointer('#watch',(120,215),(120,215),session)
-                        await cdp.wait("document.querySelector('canvas').dataset.screen==='settings'",session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='preset_slots'",session)
                         assert behavior.view()['config']==before_removed_touch['config']
                         assert behavior.view()['session']==before_removed_touch['session']
                         assert behavior.view()['connected']==before_removed_touch['connected']
+                        await cdp.pointer('#watch',(120,215),(120,20),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='settings'",session)
                         (output/'local-configuration-browser.json').write_text(json.dumps({
                             'issue':40,
                             'provenance':'built Canvas and HTML panel / Chrome CDP / aiohttp / simulated wheel',
-                            'expected':'no transfer, synchronization or conflict entries; former touch leaves Settings, configuration and wheel session unchanged; local backup/import/restore remains usable',
+                            'expected':'no transfer, synchronization or conflict entries; former touch opens local Presets without changing configuration or wheel session; upward return and local backup/import/restore remain usable',
                             'observed':'passed; saved Backup slot and preferences preserved; backup export, review, Cancel, restore and invalid-import refusal exercised earlier in this flow',
                             'source_sha256':{source:hashlib.sha256(Path(source).read_bytes()).hexdigest() for source in ['frontend/src/main.ts','frontend/src/backup.ts','laptop/eucwatch/server.py','tests/browser_flow.py']},
                             'physical_operation':'none'

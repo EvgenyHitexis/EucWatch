@@ -253,11 +253,15 @@ function text(value: string, x: number, y: number, size: number, color = '#fffff
 }
 
 const settingsButtons = [
-  { label: 'Sleep screen', top: 68, action: 'sleep' },
-  { label: 'Vibration alerts', top: 120, action: 'alerts_begin' },
+  { label: 'Sleep screen', top: 44, action: 'sleep' },
+  { label: 'Vibration alerts', top: 108, action: 'alerts_begin' },
   { label: 'Presets', top: 172, action: 'preset_slots' },
 ];
-const settingsButtonHeight = 40;
+const settingsButtonHeight = 56;
+const ridingRects: Rect[] = Array.from({length: 4}, (_, index) => {
+  const x = 9 + index % 2 * 115, y = 36 + Math.floor(index / 2) * 98;
+  return [x, y, x + 106, y + 90];
+});
 
 function render(view: View | null): void {
   const key = JSON.stringify([view, available, alertPage, watchError, thresholdEntry, presetError, liveError]);
@@ -318,8 +322,6 @@ function render(view: View | null): void {
   vibrationStatus.classList.toggle('active', !!vibration?.current);
   document.querySelector<HTMLElement>('#vibration-trace')!.textContent = vibration?.events.map(event => `${event.at_s.toFixed(3)} s · ${alertLabels[event.alert]}${event.test ? ' test' : ''} · ${event.phase} · ${event.duration_s * 1000} ms`).join('\n') ?? '';
   if (!awake) {
-    text('SCREEN ASLEEP', 120, 113, 16, '#777777', 'center');
-    text('Press side button to wake', 120, 140, 12, '#777777', 'center');
     canvas.setAttribute('aria-label', 'Screen asleep. Press the watch physical button to wake only.');
     return;
   }
@@ -338,15 +340,14 @@ function render(view: View | null): void {
     text(screen === 'presets' ? 'RIDING PRESETS' : 'SETTINGS', 120, 26, 15, '#ffffff', 'center');
     if (screen === 'presets') {
       for (let i = 0; i < 4; i++) {
-        const x = 9 + (i % 2) * 115;
-        const y = 43 + Math.floor(i / 2) * 81;
+        const [x, y, right, bottom] = ridingRects[i];
         const preset = view?.config?.presets[i];
         const color = preset?.configured ? '#ffffff' : '#777777';
         ctx.strokeStyle = color;
-        ctx.strokeRect(x, y, 106, 72);
-        drawPresetName(preset?.name ?? `Preset ${i + 1}`, x + 53, y + 24, color);
+        ctx.strokeRect(x, y, right - x, bottom - y);
+        drawPresetName(preset?.name ?? `Preset ${i + 1}`, x + 53, y + 42, color);
         const eligible = view?.presets_menu?.[i]?.available && available;
-        text(preset?.configured ? (eligible ? 'Tap to apply' : 'Unavailable') : 'Unconfigured', x + 53, y + 60, 10, color, 'center');
+        if (!eligible) text(preset?.configured ? 'Unavailable' : 'Unconfigured', x + 53, y + 76, 10, color, 'center');
       }
       const names = (view?.config?.presets ?? [1, 2, 3, 4].map(id => ({ id, name: `Preset ${id}`, configured: false }))).map(preset => `slot ${preset.id}: ${preset.name}, ${preset.configured ? 'configured' : 'unconfigured'}`).join('; ');
       canvas.setAttribute('aria-label', `Preset menu. Four fixed slots: ${names}. ${view?.presets_menu?.some(slot=>slot.available) && available ? 'Tap one eligible slot to apply immediately.' : 'Application unavailable.'} Swipe right to return without applying.${view?.horn_feedback ? ` ${view.horn_feedback.message}` : ''}`);
@@ -358,7 +359,10 @@ function render(view: View | null): void {
       }
       canvas.setAttribute('aria-label', 'Settings. Sleep screen. Vibration alerts. Presets. Swipe up to return without saving.'+(view?.horn_feedback ? ` ${view.horn_feedback.message}` : ''));
     }
-    text(view?.horn_feedback?.message ?? (screen === 'presets' ? '‹ Swipe right to return' : 'Swipe up to return'), 120, 228, 11, '#ffffff', 'center');
+    if (view?.horn_feedback) {
+      ctx.fillStyle = '#000000'; ctx.fillRect(0, 0, 240, 32);
+      text(view.horn_feedback.message, 120, 22, 11, '#ffffff', 'center');
+    }
     return;
   }
   const d = view?.dashboard;
@@ -480,50 +484,49 @@ function drawPresetName(name: string, x: number, y: number, color: string): void
   }
 }
 
+type Rect = readonly [number, number, number, number];
+const alertRects = {
+  previous: [8, 0, 56, 44], next: [184, 0, 232, 44],
+  toggle: [12, 52, 228, 92], decrease: [12, 100, 60, 140], threshold: [68, 100, 172, 140], increase: [180, 100, 228, 140],
+  test: [12, 148, 228, 188], cancel: [12, 196, 116, 236], save: [124, 196, 228, 236],
+} as const;
+const thresholdKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'backspace'].map((key, index) => {
+  const x = 12 + index % 3 * 74, y = 52 + Math.floor(index / 3) * 35;
+  return {key, rect: [x, y, x + 68, y + 32] as Rect};
+});
+function hit(rect: Rect, x: number, y: number): boolean { return x >= rect[0] && x <= rect[2] && y >= rect[1] && y <= rect[3]; }
+function watchButton(rect: Rect, label: string, size = 16): void {
+  ctx.strokeStyle = '#ffffff'; ctx.strokeRect(rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1]);
+  text(label, (rect[0] + rect[2]) / 2, (rect[1] + rect[3]) / 2 + size / 3, size, '#ffffff', 'center');
+}
 function renderWatchAlerts(draft: AlertSettings): void {
-  const name = alertNames[alertPage];
-  const setting = draft[name];
+  const name = alertNames[alertPage], setting = draft[name];
   const error = watchError || current?.persistence_error || '';
   if (thresholdEntry !== null && name !== 'lost') {
-    text(`${alertLabels[name]} threshold`, 120, 22, 14, '#ffffff', 'center');
-    text(`${thresholdEntry || '—'} ${alertUnits[name]}`, 120, 49, 22, '#ffffff', 'center');
-    const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'];
-    for (let i = 0; i < keys.length; i++) {
-      const x = 16 + (i % 3) * 70;
-      const y = 59 + Math.floor(i / 3) * 33;
-      ctx.strokeStyle = '#ffffff';
-      ctx.strokeRect(x, y, 66, 30);
-      text(keys[i], x + 33, y + 22, 20, '#ffffff', 'center');
-    }
-    ctx.strokeRect(12, 202, 104, 30);
-    ctx.strokeRect(124, 202, 104, 30);
-    text('Cancel', 64, 223, 14, '#ffffff', 'center');
-    text('Set value', 176, 223, 14, '#ffffff', 'center');
+    text(alertLabels[name], 120, 14, 12, '#ffffff', 'center');
+    text(`${thresholdEntry || '—'} ${alertUnits[name]}`, 120, 39, 20, '#ffffff', 'center');
+    thresholdKeys.forEach(({key, rect}) => watchButton(rect, key === 'backspace' ? '<' : key, 18));
+    watchButton(alertRects.cancel, 'Cancel'); watchButton(alertRects.save, 'Set value');
     canvas.setAttribute('aria-label', `Watch threshold keypad. ${alertLabels[name]} threshold ${thresholdEntry || 'empty'} ${alertUnits[name]}. Digits 1 through 9, decimal point, 0, backspace. Cancel or Set value updates the unsaved draft.`);
     canvas.dataset.alert = name;
     return;
   }
-  text('‹', 20, 25, 24);
-  text(`ALERTS ${alertPage + 1}/4`, 120, 22, 13, '#ffffff', 'center');
-  text('›', 219, 25, 24);
-  text(error ? error.slice(0, 34) : alertLabels[name], 120, 55, error ? 11 : 18, '#ffffff', 'center');
-  ctx.strokeStyle = '#ffffff';
-  ctx.strokeRect(12, 70, 216, 37);
-  text(setting.enabled ? 'Enabled · tap to switch' : 'Disabled · tap to switch', 120, 94, 13, '#ffffff', 'center');
+  watchButton(alertRects.previous, '‹', 24); watchButton(alertRects.next, '›', 24);
+  if (error) {
+    text(error.slice(0, 23), 120, 17, 10, '#ffffff', 'center');
+    text(error.slice(23, 46), 120, 32, 10, '#ffffff', 'center');
+  } else {
+    text(alertLabels[name], 120, 18, 12, '#ffffff', 'center');
+    text(`${alertPage + 1}/4`, 120, 36, 12, '#ffffff', 'center');
+  }
+  watchButton(alertRects.toggle, setting.enabled ? 'Enabled' : 'Disabled');
   if (name !== 'lost') {
-    ctx.strokeRect(12, 117, 39, 36);
-    ctx.strokeRect(189, 117, 39, 36);
-    text('−', 32, 142, 23, '#ffffff', 'center');
-    text('+', 209, 142, 23, '#ffffff', 'center');
+    watchButton(alertRects.decrease, '−', 22); watchButton(alertRects.increase, '+', 22);
     const threshold = (setting as MeasurementAlert).threshold;
-    text(threshold === null ? 'Not set' : `${threshold} ${alertUnits[name]}`, 120, 141, 18, '#ffffff', 'center');
-  } else text('One weakest short pulse', 120, 139, 12, '#ffffff', 'center');
-  ctx.strokeRect(12, 163, 216, 30);
-  text('Test vibration pattern', 120, 183, 12, '#ffffff', 'center');
-  ctx.strokeRect(12, 202, 104, 30);
-  ctx.strokeRect(124, 202, 104, 30);
-  text('Cancel', 64, 223, 14, '#ffffff', 'center');
-  text('Save', 176, 223, 14, '#ffffff', 'center');
+    watchButton(alertRects.threshold, threshold === null ? 'Not set' : `${threshold} ${alertUnits[name]}`);
+  } else text('1 short pulse', 120, 125, 14, '#ffffff', 'center');
+  watchButton(alertRects.test, 'Test vibration');
+  watchButton(alertRects.cancel, 'Cancel'); watchButton(alertRects.save, 'Save');
   const thresholdText = name === 'lost' ? '' : `; threshold ${(setting as MeasurementAlert).threshold ?? 'not configured'} ${alertUnits[name]}`;
   canvas.setAttribute('aria-label', `Alert editor ${alertPage + 1} of 4. ${alertLabels[name]}; ${setting.enabled ? 'enabled' : 'disabled'}${thresholdText}. Previous and next alert; toggle enabled; decrease or increase threshold or tap value for keypad; Test vibration pattern; Cancel; Save. Unsaved draft.${error ? ` Error: ${error}` : ''}`);
   canvas.dataset.alert = name;
@@ -534,34 +537,33 @@ function watchAlertTap(x: number, y: number): void {
   if (!draft) return;
   const name = alertNames[alertPage];
   if (thresholdEntry !== null && name !== 'lost') {
-    if (y >= 202 && y <= 232) {
+    if (hit(alertRects.cancel, x, y) || hit(alertRects.save, x, y)) {
       const value = thresholdEntry;
       thresholdEntry = null;
-      if (x >= 120) enqueueWatch('alerts_update', { alert: name, threshold: value === '' ? null : Number(value) });
-    } else if (x >= 16 && x < 222 && y >= 59 && y < 188) {
-      const column = Math.floor((x - 16) / 70);
-      const row = Math.floor((y - 59) / 33);
-      const key = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'backspace'][row * 3 + column];
+      if (hit(alertRects.save, x, y)) enqueueWatch('alerts_update', { alert: name, threshold: value === '' ? null : Number(value) });
+    } else {
+      const key = thresholdKeys.find(item => hit(item.rect, x, y))?.key;
       if (key === 'backspace') thresholdEntry = thresholdEntry.slice(0, -1);
       else if (key === '.' && !thresholdEntry.includes('.')) thresholdEntry += key;
       else if (key && key !== '.' && thresholdEntry.length < 8) thresholdEntry += key;
     }
     return;
   }
-  if (y <= 33 && (x <= 45 || x >= 195)) {
-    alertPage = (alertPage + (x <= 45 ? 3 : 1)) % 4;
+  if (hit(alertRects.previous, x, y) || hit(alertRects.next, x, y)) {
+    alertPage = (alertPage + (hit(alertRects.previous, x, y) ? 3 : 1)) % 4;
     watchError = '';
-  } else if (y >= 70 && y <= 107) {
+  } else if (hit(alertRects.toggle, x, y)) {
     enqueueWatch('alerts_update', { alert: name, enabled: !draft[name].enabled });
-  } else if (name !== 'lost' && y >= 117 && y <= 153 && x > 51 && x < 189) {
+  } else if (name !== 'lost' && hit(alertRects.threshold, x, y)) {
     const threshold = (draft[name] as MeasurementAlert).threshold;
     thresholdEntry = threshold === null ? '' : String(threshold);
-  } else if (name !== 'lost' && y >= 117 && y <= 153 && (x <= 51 || x >= 189)) {
+  } else if (name !== 'lost' && (hit(alertRects.decrease, x, y) || hit(alertRects.increase, x, y))) {
     const threshold = (draft[name] as MeasurementAlert).threshold;
-    const changed = threshold === null ? 0 : threshold + (x <= 51 ? -1 : 1);
+    const changed = threshold === null ? 0 : threshold + (hit(alertRects.decrease, x, y) ? -1 : 1);
     enqueueWatch('alerts_update', { alert: name, threshold: Math.max(0, Math.min(name === 'speed' ? 3276.7 : 100, changed)) });
-  } else if (y >= 163 && y <= 193) enqueueWatch('alert_test', { alert: name });
-  else if (y >= 202 && y <= 232) enqueueWatch(x < 120 ? 'alerts_cancel' : 'alerts_save');
+  } else if (hit(alertRects.test, x, y)) enqueueWatch('alert_test', { alert: name });
+  else if (hit(alertRects.cancel, x, y)) enqueueWatch('alerts_cancel');
+  else if (hit(alertRects.save, x, y)) enqueueWatch('alerts_save');
 }
 
 document.querySelector('#alerts-edit')!.addEventListener('click', () => { alertPage = 0; thresholdEntry = null; void action('alerts_begin'); });
@@ -674,13 +676,8 @@ canvas.addEventListener('pointerup', event => {
       }
     }
   } else if (Math.abs(dx)<12 && Math.abs(dy)<12 && current?.screen==='presets') {
-    const column=end.x>=124 ? 1 : 0;
-    const row=end.y>=124 ? 1 : 0;
-    const left=9+column*115,top=43+row*81;
-    if(end.x>=left && end.x<=left+106 && end.y>=top && end.y<=top+72) {
-      const slot=column+row*2+1;
-      if(current.presets_menu?.[slot-1]?.available) enqueueWatch('preset_apply',{slot});
-    }
+    const index = ridingRects.findIndex(rect => hit(rect, end.x, end.y));
+    if (index >= 0 && current.presets_menu?.[index]?.available) enqueueWatch('preset_apply', {slot: index + 1});
   }
 });
 canvas.addEventListener('pointercancel', () => { gesture = null; });

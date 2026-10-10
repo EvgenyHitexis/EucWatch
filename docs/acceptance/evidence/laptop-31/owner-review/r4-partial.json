@@ -1,0 +1,55 @@
+{
+  "issue": 31,
+  "review": "R4 alert settings \u2014 partial",
+  "provenance": "Owner-operated isolated simulator; completion reply and read-only backend state",
+  "checkpoints": [
+    {
+      "checkpoint": "attempt Save with PWM enabled and no threshold",
+      "owner_report": "done. but it did not returned to settings screen",
+      "observed": {
+        "screen": "settings",
+        "feedback": "Wake only",
+        "alerts_draft": {
+          "pwm": {
+            "enabled": true,
+            "threshold": null
+          },
+          "speed": {
+            "enabled": false,
+            "threshold": null
+          },
+          "battery": {
+            "enabled": false,
+            "threshold": null
+          },
+          "lost": {
+            "enabled": true
+          }
+        },
+        "saved_alerts": {
+          "pwm": {
+            "enabled": false,
+            "threshold": null
+          },
+          "speed": {
+            "enabled": false,
+            "threshold": null
+          },
+          "battery": {
+            "enabled": false,
+            "threshold": null
+          },
+          "lost": {
+            "enabled": true
+          }
+        },
+        "configuration_revision": 1,
+        "persistence_error": null,
+        "command_events": []
+      }
+    }
+  ],
+  "result": "incomplete; owner stopped testing after the missing-threshold Save check",
+  "owner_feedback": "Remove the on-screen hints and improve spacing and touch areas for the small watch. Owner confirmed: Yes\u2014remove those hints.",
+  "continuation": "Walkthrough remains paused; the touch layout revision requires a new owner review."
+}

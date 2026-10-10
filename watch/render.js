@@ -5,36 +5,49 @@ exports.draw = function (g, state) {
     g.setColor(1); g.setFont('Vector', size); g.setFontAlign(align || 0, -1);
     g.drawString(String(value), x, y);
   }
-  function controls(){require('sw-controls').targets(state).forEach(function(target){var r=target.rect,preset=state.screen==='preset_slots'||state.screen==='preset_editor',settings=state.screen==='settings',size=settings?16:preset?Math.max(8,Math.min(15,Math.floor((r[2]-r[0]-8)/(target.label.length*0.65)))):target.label.length>12?13:15;g.setColor(1);g.drawRect(r[0],r[1],r[2],r[3]);text(target.label,(r[0]+r[2])/2,(r[1]+r[3])/2-(preset||settings?size/2:7),size);});}
+  function fittedSize(value,size,width){
+    g.setFont('Vector',size);
+    while(size>1&&g.stringWidth(String(value))>width){size--;g.setFont('Vector',size);}
+    return size;
+  }
+  function controls(){require('sw-controls').targets(state).forEach(function(target){
+    var r=target.rect,width=r[2]-r[0],size=target.action==='preset_input_begin'?22:width<=48?12:16;
+    size=fittedSize(target.label,size,width-8);
+    g.setColor(1);g.drawRect(r[0],r[1],r[2],r[3]);text(target.label,(r[0]+r[2])/2,(r[1]+r[3])/2-size/2,size);
+  });}
   g.clear();
   if (!state.awake) return;
   if (state.recovery) { text('RECOVERY',120,90,24); text('Wheel controls unavailable',120,125,12); g.flip(); return; }
   if(state.screen==='preset_slots'){
-    text('SETTINGS - PRESETS',120,9,14);controls();text((state.persistence_error||'Tap to edit; swipe up to return').slice(0,36),120,221,10);
+    text(state.persistence_error?state.persistence_error.slice(0,38):'PRESETS',120,7,state.persistence_error?10:15);controls();
   }else if(state.screen==='preset_editor'){
     var slot=state.preset_draft,page=state.preset_page,labels=require('sw-preset-editor').labels;
     if(slot){
-      var notice=state.validation_error||state.persistence_error||'';
-      if(!state.preset_input||!notice)text(labels[page],120,9,12);
+      var notice=(state.validation_error||state.persistence_error||'').replace('Configuration save failed: Error: ','Save failed: ').replace(/^Error: /,'');
       controls();
       if(state.preset_input){
-        var input=state.preset_input;
-        if(notice){var reason=notice.replace('Configuration save failed: Error: ','Save failed: ').replace(/^Error: /,'');text(reason.slice(0,35),120,1,10);text(reason.slice(35,70),120,14,10);}
-        text(input.text||'-',120,33,Math.min(18,Math.floor(216/(Math.max(1,input.text.length)*0.65))));
+        notice=notice.replace(/^.*: enter a whole percentage 0-100$/,'Enter whole % (0-100)');
+        var input=state.preset_input,dip=input.field==='pedal_dip_compensation',center=dip?74:120,width=dip?124:216,length=dip?24:38;
+        if(notice){text(notice.slice(0,length),center,1,10);text(notice.slice(length,length*2),center,13,10);}
+        else text(dip?'Pedal dip %':labels[page],center,2,12);
+        text(input.text||'-',center,notice?26:21,fittedSize(input.text||'-',notice?16:20,width));
       }else{
-        text('SLOT '+slot.id+' - '+(page+1)+'/4',120,36,14);
-        text('Left/right fields; up cancels',120,148,12);text(notice.slice(0,38),120,183,10);
+        var heading=notice||labels[page],split=notice?23:page===3?9:heading.length;
+        text(heading.slice(0,split),120,8,notice?10:12);text(heading.slice(split,notice?split*2:undefined),120,23,notice?10:12);
+        text('SLOT '+slot.id+' - '+(page+1)+'/4',120,49,12);
       }
     }
   }else if (state.screen === 'presets') {
     text('RIDING PRESETS',120,10,15);
     var result=state.preset_attempt;
     if(result&&!result.pending)text('At attempt: actual/requested · now = fresh value',120,28,8);
-    for (i=0;i<4;i++) {
-      x=9+(i%2)*115; y=43+Math.floor(i/2)*81;
-      g.setColor(1); g.drawRect(x,y,x+105,y+71);
-      text(state.presets[i].name,x+53,y+22,14);
-      text(state.presets[i].configured?(state.presets_menu[i].available?'Tap to apply':'Unavailable'):'Unconfigured',x+53,y+48,10);
+    var presetTargets=require('sw-controls').targets(state);
+    for (i=0;i<presetTargets.length;i++) {
+      var target=presetTargets[i],r=target.rect,height=r[3]-r[1];
+      g.setColor(1);g.drawRect(r[0],r[1],r[2],r[3]);
+      var size=fittedSize(target.label,14,r[2]-r[0]-8);
+      text(target.label,(r[0]+r[2])/2,r[1]+height/2-size/2,size);
+      if(target.disabled)text(state.presets[i].configured?'Unavailable':'Unconfigured',(r[0]+r[2])/2,r[3]-18,10);
     }
     if(result&&!result.pending&&!state.horn_feedback){
       var labels={pedal_sensitivity:'Sensitivity',dynamic_assist:'Assist',pedal_dip_compensation:'Dip'};
@@ -43,25 +56,20 @@ exports.draw = function (g, state) {
         if(current!==null&&current!==field.actual)line+=' now '+current;
         text(line,120,200+index*12,9);
       });
-    }else text(state.horn_feedback?state.horn_feedback.message:'Swipe right to return',120,216,11);
+    }else if(state.horn_feedback){g.setColor(0);g.fillRect(0,0,239,31);text(state.horn_feedback.message,120,10,11);}
   } else if (state.screen === 'settings') {
-    text('SETTINGS',120,10,15);
-    controls();
-    text(state.horn_feedback?state.horn_feedback.message:state.validation_error?state.validation_error:state.persistence_error?'Configuration needs review':'Swipe up to return',120,228,9);
+    var message=state.horn_feedback?state.horn_feedback.message:state.validation_error|| (state.persistence_error?'Configuration needs review':'');
+    text(message||'SETTINGS',120,10,message?10:15);controls();
   }else if(state.screen==='alerts'){
     var name=['pwm','speed','battery','lost'][state.alert_page];
-    text('VIBRATION ALERTS '+(state.alert_page+1)+'/4',120,9,14);
-    if(state.horn_feedback)text(state.horn_feedback.message,120,25,8);
-    text({pwm:'High PWM',speed:'High speed',battery:'Low wheel battery',lost:'Lost telemetry'}[name],12,41,13,-1);
     controls();
-    if(name==='lost')text('One short pulse',120,90,14);
-    else text(name==='speed'?'km/h':'%',120,114,10);
-    if(state.validation_error||state.persistence_error)text((state.validation_error||state.persistence_error).replace(/^Error: /,'').slice(0,35),120,153,11);
-    else if(state.vibration.output_error)text('Vibration output unavailable',120,153,11);
+    var message=state.validation_error||state.persistence_error||(state.vibration.output_error?'Vibration output unavailable':'')||(state.horn_feedback?state.horn_feedback.message:'');
+    if(message){message=message.replace(/^Error: /,'');text(message.slice(0,23),120,7,10);text(message.slice(23,46),120,22,10);}
+    else {text({pwm:'High PWM',speed:'High speed',battery:'Low wheel battery',lost:'Lost telemetry'}[name],120,6,12);text((state.alert_page+1)+'/4',120,24,12);}
+    if(name==='lost')text('1 short pulse',120,111,14);
   }else if(state.screen==='threshold'){
-    text(state.threshold_input.text||'Enter threshold',120,9,18);controls();
-    if(state.horn_feedback)text(state.horn_feedback.message,120,28,8);
-    else if(state.validation_error)text('Invalid threshold',120,27,11);
+    text(state.validation_error?'Invalid threshold':{pwm:'High PWM',speed:'High speed',battery:'Low wheel battery'}[state.threshold_input.alert],120,2,12);
+    text((state.threshold_input.text||'-')+(state.threshold_input.alert==='speed'?' km/h':' %'),120,20,20);controls();
   } else if(state.screen==='connection'){
     text('SELECT WHEEL',120,10,15);
     if(state.horn_feedback)text(state.horn_feedback.message,120,27,8);
@@ -71,7 +79,6 @@ exports.draw = function (g, state) {
       text((state.devices[i].name||'Unnamed wheel').slice(0,22),120,y+4,13);
       text(state.devices[i].id,120,y+19,9);
     }
-    text('Swipe up to return',120,216,11);
   } else {
     text('SHERMAN L',12,9,11,-1);
     text('W '+d.watch_battery_percent+'%',228,9,11,1);

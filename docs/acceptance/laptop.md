@@ -11,10 +11,13 @@ Historical evidence below retains only its original demonstrated scope.
 
 **#31 remains incomplete.** The owner approved the appearance (“I like how app
 looks”); complete behavioral owner review and required live evidence are pending.
-The next owner action is the [isolated simulator walkthrough](laptop-owner-review.md).
+The [isolated simulator walkthrough](laptop-owner-review.md) is paused at the
+owner's request during R4. The [touch layout revision](watch-touch-layout.md)
+addresses the owner's feedback about hints, spacing and small controls and
+awaits owner review.
 The research worktree and private captures remain outside this implementation.
 
-Owner walkthrough progress: [R1 dashboard/freshness/reconnect observed pass](evidence/laptop-31/owner-review/r1.json),
+Owner walkthrough progress on the previous layout: [R1 dashboard/freshness/reconnect observed pass](evidence/laptop-31/owner-review/r1.json),
 with six owner-supplied screenshots and a completed 7/7 simulator scenario.
 [R2 navigation and sleep also passed](evidence/laptop-31/owner-review/r2.json),
 including wake-only button behavior and riding-menu entry/return without commands.

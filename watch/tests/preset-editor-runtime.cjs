@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {environment,flush}=require('./runtime.cjs');
 const {frame}=require('./preset-editor.cjs');
 const plain=value=>JSON.parse(JSON.stringify(value));
-const out='watch/evidence/preset-values';
+const out='watch/evidence/touch-layout';
 function snapshot(env,name){
   fs.mkdirSync(out,{recursive:true});
   const escape=value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
@@ -32,7 +32,7 @@ async function replay(file,name){
     if(state.screen==='preset_editor')assert.ok(targets.some(t=>t.label===(state.preset_input?'OK':'Save'))&&targets.some(t=>t.label==='Cancel'));
     if(state.preset_input&&state.preset_input.field==='pedal_dip_compensation'){
       assert.ok(targets.some(t=>t.action==='preset_include_dip'),'inclusion remains reachable with active numeric input');
-      if((event.end||[])[1]===196){
+      if((event.end||[])[0]===186&&(event.end||[])[1]===24){
         assert.equal(state.preset_input.text,'11');
         assert.equal(state.preset_draft.dip_included,!states.at(-1).draft.dip_included);
         assert.equal(state.config.presets[state.preset_draft.id-1].dip_included,false);
@@ -93,7 +93,7 @@ async function failures(){
   results.push({mode:'pending-native-write-and-disconnect',chunks:env.bleWrites,config:plain(running.core.view().config)});running.stop();return results;
 }
 if(require.main===module)(async()=>{
-  const trace=await replay('docs/acceptance/evidence/preset-values/editor-laptop.json','editor');
+  const trace=await replay('docs/acceptance/evidence/touch-layout/editor-laptop.json','editor');
   const faults=await failures();
   fs.writeFileSync(out+'/editor.json',JSON.stringify({spec:'docs/design/preset-value-editor.md',provenance:'production main/CST816/Graphics/parser/GATT/native Storage; simulated physical inputs, time, BLE and flash; no hardware operations',trace,faults,source_sha256:Object.fromEntries(fs.readdirSync('watch').filter(n=>n.endsWith('.js')).map(n=>['watch/'+n,crypto.createHash('sha256').update(fs.readFileSync('watch/'+n)).digest('hex')]))},null,2)+'\n');
   console.log('watch native local editor: laptop trace, Graphics, Storage faults, restart and stopped continuation passed');

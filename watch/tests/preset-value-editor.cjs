@@ -9,7 +9,14 @@ let now=200;env.advance(now);
 function tap(x,y){env.touch(5,x,y);env.advance(now+=200);return running.core.view();}
 env.touch(0,120,10);env.touch(1,120,110);tap(120,196);tap(80,143);
 const initial=plain(running.core.view().config),writes=env.storageEffects.length;
-tap(120,80);tap(125,196);tap(49,73);
+// The lower part of the enlarged value button opens entry; the footer gap is inert.
+tap(120,125);
+assert.equal(running.core.view().preset_input.field,'name');
+tap(120,216);
+assert.equal(running.core.view().preset_input.field,'name');
+tap(20,205);
+assert.equal(running.core.view().preset_input,null);
+tap(120,80);tap(120,174);tap(49,73);
 let state=tap(176,226);
 assert.equal(state.screen,'preset_editor');
 assert.equal(state.preset_input,null);
@@ -42,8 +49,30 @@ tap(64,226);tap(80,187);tap(120,80);
 assert.throws(()=>running.core.action('preset_input_accept',stale),/changed/);
 assert.equal(env.bleWrites.length,0);
 running.stop();
+// Valid wide names fit both their slot row and the field value area.
+const wide=environment(),wideApp=wide.start();wide.advance(200);
+let wideNow=200;
+function wideAction(action,payload={}){try{return wideApp.core.action(action,{editor_id:wideApp.core.view().preset_editor?.id,entry_id:wideApp.core.view().preset_input?.id,...payload});}finally{wide.advance(wideNow+=200);}}
+const wideName='W'.repeat(24);
+wideAction('preset_begin',{slot:1});
+wideAction('preset_update',{name:wideName});
+let drawn=wide.context.graphics.ops.find(op=>op.kind==='text'&&op.value===wideName);
+assert.ok(drawn.width<=208,'the complete field value fits inside its button');
+wideAction('preset_save');
+drawn=wide.context.graphics.ops.find(op=>op.kind==='text'&&op.value==='1 '+wideName);
+assert.ok(drawn.width<=208,'the complete saved name fits its selection row');
+wideAction('preset_begin',{slot:1});wideAction('preset_page',{page:3});
+wideAction('preset_input_begin');wideAction('preset_input_key',{key:'Clear'});
+for(const key of '101')wideAction('preset_input_key',{key});
+wideAction('preset_input_accept');
+assert.match(wideApp.core.view().preset_editor.reason,/whole percentage/);
+const value=wide.context.graphics.ops.find(op=>op.kind==='text'&&op.value==='101');
+const reason=wide.context.graphics.ops.find(op=>op.kind==='text'&&op.value.includes('0-100'));
+assert.ok(reason,'the complete range remains visible beside invalid dip input');
+assert.ok(reason.y+reason.size<=value.y,'the reason and entered value do not overlap');
+wideApp.stop();
 // Replay the actual laptop pointer trace through CST816/main/Graphics/Storage.
-const tracePath='docs/acceptance/evidence/preset-values/value-editor-laptop.json';
+const tracePath='docs/acceptance/evidence/touch-layout/value-editor-laptop.json';
 const trace=JSON.parse(fs.readFileSync(tracePath));
 const native=environment();let app=native.start(),time=200;native.advance(time);
 const renderings=[];
@@ -68,8 +97,8 @@ const saved=plain(app.core.view().config);
 assert.equal(saved.presets[2].name,'Commute');assert.equal(saved.presets[2].pedal_sensitivity,41);
 assert.equal(saved.revision,2);
 app.stop();app=native.start();assert.deepEqual(plain(app.core.view().config),saved);app.stop();
-fs.mkdirSync('watch/evidence/preset-values',{recursive:true});
-fs.writeFileSync('watch/evidence/preset-values/value-editor.json',JSON.stringify({
+fs.mkdirSync('watch/evidence/touch-layout',{recursive:true});
+fs.writeFileSync('watch/evidence/touch-layout/value-editor.json',JSON.stringify({
   spec:trace.spec,provenance:'Actual laptop pointer trace through native CST816/main/Graphics/Storage; simulated hardware, clock, flash and BLE',
   trace:tracePath,trace_sha256:crypto.createHash('sha256').update(fs.readFileSync(tracePath)).digest('hex'),
   events:trace.timeline.length,renderings,saved,storage:native.storageEffects,packets:[],stale_actions:'rejected',outcome:'passed'

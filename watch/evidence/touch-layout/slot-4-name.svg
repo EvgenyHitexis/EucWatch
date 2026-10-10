@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><rect width="240" height="240" fill="black"/><g fill="white" font-family="sans-serif"><rect x="12" y="44" width="48" height="32" fill="none" stroke="white"/>
+<text x="36" y="66" font-size="12" text-anchor="middle">A</text>
+<rect x="68" y="44" width="48" height="32" fill="none" stroke="white"/>
+<text x="92" y="66" font-size="12" text-anchor="middle">B</text>
+<rect x="124" y="44" width="48" height="32" fill="none" stroke="white"/>
+<text x="148" y="66" font-size="12" text-anchor="middle">C</text>
+<rect x="180" y="44" width="48" height="32" fill="none" stroke="white"/>
+<text x="204" y="66" font-size="12" text-anchor="middle">D</text>
+<rect x="12" y="82" width="48" height="32" fill="none" stroke="white"/>
+<text x="36" y="104" font-size="12" text-anchor="middle">E</text>
+<rect x="68" y="82" width="48" height="32" fill="none" stroke="white"/>
+<text x="92" y="104" font-size="12" text-anchor="middle">F</text>
+<rect x="124" y="82" width="48" height="32" fill="none" stroke="white"/>
+<text x="148" y="104" font-size="12" text-anchor="middle">G</text>
+<rect x="180" y="82" width="48" height="32" fill="none" stroke="white"/>
+<text x="204" y="104" font-size="12" text-anchor="middle">H</text>
+<rect x="12" y="120" width="48" height="32" fill="none" stroke="white"/>
+<text x="36" y="142" font-size="12" text-anchor="middle">I</text>
+<rect x="68" y="120" width="48" height="32" fill="none" stroke="white"/>
+<text x="92" y="142" font-size="12" text-anchor="middle">J</text>
+<rect x="124" y="120" width="48" height="32" fill="none" stroke="white"/>
+<text x="148" y="142" font-size="12" text-anchor="middle">K</text>
+<rect x="180" y="120" width="48" height="32" fill="none" stroke="white"/>
+<text x="204" y="142" font-size="12" text-anchor="middle">L</text>
+<rect x="12" y="158" width="40" height="32" fill="none" stroke="white"/>
+<text x="32" y="180" font-size="12" text-anchor="middle">a/A</text>
+<rect x="56" y="158" width="40" height="32" fill="none" stroke="white"/>
+<text x="76" y="179.5" font-size="11" text-anchor="middle">Space</text>
+<rect x="100" y="158" width="40" height="32" fill="none" stroke="white"/>
+<text x="120" y="179.5" font-size="11" text-anchor="middle">Clear</text>
+<rect x="144" y="158" width="40" height="32" fill="none" stroke="white"/>
+<text x="164" y="180" font-size="12" text-anchor="middle">&lt;</text>
+<rect x="188" y="158" width="40" height="32" fill="none" stroke="white"/>
+<text x="208" y="180" font-size="12" text-anchor="middle">1/3</text>
+<rect x="12" y="196" width="104" height="40" fill="none" stroke="white"/>
+<text x="64" y="224" font-size="16" text-anchor="middle">Cancel</text>
+<rect x="124" y="196" width="104" height="40" fill="none" stroke="white"/>
+<text x="176" y="224" font-size="16" text-anchor="middle">OK</text>
+<text x="120" y="14" font-size="12" text-anchor="middle">Name</text>
+<text x="120" y="41" font-size="20" text-anchor="middle">A</text></g></svg>

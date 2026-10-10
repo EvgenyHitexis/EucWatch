@@ -1,0 +1,41 @@
+$ uv run --offline --no-sync --project experiments/laptop-feasibility python tests/browser_local_presets.py
+defaults-laptop: passed
+$ uv run --offline --no-sync --project experiments/laptop-feasibility python tests/browser_preset_value_editor.py
+value-editor-laptop: passed
+$ node watch/tests/offline.cjs
+watch source fixture dashboard: passed
+watch parsing, freshness, battery boundaries, navigation and wake cycles: passed
+$ node watch/tests/runtime.cjs
+actual watch entry/hardware, battery, touch/button, fake direct BLE and recovery: passed
+$ node watch/tests/alerts.cjs
+watch PWM test vibration through public application: passed
+watch alert explicit Save/Cancel, validation, restart and back discard: passed
+watch lost telemetry initial suppression, weakest pattern and fresh-data rearm: passed
+watch PWM crossing/repeat/hysteresis, immediate Save and every-frame evaluation: passed
+watch speed five-second repeat and battery crossing/continuous rearm: passed
+watch priority/nonoverlap, stale cancellation and missed-pulse suppression: passed
+watch complete validation, ongoing editor and bounded diagnostic history: passed
+$ node watch/tests/alerts-runtime.cjs
+watch physical editor and actual active-high motor adapter: passed
+$ node watch/tests/compare-alerts.cjs
+watch/laptop public application alert/editing traces: 322 states matched
+$ node watch/tests/control.cjs
+watch one-tap moving preset, serial omitted-dip submission and two-frame confirmation: passed
+watch sleeping wake-only cycle, fresh single horn request and discarded stale holds: passed
+watch cached/mixed/late rejection, partial/terminal results, deadlines, fresh retry and definition invalidation: passed
+watch/laptop identical actual raw/action traces: success, partial rejection and stale/late callbacks passed
+watch same-session 2v14 property-selected 20-byte writer, horn request, bounded hang and late rejection: passed
+$ node watch/tests/local-configuration.cjs
+watch local configuration, withdrawn entry points, restart/save recovery and independent recovery UART: passed
+$ node watch/tests/preset-defaults.cjs
+watch defaults/migration/recovery/native lists/application: passed
+$ node watch/tests/preset-editor.cjs
+watch local drafts, retry, stale completion/reload and retired actions: passed
+$ node watch/tests/preset-editor-runtime.cjs
+watch native local editor: laptop trace, Graphics, Storage faults, restart and stopped continuation passed
+$ node watch/tests/preset-navigation.cjs
+watch exact laptop swipe trace, input, rendering, Storage and alert hierarchy: passed
+$ node watch/tests/preset-value-editor.cjs
+watch value completion, validation, stale actions, laptop parity and Storage retry/restart: passed
+$ node watch/tests/preset-editor-bundle.cjs
+complete versioned watch bundle, synthetic staging/activation and independent recovery: passed (72615351)

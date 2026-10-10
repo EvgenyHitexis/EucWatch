@@ -47,16 +47,24 @@ async def exercise(cdp, session, app, output):
     await pointer((120, 10), (120, 110))
     await tap(120, 196)
     await tap(80, 143)  # Road.
+    # Tap the lower value area, then the footer gap and the enlarged Cancel edge.
+    await tap(120, 125)
+    await label('name keypad.')
+    entry = app.view()['preset_input']
+    await tap(120, 216)
+    assert app.view()['preset_input'] == entry
+    await tap(20, 205)
+    assert app.view()['preset_input'] is None
     await tap(120, 80)
-    await tap(125, 196)
+    await tap(120, 174)
     for character in 'Commute':
         entry = app.view()['preset_input']
         if entry['lowercase'] != character.islower():
-            await tap(30, 196)
+            await tap(32, 174)
         index = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.index(character.upper())
         while app.view()['preset_input']['letters'] != index // 12:
-            await tap(205, 196)
-        await tap(49 + index % 12 % 3 * 70, 73 + index % 12 // 3 * 31)
+            await tap(208, 174)
+        await tap(36 + index % 12 % 4 * 56, 60 + index % 12 // 4 * 38)
     await label('OK or Cancel')
     assert app.view()['preset_draft']['name'] == 'Road'
     await snapshot('name-entry')
@@ -92,7 +100,7 @@ async def exercise(cdp, session, app, output):
     # Invalid entries retain text and a visible reason. Navigation cannot close them.
     await tap(80, 143)
     await tap(120, 80)
-    await tap(125, 196)
+    await tap(120, 174)
     await tap(176, 226)
     await label('name must contain')
     await snapshot('invalid-name')
@@ -120,8 +128,14 @@ async def exercise(cdp, session, app, output):
     # Dip inclusion is independent of cancelling a numeric value.
     await tap(220, 20)
     await tap(220, 20)
+    await number('101')
+    await tap(176, 226)
+    await label('Pedal dip compensation: enter')
+    await snapshot('invalid-dip')
+    assert app.view()['preset_input']['text'] == '101'
+    await tap(64, 226)
     await number('99')
-    await tap(120, 196)
+    await tap(186, 24)
     await tap(64, 226)
     assert app.view()['preset_draft']['pedal_dip_compensation'] == 10
     assert app.view()['preset_draft']['dip_included'] is True
@@ -156,4 +170,4 @@ async def exercise(cdp, session, app, output):
 
 if __name__ == '__main__':
     from browser_local_presets import run
-    asyncio.run(run(exercise, 'value-editor-laptop', 'preset-values'))
+    asyncio.run(run(exercise, 'value-editor-laptop', 'touch-layout'))

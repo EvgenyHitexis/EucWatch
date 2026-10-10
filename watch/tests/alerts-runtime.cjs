@@ -3,10 +3,10 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path');
 const {environment}=require('./runtime.cjs');
 const env=environment(),running=env.start();env.advance(200);
-env.touch(0,120,10);env.touch(1,120,90);env.advance(400);
+env.touch(0,120,10);env.touch(1,120,120);env.advance(400);
 env.touch(5,120,155);env.advance(600);
 assert.equal(running.core.view().screen,'alerts','Settings Alerts row opens the physical editor');
-env.touch(5,195,45);env.advance(800); // Enable with no threshold: Save must reject.
+env.touch(5,195,72);env.advance(800); // Enable with no threshold: Save must reject.
 env.touch(5,170,214);env.advance(1000);
 assert.equal(running.core.view().config.alerts.pwm.enabled,false);
 assert.match(running.core.view().validation_error,/threshold/i);
@@ -16,8 +16,8 @@ fs.writeFileSync(path.resolve(__dirname,'../evidence/local-presets/regression-al
 running.core.action('alert_test',{alert:'lost'});
 assert.equal(env.context.D16.state,1,'actual hardware adapter drives the installed active level');
 env.advance(1150);assert.equal(env.context.D16.state,0,'weak lost pattern ends after 150ms');
-env.touch(5,120,90);env.advance(1350);assert.equal(running.core.view().screen,'threshold');
-env.touch(5,40,137);env.touch(5,120,177);env.touch(5,170,220);env.advance(1550);
+env.touch(5,120,120);env.advance(1350);assert.equal(running.core.view().screen,'threshold');
+env.touch(5,46,138);env.touch(5,120,177);env.touch(5,170,220);env.advance(1550);
 assert.equal(running.core.view().alerts_draft.pwm.threshold,70);
 env.touch(5,170,220);env.advance(1750);assert.equal(running.core.view().config.alerts.pwm.threshold,70);
 assert.ok(env.context.storage['sw-config.json'],'actual main persists explicit Save in Storage');
@@ -42,7 +42,7 @@ const first=environment(),firstApp=first.start();begin(firstApp);firstApp.core.a
 assert.ok(first.context.storage['sw-config-backup.json'],'first interrupted activation has a validated previous default copy');
 firstApp.stop();first.storageFailure(null);const firstRecovered=first.start();assert.equal(firstRecovered.core.view().config.alerts.pwm.enabled,false);assert.match(firstRecovered.core.view().persistence_error,/Recovered previous good/);
 recovered.stop();delete env.context.storage['sw-config.json'];const absent=env.start();assert.equal(absent.core.view().config.alerts.pwm.threshold,70);assert.match(absent.core.view().persistence_error,/Recovered previous good/);
-const decimal=environment(),decimalApp=decimal.start();decimal.advance(200);begin(decimalApp);decimal.touch(5,120,90);
-decimal.touch(5,40,177);decimal.touch(5,120,97);decimal.touch(5,170,220);decimal.touch(5,195,45);decimal.touch(5,170,220);
+const decimal=environment(),decimalApp=decimal.start();decimal.advance(200);begin(decimalApp);decimal.touch(5,120,120);
+decimal.touch(5,40,177);decimal.touch(5,120,103);decimal.touch(5,170,220);decimal.touch(5,195,72);decimal.touch(5,170,220);
 assert.equal(decimalApp.core.view().config.alerts.pwm.threshold,.5);assert.equal(decimalApp.core.view().config.alerts.pwm.enabled,true);decimalApp.stop();
 console.log('watch physical editor and actual active-high motor adapter: passed');
