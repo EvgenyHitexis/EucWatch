@@ -36,3 +36,20 @@ wheel-owned interaction and does not establish #43 acceptance. Matching revised
 gestures are the #49 slice. Device display/input/vibration, memory fit, physical
 flash guarantees, live wheel controls, deployment and owner acceptance remain
 pending under #9/#31/#37/#38.
+
+## Native gesture parity (#49)
+
+CST816 upward gestures now return editor → selection → Settings → dashboard.
+Left/right wrap all fields during either field display or active keypad input.
+The character-page button does not consume horizontal field gestures. Up cancels
+all unsaved fields from normal, validation and storage-failure views. Settings
+and independent alert/threshold back navigation use up; riding presets retain
+right-to-dashboard return.
+
+`node watch/tests/preset-navigation.cjs` replays the exact laptop pointer trace
+as native interrupts, with independently specified screens/pages/input and final
+saved values. `watch/evidence/local-presets/navigation.json` retains every event,
+Graphics operation, draft, revision, Storage effect, source hash and zero packets.
+Native editor/default/control/runtime/alert/local-configuration regressions,
+syntax checks, frontend and Python typechecks passed. Actual touch calibration,
+physical display and memory fit remain pending.

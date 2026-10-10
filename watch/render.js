@@ -10,7 +10,7 @@ exports.draw = function (g, state) {
   if (!state.awake) return;
   if (state.recovery) { text('RECOVERY',120,90,24); text('Wheel controls unavailable',120,125,12); g.flip(); return; }
   if(state.screen==='preset_slots'){
-    text('SETTINGS - PRESETS',120,9,14);controls();text((state.persistence_error||'Tap a slot to edit').slice(0,36),120,221,10);
+    text('SETTINGS - PRESETS',120,9,14);controls();text((state.persistence_error||'Tap to edit; swipe up to return').slice(0,36),120,221,10);
   }else if(state.screen==='preset_editor'){
     var slot=state.preset_draft,page=state.preset_page,labels=require('sw-preset-editor').labels;
     if(slot){
@@ -21,7 +21,7 @@ exports.draw = function (g, state) {
         text(notice?notice.slice(0,40):input.text||'-',120,33,notice?10:Math.min(18,Math.floor(216/(Math.max(1,input.text.length)*0.65))));
       }else{
         text('SLOT '+slot.id+' - '+(page+1)+'/4',120,36,14);
-        text('Local draft - tap value to edit',120,148,12);text(notice.slice(0,38),120,183,10);
+        text('Left/right fields; up cancels',120,148,12);text(notice.slice(0,38),120,183,10);
       }
     }
   }else if (state.screen === 'presets') {
@@ -45,7 +45,7 @@ exports.draw = function (g, state) {
   } else if (state.screen === 'settings') {
     text('SETTINGS',120,10,15);
     controls();
-    text(state.horn_feedback?state.horn_feedback.message:state.validation_error?state.validation_error:state.persistence_error?'Configuration needs review':'Swipe right to return',120,228,9);
+    text(state.horn_feedback?state.horn_feedback.message:state.validation_error?state.validation_error:state.persistence_error?'Configuration needs review':'Swipe up to return',120,228,9);
   }else if(state.screen==='alerts'){
     var name=['pwm','speed','battery','lost'][state.alert_page];
     text('VIBRATION ALERTS '+(state.alert_page+1)+'/4',120,9,14);
@@ -69,7 +69,7 @@ exports.draw = function (g, state) {
       text((state.devices[i].name||'Unnamed wheel').slice(0,22),120,y+4,13);
       text(state.devices[i].id,120,y+19,9);
     }
-    text('Swipe right to return',120,216,11);
+    text('Swipe up to return',120,216,11);
   } else {
     text('SHERMAN L',12,9,11,-1);
     text('W '+d.watch_battery_percent+'%',228,9,11,1);

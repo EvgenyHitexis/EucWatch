@@ -21,6 +21,7 @@ exports.create=function(options){
     if(gesture===0&&bytes[2]&&!touchStart)touchStart={x:x,y:y};
     if(gesture===3) onAction('swipe',{direction:'left'});
     else if(gesture===4) onAction('swipe',{direction:'right'});
+    else if(gesture===2) onAction('swipe',{direction:'up'});
     else if(gesture===1) onAction('swipe',{direction:'down',from_top:touchStart?touchStart.y<=45:y<=45});
     else if(gesture===5 || gesture===12) {onAction('interact');onTap(x,y);}
     if(gesture!==0||!bytes[2])touchStart=null;

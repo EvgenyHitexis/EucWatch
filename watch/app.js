@@ -115,13 +115,18 @@ exports.create = function (options) {
       else if (name === 'connected' && payload.session === session) { connected = true; established = true; awake = true; }
       else if (name === 'disconnect' && payload.session === session) resetSession();
       else if (name === 'swipe' && awake && !recovery) {
-        if (payload.direction === 'left' && screen === 'dashboard') screen = 'presets';
-        else if (payload.direction === 'down' && payload.from_top) {leaveEditor();screen = 'settings';}
-        else if (payload.direction === 'right' && screen !== 'dashboard') {
-          if(clearSlot!==null)clearSlot=null;
-          else if(presetInput)presetInput=null;
-          else {var priorScreen=screen;leaveEditor();screen=priorScreen==='preset_editor'?'preset_slots':priorScreen==='preset_slots'?'settings':'dashboard';draft=null;thresholdInput=null;validationError=null;}
-        }
+        if(screen==='preset_editor'){
+          editor.require(payload.editor_id);
+          if(payload.direction==='left'||payload.direction==='right')core.action('preset_page',{editor_id:payload.editor_id,page:(presetPage+(payload.direction==='left'?1:3))%4});
+          else if(payload.direction==='up'){leaveEditor();screen='preset_slots';}
+        }else if(payload.direction==='left'&&screen==='dashboard')screen='presets';
+        else if(payload.direction==='down'&&payload.from_top&&screen==='dashboard')screen='settings';
+        else if(payload.direction==='up'){
+          if(screen==='preset_slots')screen='settings';
+          else if(screen==='threshold'){thresholdInput=null;screen='alerts';validationError=null;}
+          else if(screen==='alerts'){draft=null;screen='settings';validationError=null;}
+          else if(screen==='settings'||screen==='connection')screen='dashboard';
+        }else if(payload.direction==='right'&&screen==='presets')screen='dashboard';
       } else if (name === 'sleep' && awake && screen === 'settings') awake = false;
       else if (name === 'button_down' && !buttonDown) {
         buttonDown = true; buttonStarted = clock.now(); wakeCycle = !awake; awake = true;
