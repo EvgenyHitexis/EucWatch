@@ -16,7 +16,9 @@ The research worktree and private captures remain outside this implementation.
 
 Owner walkthrough progress: [R1 dashboard/freshness/reconnect observed pass](evidence/laptop-31/owner-review/r1.json),
 with six owner-supplied screenshots and a completed 7/7 simulator scenario.
-R2–R6, overall owner acceptance and required live evidence remain pending.
+[R2 navigation and sleep also passed](evidence/laptop-31/owner-review/r2.json),
+including wake-only button behavior and riding-menu entry/return without commands.
+R3–R6, overall owner acceptance and required live evidence remain pending.
 
 | #31 requirement | Current outcome | Evidence / next action |
 | --- | --- | --- |

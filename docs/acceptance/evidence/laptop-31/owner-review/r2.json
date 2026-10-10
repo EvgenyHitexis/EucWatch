@@ -1,0 +1,66 @@
+{
+  "issue": 31,
+  "review": "R2 navigation and sleep",
+  "source_commit": "f3ff88b0bd74a5599fe5b0dbd7f5bad2c437fe22",
+  "provenance": "Owner-operated laptop Canvas and modeled side button on port 8766; supplied Settings screenshot, owner completion replies and read-only terminal backend state; simulator only",
+  "observations": [
+    {
+      "action": "Swipe down from dashboard top",
+      "expected": "Settings with Sleep screen, Vibration alerts and Presets at consistent sizes",
+      "observed": "Matched supplied Settings screenshot",
+      "screenshot": "r2-settings.png",
+      "sha256": "c110e768cffde169a415208b161be17035ae526ed98522e37178643af479d6fd"
+    },
+    {
+      "action": "Tap Sleep screen",
+      "expected": "Display black",
+      "observed": "Owner replied done to the instruction and expected result"
+    },
+    {
+      "action": "Press and release side button once",
+      "expected": "Wake to Settings without a horn request",
+      "observed": "Owner replied done; subsequent backend read showed released button and no command events or horn feedback"
+    },
+    {
+      "action": "Swipe up from Settings",
+      "expected": "Return to dashboard",
+      "observed": "Owner replied done; backend dashboard verified"
+    },
+    {
+      "action": "Swipe left from dashboard",
+      "expected": "Riding menu containing Jump, Forest, Road and Drag",
+      "observed": "Owner replied done to the instruction and expected result"
+    },
+    {
+      "action": "Swipe right from riding menu",
+      "expected": "Return to dashboard without applying a preset",
+      "observed": "Owner replied done; backend dashboard and zero command events verified"
+    }
+  ],
+  "final_read_only_backend_state": {
+    "mode": "simulator",
+    "session": 5,
+    "screen": "dashboard",
+    "awake": true,
+    "fresh": true,
+    "dashboard": {
+      "speed": "25",
+      "pwm": "45",
+      "wheel_battery_percent": "100",
+      "average_cell_voltage": "4.11",
+      "wheel_battery_dimmed": false,
+      "watch_battery_percent": "80",
+      "watch_battery_simulated": true,
+      "connection": "Connected"
+    },
+    "button": {
+      "down": false,
+      "wake_cycle": false
+    },
+    "horn_feedback": null,
+    "command_events": [],
+    "preset_attempt": null
+  },
+  "result": "observed pass",
+  "overall_owner_acceptance": "pending; R3-R6 and required live evidence remain incomplete"
+}
