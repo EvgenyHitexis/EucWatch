@@ -31,8 +31,10 @@ Run checks with `./scripts/check.sh`. Acceptance scenarios and evidence are in
 separate: no live horn, riding experiment or watch deployment is authorized here.
 
 Edit the four saved presets through watch-sized **Settings → Presets**.
-Editing works locally without a wheel connection. Whole-editor Save stores the
-selected preset, including active keypad input; Cancel or swipe up discards its
+Editing works locally without a wheel connection. Keypad OK accepts one value
+into the unsaved draft; keypad Cancel or swipe up discards only that entry.
+Close the keypad before navigating fields. On a field display, Save stores the
+whole selected preset; Cancel or swipe up discards its
 draft. Swipe left/right wraps through fields. Dip inclusion is separate from its
 remembered value. Only selecting a preset in the riding menu applies it to the wheel. See
 [preset editor behavior and evidence](docs/acceptance/preset-editor.md).

@@ -307,6 +307,8 @@ class Application:
             "preset_input_begin",
             "preset_input_key",
             "preset_input_page",
+            "preset_input_accept",
+            "preset_input_cancel",
             "preset_include_dip",
             "preset_slots",
             "configuration_export",
@@ -539,11 +541,17 @@ class Application:
             if self.awake and not self.recovery:
                 if self.screen == "preset_editor":
                     self.editor.require(payload.get("editor_id"))
+                    if self.editor.input or payload.get("entry_id") is not None:
+                        self.editor.require_input(payload.get("entry_id"))
                     if direction in ("left", "right"):
                         self.editor.set_page((self.editor.page + (1 if direction == "left" else -1)) % 4)
                     elif direction == "up":
-                        self._leave_editor()
-                        self.screen = "preset_slots"
+                        if self.editor.input:
+                            self.editor.cancel_input()
+                            self.editor.set_reason("")
+                        else:
+                            self._leave_editor()
+                            self.screen = "preset_slots"
                 elif direction == "left" and self.screen == "dashboard":
                     self.screen = "presets"
                 elif direction == "down" and self.screen == "dashboard" and payload.get("from_top", True):
@@ -593,8 +601,12 @@ class Application:
             self.editor.open(self.config, payload.get("slot"))
             self.screen = "preset_editor"
         elif name in ("preset_update", "preset_save", "preset_cancel", "preset_include_dip",
-                      "preset_page", "preset_input_begin", "preset_input_key", "preset_input_page"):
+                      "preset_page", "preset_input_begin", "preset_input_key", "preset_input_page",
+                      "preset_input_accept", "preset_input_cancel"):
             self.editor.require(payload.pop("editor_id", None))
+            entry_id = payload.pop("entry_id", None)
+            if entry_id is not None or name in ("preset_input_key", "preset_input_page", "preset_input_accept", "preset_input_cancel"):
+                self.editor.require_input(entry_id)
             if name != "preset_cancel" and (not self.awake or self.recovery):
                 raise ValueError("Preset editing unavailable")
             payload.pop("source", None)
@@ -611,6 +623,13 @@ class Application:
                 self.editor.key(payload.get("key"))
             elif name == "preset_input_page":
                 self.editor.input_page(payload.get("delta"))
+            elif name == "preset_input_accept":
+                try:
+                    self.editor.accept_input()
+                except ValueError as exc:
+                    self.editor.set_reason(str(exc))
+            elif name == "preset_input_cancel":
+                self.editor.cancel_input()
             elif name == "preset_cancel":
                 self._leave_editor()
                 self.screen = "preset_slots"

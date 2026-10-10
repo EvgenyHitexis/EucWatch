@@ -1,0 +1,79 @@
+................................................................................................................................................................
+----------------------------------------------------------------------
+Ran 160 tests in 5.241s
+
+OK
+
+> sherman-l-laptop-ui@0.1.0 build
+> tsc --noEmit && vite build
+
+vite v7.1.12 building for production...
+transforming...
+✓ 7 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                  0.47 kB │ gzip:  0.30 kB
+dist/assets/index-DROWm6mP.css   3.92 kB │ gzip:  1.48 kB
+dist/assets/index-Dsxt4ESi.js   43.05 kB │ gzip: 13.53 kB
+✓ built in 215ms
+defaults-laptop: passed
+editor-laptop: passed
+navigation-laptop: passed
+value-editor-laptop: passed
+{
+  "issue": 18,
+  "provenance": "actual built UI / deterministic simulator",
+  "browser": "Chrome/154.0.8037.92",
+  "expected": "idle launch; battery boundaries; stale dashes/dimming; CRC rejection; disconnect; fresh recovery",
+  "high_boundary": "Speed 25 km/h; PWM 45 percent; estimated wheel battery 100 percent; average cell voltage 4.11 volts; simulated watch battery 80 percent; Connected",
+  "stale": "Speed \u2014 km/h; PWM \u2014 percent; estimated wheel battery 65 percent; average cell voltage 3.83 volts; simulated watch battery 80 percent; Telemetry lost; wheel battery dimmed; Ab 2 \u00b7 Unconfirmed",
+  "disconnected": "Speed \u2014 km/h; PWM \u2014 percent; estimated wheel battery 65 percent; average cell voltage 3.83 volts; simulated watch battery 80 percent; Disconnected; wheel battery dimmed; Ab 2 \u00b7 Unconfirmed",
+  "observed": "Speed 25 km/h; PWM 45 percent; estimated wheel battery 65 percent; average cell voltage 3.83 volts; simulated watch battery 80 percent; Connected; Ab 2 \u00b7 Unconfirmed"
+}
+{
+  "issue": 24,
+  "provenance": "actual file import / Canvas / aiohttp / read-only replay",
+  "expected": "13 preserved notifications; three valid source frames; final voltage-derived97% and avg4.09V",
+  "observed": "Speed 0 km/h; PWM 2 percent; estimated wheel battery 97 percent; average cell voltage 4.09 volts; simulated watch battery 80 percent; Connected; Ab 2 \u00b7 Unconfirmed",
+  "valid_frames": 3,
+  "recording": {
+    "name": "fixture-recording.jsonl",
+    "sha256": "869d9c7a05189c8d808cdddd68ef8ff03df1265afbe8aefab324f43d39e797f5",
+    "source": "upstream-fixture/synthetic-timing",
+    "total": 13,
+    "position": 13,
+    "finished": true
+  },
+  "delayed_file_after_new_session": "discarded"
+}
+{
+  "issue": 30,
+  "provenance": "actual built Chrome UI / aiohttp / background recorder / local durable store; accelerated0.7s test lease (production10s)",
+  "expected": "reload noresubmit; delayedoldpoll discarded; competition readonly; freeze backendcontinues; lease takeover oldownerreadonly; closure backendcontinues; backendloss controlsdisabled; offline relaunchsavedonly",
+  "observed": "passed",
+  "physical_suspend": "explicitly omitted by owner; synthetic resume covered in test_lifecycle.py"
+}
+watch source fixture dashboard: passed
+watch parsing, freshness, battery boundaries, navigation and wake cycles: passed
+actual watch entry/hardware, battery, touch/button, fake direct BLE and recovery: passed
+watch PWM test vibration through public application: passed
+watch alert explicit Save/Cancel, validation, restart and back discard: passed
+watch lost telemetry initial suppression, weakest pattern and fresh-data rearm: passed
+watch PWM crossing/repeat/hysteresis, immediate Save and every-frame evaluation: passed
+watch speed five-second repeat and battery crossing/continuous rearm: passed
+watch priority/nonoverlap, stale cancellation and missed-pulse suppression: passed
+watch complete validation, ongoing editor and bounded diagnostic history: passed
+watch physical editor and actual active-high motor adapter: passed
+watch/laptop public application alert/editing traces: 322 states matched
+watch one-tap moving preset, serial omitted-dip submission and two-frame confirmation: passed
+watch sleeping wake-only cycle, fresh single horn request and discarded stale holds: passed
+watch cached/mixed/late rejection, partial/terminal results, deadlines, fresh retry and definition invalidation: passed
+watch/laptop identical actual raw/action traces: success, partial rejection and stale/late callbacks passed
+watch same-session 2v14 property-selected 20-byte writer, horn request, bounded hang and late rejection: passed
+watch local configuration, withdrawn entry points, restart/save recovery and independent recovery UART: passed
+watch defaults/migration/recovery/native lists/application: passed
+watch local drafts, retry, stale completion/reload and retired actions: passed
+watch native local editor: laptop trace, Graphics, Storage faults, restart and stopped continuation passed
+watch exact laptop swipe trace, input, rendering, Storage and alert hierarchy: passed
+watch value completion, validation, stale actions, laptop parity and Storage retry/restart: passed
+complete versioned watch bundle, synthetic staging/activation and independent recovery: passed (166659f6)

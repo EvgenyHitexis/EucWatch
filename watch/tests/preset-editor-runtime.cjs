@@ -3,7 +3,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {environment,flush}=require('./runtime.cjs');
 const {frame}=require('./preset-editor.cjs');
 const plain=value=>JSON.parse(JSON.stringify(value));
-const out='watch/evidence/local-presets';
+const out='watch/evidence/preset-values';
 function snapshot(env,name){
   fs.mkdirSync(out,{recursive:true});
   const escape=value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
@@ -12,20 +12,24 @@ function snapshot(env,name){
   fs.writeFileSync(out+'/'+name+'.svg',`<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240"><rect width="240" height="240" fill="black"/><g fill="white" font-family="sans-serif">${svg}</g></svg>\n`);return ops;
 }
 exports.snapshot=snapshot;
+function dispatchRecordedInput(env,event){
+  if(event.input==='storage_failure')env.storageFailure(event.mode==='refuse'?'sw-config-stage.json':null);
+  else if(event.input==='tap')env.touch(5,...event.end);
+  else if(event.input==='swipe'){
+    const [x,y]=event.start,[ex,ey]=event.end;
+    env.touch(0,x,y);env.touch(Math.abs(ex-x)>Math.abs(ey-y)?ex>x?4:3:ey>y?1:2,ex,ey);
+  }else throw Error('Unknown trace input '+event.input);
+}
+exports.dispatchRecordedInput=dispatchRecordedInput;
 async function replay(file,name){
   const laptop=JSON.parse(fs.readFileSync(file));const env=environment();let running=env.start(),now=200;env.advance(now);const states=[],renderings=[];
   for(const event of laptop.timeline){
-    if(event.input==='storage_failure')env.storageFailure(event.mode==='refuse'?'sw-config-stage.json':null);
-    else if(event.input==='tap')env.touch(5,...event.end);
-    else if(event.input==='swipe'){
-      const [x,y]=event.start,[ex,ey]=event.end;
-      env.touch(0,x,y);env.touch(Math.abs(ex-x)>Math.abs(ey-y)?ex>x?4:3:ey>y?1:2,ex,ey);
-    }else throw Error('Unknown trace input '+event.input);
+    dispatchRecordedInput(env,event);
     env.advance(now+=200);await flush();const state=plain(running.core.view());
     assert.equal(env.bleWrites.length,0,'every editor action emits zero packets');
     const targets=env.context.require('sw-controls').targets(state);
-    assert.ok(!targets.some(t=>['preset_clear','preset_clear_begin','preset_clear_done','preset_input_done','preset_input_cancel'].includes(t.action)));
-    if(state.screen==='preset_editor')assert.ok(targets.some(t=>t.label==='Save')&&targets.some(t=>t.label==='Cancel'));
+    assert.ok(!targets.some(t=>['preset_clear','preset_clear_begin','preset_clear_done','preset_input_done'].includes(t.action)));
+    if(state.screen==='preset_editor')assert.ok(targets.some(t=>t.label===(state.preset_input?'OK':'Save'))&&targets.some(t=>t.label==='Cancel'));
     if(state.preset_input&&state.preset_input.field==='pedal_dip_compensation'){
       assert.ok(targets.some(t=>t.action==='preset_include_dip'),'inclusion remains reachable with active numeric input');
       if((event.end||[])[1]===196){
@@ -35,9 +39,9 @@ async function replay(file,name){
         snapshot(env,'slot-'+state.preset_draft.id+'-dip-input');
       }
     }
-    if(state.validation_error&&state.preset_draft.name===''){
+    if(state.validation_error&&state.preset_input&&state.preset_input.field==='name'){
       assert.match(state.validation_error,/name must contain/i);
-      assert.equal(state.preset_input.field,'pedal_sensitivity');
+      assert.equal(state.preset_input.text,'');
       assert.ok(env.context.graphics.ops.some(op=>op.kind==='text'&&/name must contain/i.test(op.value)));
       snapshot(env,'invalid-name-save');
     }
@@ -74,7 +78,7 @@ async function failures(){
   const fixture=JSON.parse(fs.readFileSync('docs/acceptance/scenarios/local-editor-frames.json'));
   const frames=environment(),editing=frames.start();frames.advance(200);
   editing.core.action('preset_begin',{slot:4});const identity=editing.core.view().preset_editor.id;
-  editing.core.action('preset_input_begin',{editor_id:identity});editing.core.action('preset_input_key',{editor_id:identity,key:'Clear'});editing.core.action('preset_input_key',{editor_id:identity,key:'A'});
+  editing.core.action('preset_input_begin',{editor_id:identity});const entry=editing.core.view().preset_input.id;editing.core.action('preset_input_key',{editor_id:identity,entry_id:entry,key:'Clear'});editing.core.action('preset_input_key',{editor_id:identity,entry_id:entry,key:'A'});
   editing.transport.discover();editing.transport.select('11:22:33:44:55:66 public');await flush();
   for(const raw of [fixture.frame_hex,fixture.corrupt_hex]){frames.notification(Buffer.from(raw,'hex'));assert.deepEqual(plain(editing.core.view().preset_draft),fixture.expected_draft);assert.equal(editing.core.view().preset_input.text,fixture.expected_input);}
   const old=editing.core.view().session;frames.loss();await flush();editing.core.receive(old,Buffer.from(fixture.frame_hex,'hex'));assert.deepEqual(plain(editing.core.view().preset_draft),fixture.expected_draft);assert.equal(frames.bleWrites.length,0);
@@ -83,14 +87,14 @@ async function failures(){
   const env=environment(),running=env.start();running.transport.discover();running.transport.select('11:22:33:44:55:66 public');await flush();env.advance(200);env.notification(frame());env.writeHang(true);
   running.core.action('preset_apply',{slot:2});await flush();assert.equal(env.bleWrites.length,1);
   running.core.action('preset_begin',{slot:2});let id=running.core.view().preset_editor.id;
-  running.core.action('preset_input_begin',{editor_id:id});running.core.action('preset_input_key',{editor_id:id,key:'Clear'});running.core.action('preset_input_key',{editor_id:id,key:'A'});
+  running.core.action('preset_input_begin',{editor_id:id});const entryId=running.core.view().preset_input.id;running.core.action('preset_input_key',{editor_id:id,entry_id:entryId,key:'Clear'});running.core.action('preset_input_key',{editor_id:id,entry_id:entryId,key:'A'});
   env.notification(frame(44,55,66));env.loss();await flush();assert.equal(running.core.view().preset_input.text,'A');
-  running.core.action('preset_save',{editor_id:id});env.writeHang(false);env.settleWrite();await flush();assert.equal(env.bleWrites.length,1);assert.equal(running.core.view().preset_attempt.pending,false);
+  running.core.action('preset_input_accept',{editor_id:id,entry_id:entryId});running.core.action('preset_save',{editor_id:id});env.writeHang(false);env.settleWrite();await flush();assert.equal(env.bleWrites.length,1);assert.equal(running.core.view().preset_attempt.pending,false);
   results.push({mode:'pending-native-write-and-disconnect',chunks:env.bleWrites,config:plain(running.core.view().config)});running.stop();return results;
 }
 if(require.main===module)(async()=>{
-  const trace=await replay('docs/acceptance/evidence/local-presets/editor-laptop.json','editor');
+  const trace=await replay('docs/acceptance/evidence/preset-values/editor-laptop.json','editor');
   const faults=await failures();
-  fs.writeFileSync(out+'/editor.json',JSON.stringify({issue:47,provenance:'production main/CST816/Graphics/parser/GATT/native Storage; simulated physical inputs, time, BLE and flash; no hardware operations',trace,faults,source_sha256:Object.fromEntries(fs.readdirSync('watch').filter(n=>n.endsWith('.js')).map(n=>['watch/'+n,crypto.createHash('sha256').update(fs.readFileSync('watch/'+n)).digest('hex')]))},null,2)+'\n');
+  fs.writeFileSync(out+'/editor.json',JSON.stringify({spec:'docs/design/preset-value-editor.md',provenance:'production main/CST816/Graphics/parser/GATT/native Storage; simulated physical inputs, time, BLE and flash; no hardware operations',trace,faults,source_sha256:Object.fromEntries(fs.readdirSync('watch').filter(n=>n.endsWith('.js')).map(n=>['watch/'+n,crypto.createHash('sha256').update(fs.readFileSync('watch/'+n)).digest('hex')]))},null,2)+'\n');
   console.log('watch native local editor: laptop trace, Graphics, Storage faults, restart and stopped continuation passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});

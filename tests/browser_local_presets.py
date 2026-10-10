@@ -63,8 +63,8 @@ async def defaults(cdp, session, app, output):
         observed.append({'slot':slot,'expected_packets':packets,'observed_packets':actual,'wheel_dip':83})
     return {'issue':44,'expected':FIXTURE['fresh'],'observed':app.view()['config'],'rendered':[riding,selection],'pointer_trace':trace,'applications':observed}
 
-async def run(flow=defaults, name='defaults-laptop'):
-    output=Path('docs/acceptance/evidence/local-presets');output.mkdir(parents=True,exist_ok=True)
+async def run(flow=defaults, name='defaults-laptop', directory='local-presets'):
+    output=Path('docs/acceptance/evidence')/directory;output.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='eucwatch-local-', ignore_cleanup_errors=True) as temporary:
         app=Application(clock=ManualClock(),store=FileStore(Path(temporary)/'config.json'))
         runner=web.AppRunner(create_app(app));await runner.setup()

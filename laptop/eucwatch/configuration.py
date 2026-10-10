@@ -10,6 +10,12 @@ DEFAULT_PRESETS = (("Jump", 0, 0, 0), ("Forest", 70, 0, 0),
 ALERTS = ("pwm", "speed", "battery", "lost")
 
 
+def validate_preset_name(name: Any) -> None:
+    if (not isinstance(name, str) or not name.strip() or len(name) > 24
+            or any(ord(c) < 32 for c in name)):
+        raise ValueError("Preset name must contain 1–24 readable characters")
+
+
 def default_configuration() -> dict[str, Any]:
     return {
         "version": VERSION,
@@ -81,14 +87,7 @@ def validate_configuration(config: Any) -> dict[str, Any]:
             raise ValueError("Preset slot identity must be 1 through 4 in order")
         if type(preset.get("configured")) is not bool:
             raise ValueError("Preset configured state must be explicit")
-        name = preset.get("name")
-        if (
-            not isinstance(name, str)
-            or not name.strip()
-            or len(name) > 24
-            or any(ord(c) < 32 for c in name)
-        ):
-            raise ValueError("Preset name must contain 1–24 readable characters")
+        validate_preset_name(preset.get("name"))
         required = {"id", "name", "configured"}
         if preset["configured"]:
             required |= {"pedal_sensitivity", "dynamic_assist"}

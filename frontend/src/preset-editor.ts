@@ -25,7 +25,7 @@ export interface WatchPresetView {
   preset_editor: null | { id: number; slot: number; status: string; reason: string };
   preset_draft: (Omit<Preset, 'pedal_sensitivity' | 'dynamic_assist' | 'pedal_dip_compensation'> & Record<string, unknown>) | null;
   preset_page: number;
-  preset_input: null | { field: Field; text: string; letters: number; lowercase: boolean };
+  preset_input: null | { id: number; field: Field; text: string; letters: number; lowercase: boolean };
   preset_attempt: PresetOperation | null;
   config: { presets: Preset[] };
   persistence_error: string | null;
@@ -61,7 +61,7 @@ export class WatchPresets {
     if (view.screen !== 'preset_editor' || !view.preset_draft || !view.preset_editor) return false;
     const draft = view.preset_draft, page = view.preset_page, field = fields[page], input = view.preset_input;
     const notice = !available ? 'Application unavailable' : view.preset_editor.reason || view.persistence_error || error;
-    this.text(`‹ ${labels[page]} ›`, 120, 20, 13);
+    this.text(input ? labels[page] : `‹ ${labels[page]} ›`, 120, 20, 13);
     if (input) {
       this.text(input.text || '—', 120, 46, 20);
       this.keys(input).forEach((key, index) => this.button(key, 16 + index % 3 * 70, 59 + Math.floor(index / 3) * 31, 66, 28));
@@ -71,11 +71,11 @@ export class WatchPresets {
         this.button(`${input.letters + 1}/3`, 186, 185, 42, 24);
       }
       if (input.field === 'pedal_dip_compensation') this.button(draft.dip_included ? 'Dip included' : 'Dip omitted', 12, 185, 216, 24);
-      // Feedback replaces the value line while input remains available for correction.
+      // Feedback uses the heading so the entered text stays visible for correction.
       if (notice) {
         const reason = notice.replace('Configuration save failed: ', 'Save failed: ');
-        this.ctx.fillStyle = '#000000'; this.ctx.fillRect(0, 29, 240, 28);
-        this.text(reason.slice(0, 35), 120, 40, 10); this.text(reason.slice(35, 70), 120, 53, 10);
+        this.ctx.fillStyle = '#000000'; this.ctx.fillRect(0, 0, 240, 29);
+        this.text(reason.slice(0, 35), 120, 12, 10); this.text(reason.slice(35, 70), 120, 25, 10);
       }
     } else {
       this.text(`SLOT ${draft.id} · ${page + 1}/4`, 120, 49, 14);
@@ -84,20 +84,20 @@ export class WatchPresets {
       this.text('Local draft · tap value to edit', 120, 158, 12);
       this.text(notice.slice(0, 38), 120, 194, 11);
     }
-    this.button('Cancel', 12, 214, 104, 24); this.button('Save', 124, 214, 104, 24);
-    this.canvas.setAttribute('aria-label', `Preset editor slot ${draft.id}. ${labels[page]}: ${draft[field]}. ${input ? `${field} keypad. Input ${input.text || 'empty'}.` : ''} Swipe left/right through fields; up cancels. ${field === 'pedal_dip_compensation' ? `Dip ${draft.dip_included ? 'included' : 'omitted'}.` : ''} Whole-editor Save or Cancel. ${notice}`);
+    this.button('Cancel', 12, 214, 104, 24); this.button(input ? 'OK' : 'Save', 124, 214, 104, 24);
+    this.canvas.setAttribute('aria-label', `Preset editor slot ${draft.id}. ${labels[page]}: ${draft[field]}. ${input ? `${field} keypad. Input ${input.text || 'empty'}. OK or Cancel this value; swipe up cancels this entry.` : 'Swipe left/right through fields; up cancels. Whole-preset Save or Cancel.'} ${field === 'pedal_dip_compensation' ? `Dip ${draft.dip_included ? 'included' : 'omitted'}.` : ''} ${notice}`);
     return true;
   }
   tap(view: WatchPresetView, x: number, y: number): void {
-    const send = (action: string, payload: Record<string, unknown> = {}) => void this.enqueue(action, {editor_id: view.preset_editor?.id, ...payload});
+    const send = (action: string, payload: Record<string, unknown> = {}) => void this.enqueue(action, {editor_id: view.preset_editor?.id, entry_id: view.preset_input?.id, ...payload});
     if (view.screen === 'preset_slots') {
       if (x >= 12 && x <= 228 && y >= 36 && y < 212 && (y - 36) % 44 <= 38) send('preset_begin', {slot: Math.floor((y - 36) / 44) + 1});
       return;
     }
     if (!view.preset_draft) return;
-    if (y >= 214) { send(x < 120 ? 'preset_cancel' : 'preset_save'); return; }
     const page = view.preset_page, input = view.preset_input;
-    if (y <= 28 && (x <= 62 || x >= 178)) { send('preset_page', {page: (page + (x < 120 ? 3 : 1)) % 4}); return; }
+    if (y >= 214) { send(input ? (x < 120 ? 'preset_input_cancel' : 'preset_input_accept') : (x < 120 ? 'preset_cancel' : 'preset_save')); return; }
+    if (!input && y <= 28 && (x <= 62 || x >= 178)) { send('preset_page', {page: (page + (x < 120 ? 3 : 1)) % 4}); return; }
     if (input) {
       if (input.field === 'name' && y >= 185 && y <= 209) {
         if (x >= 186) send('preset_input_page', {delta: 1});

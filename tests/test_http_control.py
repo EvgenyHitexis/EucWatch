@@ -14,6 +14,43 @@ from test_live_control import WritingClient
 
 
 class ControlHTTPTests(unittest.IsolatedAsyncioTestCase):
+    async def test_completed_value_entry_cannot_be_replayed_into_a_later_entry(self):
+        app = Application(clock=ManualClock())
+        http = TestClient(TestServer(create_app(app, result_limit=2)))
+        await http.start_server()
+        try:
+            session = await (await http.get('/api/session')).json()
+            headers = {'Origin': str(http.make_url('/')).rstrip('/'), 'X-EucWatch-Key': session['credential']}
+
+            async def post(name, identity, expected=200, **payload):
+                response = await http.post('/api/action', headers=headers, json={
+                    'controller': session['controller'], 'id': identity,
+                    'action': name, 'epoch': app.session, **payload})
+                self.assertEqual(response.status, expected, await response.text())
+
+            await post('preset_begin', 'open', slot=3)
+            editor_id = app.view()['preset_editor']['id']
+            await post('preset_input_begin', 'entry', editor_id=editor_id)
+            entry_id = app.view()['preset_input']['id']
+            await post('preset_input_accept', 'ok', editor_id=editor_id, entry_id=entry_id)
+            await post('preset_input_begin', 'next-entry', editor_id=editor_id)
+            before = app.view()
+            await post('preset_input_accept', 'ok', editor_id=editor_id, entry_id=entry_id)
+            self.assertEqual(app.view()['preset_input'], before['preset_input'])
+            # A new HTTP request ID cannot bypass the value entry identity.
+            await post('preset_input_cancel', 'late-cancel', expected=400,
+                       editor_id=editor_id, entry_id=entry_id)
+            await post('interact', 'evict-one')
+            await post('interact', 'evict-two')
+            await post('preset_input_accept', 'ok', expected=409,
+                       editor_id=editor_id, entry_id=entry_id)
+            self.assertEqual(app.view()['preset_input'], before['preset_input'])
+            self.assertEqual(app.view()['preset_draft'], before['preset_draft'])
+            self.assertEqual(app.view()['config'], before['config'])
+            self.assertEqual(app.view()['command_events'], [])
+        finally:
+            await http.close()
+
     async def test_live_preset_and_duplicate_horn_use_selected_client_and_internal_results_are_refused(self):
         clock = ManualClock()
         app = Application(clock=clock)

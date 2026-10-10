@@ -41,6 +41,7 @@ exports.validateAlerts=function(alerts){
   });
   return exports.copy(alerts);
 };
+exports.validatePresetName=function(name){if(!readableName(name))throw new Error('Preset name must contain 1-24 readable characters');};
 exports.validate=function(config){
   if(!keys(config,['version','revision','presets','alerts'])||(config.version!==1&&config.version!==2)||typeof config.revision!=='number'||!isFinite(config.revision)||config.revision<0||Math.floor(config.revision)!==config.revision)throw new Error('Invalid or unsupported configuration');
   exports.validateAlerts(config.alerts);
@@ -48,7 +49,7 @@ exports.validate=function(config){
   config.presets.forEach(function(preset,index){
     var required=['id','name','configured'],fields=['pedal_sensitivity','dynamic_assist','pedal_dip_compensation'];
     if(!preset||preset.id!==index+1||typeof preset.configured!=='boolean')throw new Error('Invalid fixed preset slot');
-    if(!readableName(preset.name))throw new Error('Preset name must contain 1-24 readable characters');
+    exports.validatePresetName(preset.name);
     if(preset.configured){required.push(fields[0],fields[1]);if(Object.prototype.hasOwnProperty.call(preset,fields[2]))required.push(fields[2]);}
     if(config.version===2){if(!preset.configured||typeof preset.dip_included!=='boolean')throw new Error('Explicit dip inclusion required');if(required.indexOf(fields[2])<0)required.push(fields[2]);required.push('dip_included');}
     if(!keys(preset,required))throw new Error('Invalid preset fields');

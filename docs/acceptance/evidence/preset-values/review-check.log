@@ -1,0 +1,10 @@
+.............
+----------------------------------------------------------------------
+Ran 13 tests in 1.171s
+
+OK
+
+> sherman-l-laptop-ui@0.1.0 typecheck
+> tsc --noEmit
+
+All checks passed!

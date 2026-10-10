@@ -12,11 +12,80 @@ from test_control import settings_frame
 
 def edit(app, action, **payload):
     request=app.view()['preset_editor']
+    entry=app.view()['preset_input']
+    if entry and 'id' in entry:
+        payload.setdefault('entry_id', entry['id'])
     return app.action(action, editor_id=request['id'] if request else -1, **payload)
 
 
 class PresetEditorTests(unittest.TestCase):
-    def test_all_slots_save_active_input_locally_and_restart(self):
+    def test_finished_entry_actions_cannot_change_later_entries_or_drafts(self):
+        app = Application(clock=ManualClock())
+        opened = app.action('preset_begin', slot=3)
+        state = edit(app, 'preset_input_begin')
+        old = {'editor_id': opened['preset_editor']['id'], 'entry_id': state['preset_input']['id']}
+        edit(app, 'preset_input_cancel')
+        edit(app, 'preset_input_begin')
+        before = app.view()
+        for action, payload in [('preset_input_accept', {}), ('preset_input_cancel', {}),
+                                ('preset_input_key', {'key': 'Clear'}), ('preset_input_page', {'delta': 1}),
+                                ('swipe', {'direction': 'up'}), ('preset_page', {'page': 1}),
+                                ('preset_save', {}), ('preset_cancel', {})]:
+            with self.assertRaisesRegex(ValueError, 'changed'):
+                app.action(action, **old, **payload)
+            self.assertEqual(app.view()['preset_input'], before['preset_input'])
+            self.assertEqual(app.view()['preset_draft'], before['preset_draft'])
+        edit(app, 'preset_input_cancel')
+        before = app.view()
+        with self.assertRaisesRegex(ValueError, 'changed'):
+            app.action('swipe', direction='up', **old)
+        self.assertEqual(app.view()['screen'], before['screen'])
+        edit(app, 'preset_cancel')
+        app.action('preset_begin', slot=4)
+        edit(app, 'preset_input_begin')
+        before = app.view()
+        with self.assertRaisesRegex(ValueError, 'changed'):
+            app.action('preset_input_accept', **old)
+        self.assertEqual(app.view()['preset_draft'], before['preset_draft'])
+
+    def test_value_ok_accepts_only_into_the_draft_and_cancel_restores_latest_accepted_value(self):
+        app = Application(clock=ManualClock())
+        before = app.view()['config']
+        app.action('preset_begin', slot=3)
+        edit(app, 'preset_input_begin')
+        edit(app, 'preset_input_key', key='Clear')
+        for key in 'COMMUTE':
+            page = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.index(key) // 12
+            while app.view()['preset_input']['letters'] != page:
+                edit(app, 'preset_input_page', delta=1)
+            edit(app, 'preset_input_key', key=key)
+        self.assertEqual(app.view()['preset_draft']['name'], 'Road')
+        state = edit(app, 'preset_input_accept')
+        self.assertIsNone(state['preset_input'])
+        self.assertEqual(state['preset_draft']['name'], 'COMMUTE')
+        self.assertEqual(state['config'], before)
+        edit(app, 'preset_page', page=1)
+        for text, action, expected in [('40', 'preset_input_cancel', 30),
+                                       ('40', 'preset_input_accept', 40),
+                                       ('42', 'preset_input_cancel', 40)]:
+            edit(app, 'preset_input_begin')
+            edit(app, 'preset_input_key', key='Clear')
+            for key in text:
+                edit(app, 'preset_input_key', key=key)
+            state = edit(app, action)
+            self.assertIsNone(state['preset_input'])
+            self.assertEqual(state['preset_draft']['pedal_sensitivity'], expected)
+            self.assertEqual(state['preset_draft']['name'], 'COMMUTE')
+            self.assertEqual(state['config'], before)
+        state = edit(app, 'preset_save')
+        self.assertEqual(state['screen'], 'preset_slots')
+        expected = before
+        expected['revision'] += 1
+        expected['presets'][2].update(name='COMMUTE', pedal_sensitivity=40)
+        self.assertEqual(state['config'], expected)
+        self.assertEqual(state['command_events'], [])
+
+    def test_all_slots_save_draft_locally_and_restart(self):
         with tempfile.TemporaryDirectory() as directory:
             store=FileStore(Path(directory)/'config.json');app=Application(clock=ManualClock(),store=store)
             for slot in range(1,5):
@@ -36,16 +105,19 @@ class PresetEditorTests(unittest.TestCase):
     def test_input_navigation_validation_cancel_and_duplicate_completion(self):
         app=Application(clock=ManualClock());before=app.view()['config'];opened=app.action('preset_begin',slot=3);old=opened['preset_editor']['id']
         edit(app,'preset_input_begin');edit(app,'preset_input_key',key='Clear');edit(app,'preset_input_key',key='A')
-        edit(app,'preset_page',page=1);edit(app,'preset_input_key',key='Clear')
-        state=edit(app,'preset_save');self.assertIn('Pedal sensitivity',state['preset_editor']['reason']);self.assertEqual(state['config'],before)
-        edit(app,'preset_page',page=0);self.assertEqual(app.view()['preset_input']['text'],'A')
-        edit(app,'preset_page',page=1);self.assertEqual(app.view()['preset_input']['text'],'')
-        edit(app,'preset_input_key',key='3');edit(app,'preset_input_key',key='1');state=edit(app,'preset_save')
+        edit(app,'preset_input_accept')
+        edit(app,'preset_page',page=1);edit(app,'preset_input_begin');edit(app,'preset_input_key',key='Clear')
+        state=edit(app,'preset_input_accept');self.assertIn('Pedal sensitivity',state['preset_editor']['reason']);self.assertEqual(state['config'],before)
+        for direction in ['left','right']:
+            state=edit(app,'swipe',direction=direction)
+            self.assertEqual(state['preset_page'],1);self.assertEqual(state['preset_input']['text'],'')
+        edit(app,'preset_input_key',key='3');edit(app,'preset_input_key',key='1');edit(app,'preset_input_accept')
+        state=edit(app,'preset_save')
         self.assertEqual(state['config']['presets'][2]['name'],'A');self.assertEqual(state['config']['presets'][2]['pedal_sensitivity'],31)
         app.action('preset_begin',slot=4)
         with self.assertRaises(ValueError):app.action('preset_save',editor_id=old)
         saved=app.view()['config'];edit(app,'preset_update',name='Discard');edit(app,'preset_cancel');self.assertEqual(app.view()['config'],saved)
-        for action in ['preset_clear','preset_input_done','preset_input_cancel']:
+        for action in ['preset_clear','preset_input_done']:
             with self.assertRaises(ValueError):app.action(action,slot=1)
 
     def test_wheel_changes_reconnect_and_replay_do_not_own_drafts(self):
@@ -55,8 +127,14 @@ class PresetEditorTests(unittest.TestCase):
         app.action('disconnect');app.action('connect');self.assertEqual(app.view()['preset_draft'],expected)
         self.assertEqual(app.view()['command_events'],[])
         fixture=Path('experiments/laptop-feasibility/evidence/fixture-recording.jsonl');app.action('replay_start',recording=Replay.load(fixture))
-        app.action('preset_begin',slot=2);edit(app,'preset_update',name='Replay');edit(app,'preset_save')
+        app.action('preset_begin',slot=2);edit(app,'preset_update',name='Replay')
+        edit(app,'preset_page',page=1);edit(app,'preset_input_begin');edit(app,'preset_input_key',key='Clear')
+        edit(app,'preset_input_key',key='4');edit(app,'preset_input_key',key='0');edit(app,'preset_input_accept')
+        edit(app,'preset_input_begin');edit(app,'preset_input_key',key='Clear');edit(app,'preset_input_cancel')
+        edit(app,'preset_save')
         self.assertEqual(app.view()['config']['presets'][1]['name'],'Replay')
+        self.assertEqual(app.view()['config']['presets'][1]['pedal_sensitivity'],40)
+        self.assertEqual(app.view()['command_events'],[])
         with self.assertRaises(ValueError):app.action('preset_apply',slot=2)
 
     def test_file_failure_retry_and_replacement_invalidate_old_operation(self):

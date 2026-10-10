@@ -1,5 +1,32 @@
 # Local laptop preset editor (#43, #46)
 
+The keypad completion and navigation described in the historical #43 account
+below are superseded by the preset value editor revision. The current built UI
+uses **OK/Cancel** for one value and **Save/Cancel** for the whole preset.
+
+OK validates the entry and returns to the same field display without persisting.
+Cancel (or swipe up) discards only that entry, retaining earlier accepted values.
+Horizontal swipes and field arrows do not navigate while input is open. Once
+input closes, field navigation wraps as before; Save persists the whole draft,
+and Cancel or swipe up discards it. Invalid input keeps its text and a visible
+reason. Entry IDs reject delayed keys/completion/gestures after an entry closes,
+including when another entry is opened in the same preset draft.
+
+Current reproduction: `npm run build --prefix frontend`, then run
+`tests/browser_preset_value_editor.py`, `tests/browser_preset_editor.py` and
+`tests/browser_preset_navigation.py` with the Python environment shown below.
+New traces and PNGs are in `evidence/preset-values/`; the original evidence stays
+in `evidence/local-presets/`. The value-editor trace covers the confirmed Road →
+Commute example, latest accepted value restoration, entire-draft cancellation,
+invalid name/percentage, blocked horizontal navigation, upward hierarchy, dip
+inclusion independence, FileStore failure/retry, restart and zero wheel packets.
+`tests/test_http_control.py` also checks duplicate and expired HTTP completion.
+The replay regression in `tests/test_preset_editor.py` verifies that OK and Cancel
+remain local actions during recording replay, including Save without wheel writes.
+These results cover the built laptop UI/backend; owner acceptance remains pending.
+
+## Historical #43 acceptance
+
 Settings → Presets opens any of the four saved definitions immediately, including
 without a wheel connection. Input and dip inclusion change only one transient
 draft. Name input supports case, spaces, digits, character clearing and backspace.

@@ -637,10 +637,10 @@ function watchPoint(event: PointerEvent): { x: number; y: number } {
   const bounds = canvas.getBoundingClientRect();
   return { x: (event.clientX - bounds.left) * 240 / bounds.width, y: (event.clientY - bounds.top) * 240 / bounds.height };
 }
-let gesture: { x: number; y: number; pointer: number; editor_id?: number } | null = null;
+let gesture: { x: number; y: number; pointer: number; editor_id?: number; entry_id?: number } | null = null;
 canvas.addEventListener('pointerdown', event => {
   if (!available || !session?.controller || !current?.awake || current.recovery) return;
-  gesture = { ...watchPoint(event), pointer: event.pointerId, editor_id: current.preset_editor?.id };
+  gesture = { ...watchPoint(event), pointer: event.pointerId, editor_id: current.preset_editor?.id, entry_id: current.preset_input?.id };
   canvas.setPointerCapture(event.pointerId);
   enqueueWatch('interact');
 });
@@ -648,14 +648,15 @@ canvas.addEventListener('pointerup', event => {
   if (!gesture || gesture.pointer !== event.pointerId) return;
   const start = gesture;
   gesture = null;
+  if (start.editor_id !== current?.preset_editor?.id || start.entry_id !== current?.preset_input?.id) return;
   const end = watchPoint(event);
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy)) {
-    enqueueWatch('swipe', { direction: dx < 0 ? 'left' : 'right', from_top: start.y <= 45, editor_id: start.editor_id });
+    enqueueWatch('swipe', { direction: dx < 0 ? 'left' : 'right', from_top: start.y <= 45, editor_id: start.editor_id, entry_id: start.entry_id });
   } else if (Math.abs(dy) >= 40 && Math.abs(dy) > Math.abs(dx)) {
     if (dy < 0 && thresholdEntry !== null) { thresholdEntry = null; return; }
-    enqueueWatch('swipe', { direction: dy < 0 ? 'up' : 'down', from_top: start.y <= 45, editor_id: start.editor_id });
+    enqueueWatch('swipe', { direction: dy < 0 ? 'up' : 'down', from_top: start.y <= 45, editor_id: start.editor_id, entry_id: start.entry_id });
   } else if (Math.abs(dx) < 12 && Math.abs(dy) < 12 && current && ['preset_slots', 'preset_editor'].includes(current.screen)) {
     watchPresets.tap(current, end.x, end.y);
   } else if (Math.abs(dx) < 12 && Math.abs(dy) < 12 && current?.screen === 'settings') {

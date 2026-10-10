@@ -5,7 +5,7 @@
   "expected_input": "A",
   "expected_draft": {
     "id": 4,
-    "name": "A",
+    "name": "Drag",
     "configured": true,
     "pedal_sensitivity": 20,
     "dynamic_assist": 70,

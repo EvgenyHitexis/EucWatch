@@ -29,7 +29,7 @@ if(require.main===module){
   assert.equal(test.app.view().config.presets[3].name,'Local');assert.equal(test.app.view().config.presets[3].pedal_dip_compensation,17);assert.equal(test.app.view().config.presets[3].dip_included,false);
   open(test,1);assert.throws(()=>test.app.action('preset_save',{editor_id:id}),/changed/);
   const newId=test.app.view().preset_editor.id;test.app.action('configuration_reload');assert.throws(()=>test.app.action('preset_save',{editor_id:newId}),/changed/);
-  for(const name of ['preset_clear','preset_clear_begin','preset_clear_done','preset_input_done','preset_input_cancel'])assert.throws(()=>test.app.action(name),/Unknown/);
+  for(const name of ['preset_clear','preset_clear_begin','preset_clear_done','preset_input_done'])assert.throws(()=>test.app.action(name),/Unknown/);
   assert.equal(test.writes.length,0);assert.equal(test.create().view().config.presets[3].name,'Local');
   console.log('watch local drafts, retry, stale completion/reload and retired actions: passed');
 }

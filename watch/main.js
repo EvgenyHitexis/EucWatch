@@ -13,7 +13,7 @@ exports.start=function(options){
     present:function(state){if(!stopped){hardware.setAwake(state.awake);if(state.awake)renderer.draw(hardware.graphics,state);}}
   });
   transport=require('sw-transport').create({app:core,radio:radio,timers:options.timers||{setTimeout:setTimeout,clearTimeout:clearTimeout}});
-  hardware.bind(function(name,payload){var editor=core.view().preset_editor;if(name==='swipe'&&editor)payload.editor_id=editor.id;core.action(name,payload);},function(x,y){
+  hardware.bind(function(name,payload){var state=core.view();if(name==='swipe'&&state.preset_editor){payload.editor_id=state.preset_editor.id;if(state.preset_input)payload.entry_id=state.preset_input.id;}core.action(name,payload);},function(x,y){
     var state=core.view(),target=require('sw-controls').hit(state,x,y);
     if(!target)return;
     try{

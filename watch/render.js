@@ -14,12 +14,13 @@ exports.draw = function (g, state) {
   }else if(state.screen==='preset_editor'){
     var slot=state.preset_draft,page=state.preset_page,labels=require('sw-preset-editor').labels;
     if(slot){
-      text(labels[page],120,9,12);controls();
       var notice=state.validation_error||state.persistence_error||'';
+      if(!state.preset_input||!notice)text(labels[page],120,9,12);
+      controls();
       if(state.preset_input){
         var input=state.preset_input;
-        if(notice){var reason=notice.replace('Configuration save failed: Error: ','Save failed: ').replace(/^Error: /,'');text(reason.slice(0,35),120,29,10);text(reason.slice(35,70),120,42,10);}
-        else text(input.text||'-',120,33,Math.min(18,Math.floor(216/(Math.max(1,input.text.length)*0.65))));
+        if(notice){var reason=notice.replace('Configuration save failed: Error: ','Save failed: ').replace(/^Error: /,'');text(reason.slice(0,35),120,1,10);text(reason.slice(35,70),120,14,10);}
+        text(input.text||'-',120,33,Math.min(18,Math.floor(216/(Math.max(1,input.text.length)*0.65))));
       }else{
         text('SLOT '+slot.id+' - '+(page+1)+'/4',120,36,14);
         text('Left/right fields; up cancels',120,148,12);text(notice.slice(0,38),120,183,10);

@@ -2,10 +2,21 @@
 from copy import deepcopy
 import re
 from typing import Any
-from .configuration import validate_configuration
+from .configuration import validate_configuration, validate_preset_name
 
 FIELDS = ('name', 'pedal_sensitivity', 'dynamic_assist', 'pedal_dip_compensation')
 LABELS = ('Name', 'Pedal sensitivity', 'Dynamic assist', 'Pedal dip compensation')
+
+
+def validate_value(field: str, value: Any) -> str | int:
+    if field == 'name':
+        validate_preset_name(value)
+    else:
+        if isinstance(value, str) and re.fullmatch(r'[0-9]{1,3}', value):
+            value = int(value)
+        if type(value) is not int or not 0 <= value <= 100:
+            raise ValueError(f'{LABELS[FIELDS.index(field)]}: enter a whole percentage 0–100')
+    return value
 
 
 def validate_slot(slot: Any) -> int:
@@ -24,6 +35,7 @@ def replacement(config: dict[str, Any], draft: dict[str, Any]) -> dict[str, Any]
 class PresetEditor:
     def __init__(self):
         self.next_id = 1
+        self.next_entry_id = 1
         self.request: dict[str, Any] | None = None
         self.draft: dict[str, Any] | None = None
         self.page = 0
@@ -41,11 +53,15 @@ class PresetEditor:
             raise ValueError('Preset editor changed; open a fresh editor operation')
 
     def update(self, changes: dict[str, Any]) -> None:
+        if self.input:
+            raise ValueError('Finish the current preset value entry first')
         if not self.draft or not changes or set(changes) - set(FIELDS):
             raise ValueError('Invalid preset draft field')
         self.draft.update(deepcopy(changes))
-        if self.input:
-            self.input['text'] = str(self.draft[self.input['field']])
+
+    def require_input(self, identity: Any) -> None:
+        if not self.input or type(identity) is not int or identity != self.input['id']:
+            raise ValueError('Preset value entry changed; open a fresh entry')
 
     def keys(self) -> list[str]:
         if not self.input:
@@ -73,15 +89,17 @@ class PresetEditor:
 
     def begin_input(self) -> None:
         assert self.draft is not None
+        if self.input:
+            return
         field = FIELDS[self.page]
-        self.input = {'field': field, 'text': str(self.draft[field]), 'letters': 0, 'lowercase': False}
+        self.input = {'id': self.next_entry_id, 'field': field, 'text': str(self.draft[field]), 'letters': 0, 'lowercase': False}
+        self.next_entry_id += 1
 
     def set_page(self, page: Any) -> None:
         if type(page) is not int or not 0 <= page <= 3:
             raise ValueError('Invalid preset page')
-        self.page = page
-        if self.input is not None:
-            self.begin_input()
+        if self.input is None:
+            self.page = page
 
     def key(self, key: Any) -> None:
         if self.input is None or self.draft is None:
@@ -98,18 +116,22 @@ class PresetEditor:
                 entry['text'] += key
         else:
             raise ValueError('Invalid preset input key')
-        self.draft[entry['field']] = entry['text']
+
+    def accept_input(self) -> None:
+        assert self.input is not None and self.draft is not None
+        self.draft[self.input['field']] = validate_value(self.input['field'], self.input['text'])
+        self.input = None
+
+    def cancel_input(self) -> None:
+        self.input = None
 
     def validated(self, config: dict[str, Any]) -> dict[str, Any]:
         assert self.draft is not None
+        if self.input:
+            raise ValueError('Finish the current preset value entry first')
         draft = deepcopy(self.draft)
-        for field, label in zip(FIELDS[1:], LABELS[1:]):
-            value = draft[field]
-            if isinstance(value, str) and re.fullmatch(r'[0-9]{1,3}', value):
-                value = int(value)
-            if type(value) is not int or not 0 <= value <= 100:
-                raise ValueError(f'{label}: enter a whole percentage 0–100')
-            draft[field] = value
+        for field in FIELDS:
+            draft[field] = validate_value(field, draft[field])
         return replacement(config, draft)
 
     def close(self) -> None:

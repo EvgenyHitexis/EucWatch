@@ -12,7 +12,7 @@ exports.create = function (options) {
   var paintDuration=0,maxPaintDuration=0,visibleReceipt=null,maxReceiptToPaint=0;
   var core, devices=[], recoveryCalled=false;
   var config=configuration.defaults(),draft=null,persistenceError=null,validationError=null,alertPage=0,thresholdInput=null;
-  var editor=require('sw-preset-editor').create(),presetPage=0,presetInput=null,clearSlot=null;
+  var editor=require('sw-preset-editor').create(),presetPage=0,presetInput=null,nextEntryId=1,clearSlot=null;
   if(options.store){try{var saved=options.store.load();if(saved!==null&&saved!==undefined)config=configuration.validate(saved);persistenceError=options.store.warning||null;}catch(error){persistenceError='Saved configuration requires review: '+String(error);}}
   var alerts=require('sw-alerts').create({output:options.vibration_output,settings:config.alerts});
   var commandEvents=[],controlFeedback='',control=require('sw-preset-control').create({send:submit});
@@ -43,8 +43,9 @@ exports.create = function (options) {
     config=proposed;control.invalidate(clock.now(),'Saved configuration changed');persistenceError=null;return true;
   }
   function leaveEditor(){
-    editor.close();presetInput=null;clearSlot=null;validationError=null;
+    editor.close();presetPage=0;presetInput=null;clearSlot=null;validationError=null;
   }
+  function requireInput(id){if(!presetInput||typeof id!=='number'||id!==presetInput.id)throw new Error('Preset value entry changed; open a fresh entry');}
   function percent(voltage) {
     return voltage <= 119.02 ? 0 : voltage >= 148.05 ? 100 : Math.max(0, Math.min(100, Math.round((voltage - 119.02) / 0.2903)));
   }
@@ -108,7 +109,7 @@ exports.create = function (options) {
       core.tick();
     },
     action: function (name, payload) {
-      if(typeof name==='string'&&(/^(transfer_|nordic_)/.test(name)||['preset_clear','preset_clear_begin','preset_clear_cancel','preset_clear_done','preset_input_done','preset_input_cancel'].indexOf(name)>=0))throw new Error('Unknown action: '+name);
+      if(typeof name==='string'&&(/^(transfer_|nordic_)/.test(name)||['preset_clear','preset_clear_begin','preset_clear_cancel','preset_clear_done','preset_input_done'].indexOf(name)>=0))throw new Error('Unknown action: '+name);
       payload = payload || {};
       core.tick();
       if (name === 'session_start') resetSession();
@@ -117,8 +118,12 @@ exports.create = function (options) {
       else if (name === 'swipe' && awake && !recovery) {
         if(screen==='preset_editor'){
           editor.require(payload.editor_id);
-          if(payload.direction==='left'||payload.direction==='right')core.action('preset_page',{editor_id:payload.editor_id,page:(presetPage+(payload.direction==='left'?1:3))%4});
-          else if(payload.direction==='up'){leaveEditor();screen='preset_slots';}
+          if(presetInput||payload.entry_id!=null)requireInput(payload.entry_id);
+          if(payload.direction==='left'||payload.direction==='right'){
+            if(!presetInput)core.action('preset_page',{editor_id:payload.editor_id,page:(presetPage+(payload.direction==='left'?1:3))%4});
+          }else if(payload.direction==='up'){
+            if(presetInput){presetInput=null;validationError=null;}else{leaveEditor();screen='preset_slots';}
+          }
         }else if(payload.direction==='left'&&screen==='dashboard')screen='presets';
         else if(payload.direction==='down'&&payload.from_top&&screen==='dashboard')screen='settings';
         else if(payload.direction==='up'){
@@ -141,28 +146,30 @@ exports.create = function (options) {
       }else if(name==='preset_begin'){
         if(!awake||recovery)throw new Error('Preset editing unavailable');
         editor.open(config,payload.slot);presetPage=0;presetInput=null;validationError=null;screen='preset_editor';
-      }else if(['preset_update','preset_cancel','preset_save','preset_include_dip','preset_page','preset_input_begin','preset_input_key','preset_input_page'].indexOf(name)>=0){
+      }else if(['preset_update','preset_cancel','preset_save','preset_include_dip','preset_page','preset_input_begin','preset_input_key','preset_input_page','preset_input_accept','preset_input_cancel'].indexOf(name)>=0){
         editor.require(payload.editor_id);
+        if(payload.entry_id!=null||['preset_input_key','preset_input_page','preset_input_accept','preset_input_cancel'].indexOf(name)>=0)requireInput(payload.entry_id);
         if(!awake||recovery)throw new Error('Preset editing unavailable');
         validationError=null;
         if(name==='preset_update'){
-          var changes=configuration.copy(payload);delete changes.source;delete changes.editor_id;editor.update(changes);
-          if(presetInput)presetInput.text=String(editor.view().draft[presetInput.field]);
+          if(presetInput)throw new Error('Finish the current preset value entry first');
+          var changes=configuration.copy(payload);delete changes.source;delete changes.editor_id;delete changes.entry_id;editor.update(changes);
         }else if(name==='preset_cancel'){leaveEditor();screen='preset_slots';}
         else if(name==='preset_save'){
           var proposedEditor;
-          try{proposedEditor=editor.validate(config);}catch(error){validationError=String(error);return view();}
+          try{if(presetInput)throw new Error('Finish the current preset value entry first');proposedEditor=editor.validate(config);}catch(error){validationError=String(error);return view();}
           if(saveEditor(proposedEditor)){leaveEditor();screen='preset_slots';}
         }else if(name==='preset_include_dip'){
           if(typeof payload.included!=='boolean')throw new Error('Choose explicit dip inclusion');
           editor.update({dip_included:payload.included});
         }else if(name==='preset_page'){
           if(typeof payload.page!=='number'||Math.floor(payload.page)!==payload.page||payload.page<0||payload.page>3)throw new Error('Invalid preset page');
-          presetPage=payload.page;
-          if(presetInput){var field=require('sw-preset-editor').fields[presetPage];presetInput={field:field,text:String(editor.view().draft[field]),letters:0,lowercase:false};}
+          if(!presetInput)presetPage=payload.page;
         }else if(name==='preset_input_begin'){
-          var inputField=require('sw-preset-editor').fields[presetPage];
-          presetInput={field:inputField,text:String(editor.view().draft[inputField]),letters:0,lowercase:false};
+          if(!presetInput){
+            var inputField=require('sw-preset-editor').fields[presetPage];
+            presetInput={id:nextEntryId++,field:inputField,text:String(editor.view().draft[inputField]),letters:0,lowercase:false};
+          }
         }else if(name==='preset_input_key'){
           if(!presetInput)throw new Error('No preset input is open');
           var key=payload.key;
@@ -171,10 +178,16 @@ exports.create = function (options) {
           else if(key==='a/A'&&presetInput.field==='name')presetInput.lowercase=!presetInput.lowercase;
           else if(typeof key==='string'&&(require('sw-preset-editor').keys(presetInput).indexOf(key)>=0||(key===' '&&presetInput.field==='name'))){if(presetInput.text.length<(presetInput.field==='name'?24:3))presetInput.text+=key;}
           else throw new Error('Invalid preset input key');
-          var entered={};entered[presetInput.field]=presetInput.text;editor.update(entered);
         }else if(name==='preset_input_page'){
           if(!presetInput||presetInput.field!=='name'||(payload.delta!==1&&payload.delta!==-1))throw new Error('Invalid name keypad page');
           presetInput.letters=(presetInput.letters+payload.delta+3)%3;
+        }else if(name==='preset_input_accept'){
+          try{
+            var accepted={};accepted[presetInput.field]=require('sw-preset-editor').validateValue(presetInput.field,presetInput.text);
+            editor.update(accepted);presetInput=null;
+          }catch(error){validationError=String(error);}
+        }else if(name==='preset_input_cancel'){
+          presetInput=null;
         }
       }
       else if(name==='preset_apply'){

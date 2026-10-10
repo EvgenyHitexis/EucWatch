@@ -1,7 +1,7 @@
 /* Shared rendered rectangles and touch targets: [left,top,right,bottom]. */
 exports.targets=function(state){
   if(!state.awake||state.recovery)return [];
-  function target(rect,label,action,payload){payload=payload||{};if(action.indexOf('preset_')===0&&state.preset_editor)payload.editor_id=state.preset_editor.id;return {rect:rect,label:label,action:action,payload:payload};}
+  function target(rect,label,action,payload){payload=payload||{};if(action.indexOf('preset_')===0&&state.preset_editor){payload.editor_id=state.preset_editor.id;if(state.preset_input)payload.entry_id=state.preset_input.id;}return {rect:rect,label:label,action:action,payload:payload};}
   if(state.screen==='settings')return [
     target([12,26,228,52],state.transport&&(state.transport.active||state.transport.connected)?'Disconnect wheel':'Connect wheel','transport_toggle'),
     target([12,60,228,110],'Sleep screen','sleep'),target([12,120,228,170],'Vibration alerts','alerts_begin'),
@@ -10,7 +10,7 @@ exports.targets=function(state){
   if(state.screen==='preset_editor'){
     if(!state.preset_draft)return [];
     var page=state.preset_page,field=require('sw-preset-editor').fields[page];
-    var rows=[target([12,2,62,28],'<','preset_page',{page:(page+3)%4}),target([178,2,228,28],'>','preset_page',{page:(page+1)%4})];
+    var rows=state.preset_input?[]:[target([12,2,62,28],'<','preset_page',{page:(page+3)%4}),target([178,2,228,28],'>','preset_page',{page:(page+1)%4})];
     if(state.preset_input){
       var input=state.preset_input;
       rows=rows.concat(require('sw-preset-editor').keys(input).map(function(key,index){var x=16+index%3*70,y=59+Math.floor(index/3)*31;return target([x,y,x+66,y+28],key,'preset_input_key',{key:key});}));
@@ -23,7 +23,7 @@ exports.targets=function(state){
       rows.push(target([12,65,228,103],String(state.preset_draft[field]),'preset_input_begin'));
       if(field==='pedal_dip_compensation')rows.push(target([12,111,228,141],state.preset_draft.dip_included?'Dip included':'Dip omitted','preset_include_dip',{included:!state.preset_draft.dip_included}));
     }
-    return rows.concat([target([12,214,116,238],'Cancel','preset_cancel'),target([124,214,228,238],'Save','preset_save')]);
+    return rows.concat([target([12,214,116,238],'Cancel',state.preset_input?'preset_input_cancel':'preset_cancel'),target([124,214,228,238],state.preset_input?'OK':'Save',state.preset_input?'preset_input_accept':'preset_save')]);
   }
   if(state.screen==='alerts'&&state.alerts_draft){
     var name=['pwm','speed','battery','lost'][state.alert_page],setting=state.alerts_draft[name];
