@@ -31,8 +31,10 @@ Run checks with `./scripts/check.sh`. Acceptance scenarios and evidence are in
 separate: no live horn, riding experiment or watch deployment is authorized here.
 
 Edit the four saved presets through watch-sized **Settings → Presets**.
-Each editor reads fresh wheel settings; completing a riding-value adjustment
-writes directly to the wheel. Names and optional-dip inclusion stay local. See
+Editing works locally without a wheel connection. Whole-editor Save stores the
+selected preset, including active keypad input; Cancel or swipe up discards its
+draft. Swipe left/right wraps through fields. Dip inclusion is separate from its
+remembered value. Only selecting a preset in the riding menu applies it to the wheel. See
 [preset editor behavior and evidence](docs/acceptance/preset-editor.md).
 The separate panel supports alert editing, local configuration backup/import/restore,
 reusable controlled scenarios and explicit wheel discovery. Saved laptop configuration uses the XDG configuration
