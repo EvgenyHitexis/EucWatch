@@ -1218,19 +1218,19 @@
   ],
   "source_sha256": {
     "watch/alerts.js": "37e778e87f1cf7c4224a3b87a1dd4982a84095cf5d24f0378aab162f3edd0e99",
-    "watch/app.js": "78ffc7ba2e3bbe8977a2eb4cf6c983a955e08789d45ff64e2be2c14513ffab2b",
+    "watch/app.js": "d8828966fd26b0265317785091cc6585e5d0d74b376a9b8d9929aa650285602d",
     "watch/boot.js": "17bcadbe43c2c2a7b2935f1453f5a05ecb191da171f1cbbb07e6b3d7cc3b2cb7",
     "watch/configuration.js": "6995ac545efe8f1d8f732249560614f1facd0ca2040d1648881fb8eb49975bfd",
-    "watch/controls.js": "a320a345f0b3960ed6f457418b7624a0a5de5d1356716542e3dab7ba7e284d0a",
+    "watch/controls.js": "ae4570e16c6606fb91aefa8d1356f1f2b7876230254308288f93bd57c605cb5c",
     "watch/display.js": "6471e8383ad163f9bae99a7e711bddd4a4a377deccf2e54191175d006de5f4ae",
     "watch/hardware.js": "e302199b8971581e489849ee708989ec909d646c13ef06d71df20adb5652cc42",
     "watch/horn.js": "d03479b8306fe88289b4b4932375b3efb4e696f44e8cad8deea9a93b83bd756c",
     "watch/main.js": "7dcae8604783a159a9f071fae0a7f69bac4e0e26885cc30a0148d9677f5868dd",
     "watch/motor.js": "7814a91690a99773458bbb9282be0b95ae863b1142dbac1892336b56de2a7cae",
     "watch/preset-control.js": "616486d1ebe6fa7b6da63abbf285b6a7aea9794035abe5fb4a693e6a09160d1a",
-    "watch/preset-editor.js": "93b368051b4a8b1789188dd3c63dffc80fb1a97480542c69d12ec187156357a6",
+    "watch/preset-editor.js": "f610e0f396a3c55d96095409d7dd47cde73e9ba370f9e75052f021d6b2407981",
     "watch/protocol.js": "173c2d4d534747a7e251ae06fb0b28a0578af8e3db229afd676ac2f6a2ab11b8",
-    "watch/render.js": "b0e23c1d29d1c12b2af340b6c53a1d097be5d1935d80a83368622a057e3b555d",
+    "watch/render.js": "d0e08706ba64e6a9c167244ebdd4c6bb51b1c55f812ca15d591002498c7d10d2",
     "watch/store.js": "bf69ae5b56a0a9cec823c579d237bd5f6675a29572ec484dc9024bf070529a39",
     "watch/transport.js": "ee51d586a555e7dbc4557702442c386fda43648b3a21b7ab1df74ebab2005a56"
   }

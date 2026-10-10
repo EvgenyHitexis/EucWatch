@@ -1,4 +1,4 @@
-/* Session-bound editor. Saved definitions supply names and dip inclusion only. */
+/* Local transient draft; saving never invokes a wheel writer. */
 var configuration=require('sw-configuration');
 exports.fields=['name','pedal_sensitivity','dynamic_assist','pedal_dip_compensation'];
 exports.labels=['Name','Pedal sensitivity','Dynamic assist','Pedal dip compensation'];
@@ -7,31 +7,24 @@ exports.keys=function(input){if(input.field!=='name')return ['1','2','3','4','5'
 exports.slot=function(slot){if(typeof slot!=='number'||Math.floor(slot)!==slot||slot<1||slot>4)throw new Error('Choose one of the four fixed preset slots');return slot;};
 exports.replacement=function(config,draft){var proposed=configuration.copy(config);proposed.presets[exports.slot(draft.id)-1]=configuration.copy(draft);proposed.revision++;return configuration.validate(proposed);};
 exports.create=function(){
-  var request=null,draft=null,values=null;
+  var request=null,draft=null,nextId=1;
   return {
-    open:function(slot,session,now){draft=null;values=null;request={slot:exports.slot(slot),session:session,requested_s:now,status:'waiting',reason:'',seeded_s:null};},
-    close:function(){request=null;draft=null;values=null;},
-    tick:function(now,session,connected){
-      if(!request||request.status==='unavailable')return;
-      var reason=request.session!==session||!connected?'Wheel session ended; reopen for fresh settings':request.status==='waiting'&&now-request.requested_s>=5-1e-9?'Current wheel settings unavailable (readback timeout)':'';
-      if(reason){request.status='unavailable';request.reason=reason;draft=null;values=null;}
+    open:function(config,slot){slot=exports.slot(slot);draft=configuration.copy(config.presets[slot-1]);request={id:nextId++,slot:slot,status:'ready',reason:''};},
+    close:function(){request=null;draft=null;},
+    require:function(id){if(!request||typeof id!=='number'||id!==request.id)throw new Error('Preset editor changed; open a fresh editor operation');},
+    update:function(changes){
+      if(!draft||!Object.keys(changes).length||Object.keys(changes).some(function(name){return exports.fields.concat(['dip_included']).indexOf(name)<0;}))throw new Error('Invalid preset draft field');
+      Object.keys(changes).forEach(function(name){draft[name]=changes[name];});
     },
-    observe:function(config,settings,session,now){
-      if(!request||request.session!==session||request.status==='unavailable')return;
-      values=configuration.copy(settings);
-      if(request.status!=='waiting'||exports.fields.slice(1).some(function(field){return settings[field]===null||settings[field]===undefined;}))return;
-      var saved=config.presets[request.slot-1];
-      draft={id:saved.id,name:saved.name,configured:true,pedal_sensitivity:settings.pedal_sensitivity,dynamic_assist:settings.dynamic_assist,pedal_dip_compensation:saved.pedal_dip_compensation,dip_included:saved.dip_included};
-      if(saved.dip_included)draft.pedal_dip_compensation=settings.pedal_dip_compensation;
-      request.status='ready';request.seeded_s=now;
+    validate:function(config){
+      var selected=configuration.copy(draft);
+      exports.fields.slice(1).forEach(function(field,index){
+        var value=selected[field];if(typeof value==='string'&&/^[0-9]{1,3}$/.test(value))value=Number(value);
+        if(typeof value!=='number'||Math.floor(value)!==value||value<0||value>100)throw new Error(exports.labels[index+1]+': enter a whole percentage 0-100');
+        selected[field]=value;
+      });
+      return exports.replacement(config,selected);
     },
-    update:function(config,changes){
-      if(!draft)throw new Error('Wait for fresh settings before editing');
-      var names=Object.keys(changes),field=names[0],proposed=configuration.copy(draft);
-      if(names.length!==1||exports.fields.concat(['dip_included']).indexOf(field)<0)throw new Error('Complete one field adjustment at a time');
-      if(field==='pedal_dip_compensation'&&changes[field]===null)proposed.dip_included=false;else {proposed[field]=changes[field];if(field==='pedal_dip_compensation')proposed.dip_included=true;}
-      var configNext=exports.replacement(config,proposed);draft=proposed;return configNext;
-    },
-    view:function(){return {request:configuration.copy(request),draft:configuration.copy(draft),values:configuration.copy(values)};}
+    view:function(){return {request:configuration.copy(request),draft:configuration.copy(draft)};}
   };
 };

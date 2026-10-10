@@ -9,31 +9,20 @@ exports.draw = function (g, state) {
   g.clear();
   if (!state.awake) return;
   if (state.recovery) { text('RECOVERY',120,90,24); text('Wheel controls unavailable',120,125,12); g.flip(); return; }
-  if(state.preset_clear_slot!==null&&(state.screen==='preset_slots'||state.screen==='preset_editor')){
-    text('Clear slot '+state.preset_clear_slot+'?',120,65,20);text('Wheel values stay unchanged',120,105,13);controls();
-  }else if(state.screen==='preset_slots'){
-    text('SETTINGS - PRESETS',120,9,14);controls();text((state.persistence_error||'Tap a slot to edit; swipe right').slice(0,36),120,221,10);
+  if(state.screen==='preset_slots'){
+    text('SETTINGS - PRESETS',120,9,14);controls();text((state.persistence_error||'Tap a slot to edit').slice(0,36),120,221,10);
   }else if(state.screen==='preset_editor'){
-    var editor=state.preset_editor,slot=state.preset_draft,page=state.preset_page,labels=require('sw-preset-editor').labels;
-    if(!editor||!slot){
-      text('SLOT '+(editor?editor.slot:'?'),120,12,16);
-      text(editor&&editor.status==='waiting'?'Reading wheel settings...':'Settings unavailable',120,76,17);
-      text(editor&&editor.status==='waiting'?'Waiting for a new valid frame':'Reopen to read this session',120,113,12);
-      text(editor?editor.reason.slice(0,36):'',120,146,11);controls();
-    }else if(state.preset_input){
-      var input=state.preset_input; text(input.field==='name'?'Letters '+(input.letters+1)+'/3':labels[page],120,9,13);text(input.text||'-',120,33,Math.min(18,Math.floor(216/(Math.max(1,input.text.length)*0.65))));controls();
-      if(state.validation_error)text(state.validation_error.slice(0,36),120,178,9);
-    }else{
-      var field=require('sw-preset-editor').fields[page],attempt=state.preset_attempt;
-      var result=attempt&&attempt.kind==='editor'&&attempt.slot===slot.id?attempt.fields[field]:null;
-      text('SLOT '+slot.id+' - '+(page+1)+'/4',120,9,13);text(labels[page],120,37,16);controls();
-      if(attempt&&attempt.pending)text(String(slot[field]===undefined?'Omitted':slot[field]),120,77,18);
-      text(result?'Requested '+result.requested+' - '+(result.submitted_s===null?'not submitted':'submitted'):'Tap value to edit',120,147,11);
-      var wheel=state.fresh&&editor.wheel_values?editor.wheel_values[field]:null;
-      var confirmation=editor.current_confirmation?'confirmed':attempt&&attempt.status==='Confirmed'?'confirmation lost':result?result.state:'unknown';
-      text(result?'Wheel '+(wheel===null||wheel===undefined?'unknown':wheel)+' - '+confirmation:field==='name'?'Name stays local':'Set writes directly to wheel',120,168,11);
-      var notice=state.validation_error||state.persistence_error||(attempt&&attempt.kind==='editor'&&attempt.slot===slot.id?(attempt.pending?'Applying - wait':attempt.reason||attempt.status):'');
-      text(notice.slice(0,36),120,187,10);
+    var slot=state.preset_draft,page=state.preset_page,labels=require('sw-preset-editor').labels;
+    if(slot){
+      text(labels[page],120,9,12);controls();
+      var notice=state.validation_error||state.persistence_error||'';
+      if(state.preset_input){
+        var input=state.preset_input;
+        text(notice?notice.slice(0,40):input.text||'-',120,33,notice?10:Math.min(18,Math.floor(216/(Math.max(1,input.text.length)*0.65))));
+      }else{
+        text('SLOT '+slot.id+' - '+(page+1)+'/4',120,36,14);
+        text('Local draft - tap value to edit',120,148,12);text(notice.slice(0,38),120,183,10);
+      }
     }
   }else if (state.screen === 'presets') {
     text('RIDING PRESETS',120,10,15);
