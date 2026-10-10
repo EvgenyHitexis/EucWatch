@@ -1,0 +1,115 @@
+{
+  "issue": 31,
+  "command": "./scripts/launch.sh",
+  "provenance": "real launcher subprocess / HTTP / isolated XDG files; simulator only",
+  "expected": "idle startup; SIGINT closes port; offline relaunch retains saved preset, alerts and scenario without draft, command or confirmation replay",
+  "observed": "passed",
+  "offline": "launcher uses uv --offline --no-sync and existing frontend assets; network not physically disconnected",
+  "saved": {
+    "version": 2,
+    "revision": 2,
+    "presets": [
+      {
+        "id": 1,
+        "name": "Jump",
+        "configured": true,
+        "pedal_sensitivity": 0,
+        "dynamic_assist": 0,
+        "pedal_dip_compensation": 0,
+        "dip_included": false
+      },
+      {
+        "id": 2,
+        "name": "Forest",
+        "configured": true,
+        "pedal_sensitivity": 70,
+        "dynamic_assist": 0,
+        "pedal_dip_compensation": 0,
+        "dip_included": false
+      },
+      {
+        "id": 3,
+        "name": "Commute",
+        "configured": true,
+        "pedal_sensitivity": 40,
+        "dynamic_assist": 25,
+        "pedal_dip_compensation": 10,
+        "dip_included": false
+      },
+      {
+        "id": 4,
+        "name": "Drag",
+        "configured": true,
+        "pedal_sensitivity": 20,
+        "dynamic_assist": 70,
+        "pedal_dip_compensation": 5,
+        "dip_included": false
+      }
+    ],
+    "alerts": {
+      "pwm": {
+        "enabled": true,
+        "threshold": 70
+      },
+      "speed": {
+        "enabled": false,
+        "threshold": null
+      },
+      "battery": {
+        "enabled": false,
+        "threshold": null
+      },
+      "lost": {
+        "enabled": true
+      }
+    }
+  },
+  "scenario": {
+    "version": 1,
+    "name": "Freshness and reconnect",
+    "seed": 0,
+    "clock": "controlled",
+    "input": "protocol-shaped",
+    "simulator": {
+      "speed_kmh": 25,
+      "voltage_V": 148.05,
+      "pwm_percent": 45,
+      "watch_battery_percent": 80,
+      "traffic": "normal",
+      "frame_length": 87,
+      "fragment_size": 20,
+      "control_submission": "normal",
+      "control_fail_after": 1,
+      "control_submission_delay_s": 0.0,
+      "control_readback": "normal",
+      "control_delay_s": 0.0
+    },
+    "steps": [
+      {
+        "action": "simulator_configure",
+        "traffic": "paused"
+      },
+      {
+        "action": "advance",
+        "seconds": 1.1
+      },
+      {
+        "action": "simulator_configure",
+        "traffic": "normal"
+      },
+      {
+        "action": "simulator_emit"
+      },
+      {
+        "action": "disconnect"
+      },
+      {
+        "action": "connect"
+      },
+      {
+        "action": "simulator_emit"
+      }
+    ]
+  },
+  "shutdowns": 2
+}

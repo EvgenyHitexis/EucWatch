@@ -1,0 +1,73 @@
+# Laptop owner review (#31)
+
+The owner said “I like how app looks” on 2026-10-10. This records visual approval;
+the complete behavioral review below is still pending. Automated results and
+remaining live evidence are in [the acceptance register](laptop.md).
+
+## Review session
+
+Use a separate profile so review edits preserve the owner's normal saved presets.
+From the repository root, after the initial `./scripts/setup.sh`:
+
+```sh
+npm run build --prefix frontend
+XDG_CONFIG_HOME="$PWD/.test-output/owner-review/config" \
+XDG_DATA_HOME="$PWD/.test-output/owner-review/data" \
+EUCWATCH_PORT=8766 ./scripts/launch.sh
+```
+
+Open <http://127.0.0.1:8766/>. Ctrl-C in the launching terminal stops this session.
+Run the same command again to review persistence offline. It reuses this review
+profile; it does not reset it. The first launch has Jump, Forest, Road and Drag.
+If the screen sleeps while reading these instructions, press the modeled side
+button once to wake it.
+
+Use the watch-sized screen for editing, gestures, selecting presets and the side
+button. The separate panel supplies simulator inputs, time, traces and files.
+All values below are synthetic review inputs. Stay in simulator or replay mode
+for this walkthrough; no live wheel connection is part of it.
+
+## Walkthrough
+
+| Review | Actions | Expected experience |
+| --- | --- | --- |
+| R1 — dashboard and freshness | Under Reproducible scenarios, choose `docs/acceptance/scenarios/freshness.json`, Review file, then Start reviewed or saved scenario. Run all seven Next scenario step actions. | Start shows 25 km/h, PWM 45%, estimated battery 100% and average cell 4.11 V. Step 2 shows dashes and dimmed retained wheel battery. Step 4 restores readings; step 5 disconnects; step 6 alone has no fresh readings; step 7 restores them. Watch battery stays independent. |
+| R2 — navigation and sleep | Swipe down from the dashboard's top. Open Sleep screen, then press and release the side button. Swipe up to return to the dashboard. | Settings buttons are consistent and readable. The button cycle only wakes the screen. Settings returns upward; riding presets return by swiping right. |
+| R3 — local presets | Down → Presets. Open each of the four slots and check its name and fields. On Road, change sensitivity from 30 to 40 and press keypad OK. Reopen it, enter 42 and Cancel. Save from the field display. Reopen Road and check 40. Make another draft change and cancel the whole draft. | OK returns to the field without saving. Entry Cancel restores the latest accepted value (40). Save persists the whole preset. Whole-draft Cancel preserves the saved definition. Horizontal swipes wrap fields only after the keypad closes; upward swipes cancel one level at a time. Dip inclusion and remembered value remain separate. Editing never applies a preset to the wheel. |
+| R4 — alerts | Down → Vibration alerts. Enable PWM with no threshold and try Save. Enter 70 through the threshold keypad, Set value, then Save. Reopen, toggle it off and Cancel. Use Test vibration pattern on each of the four alert pages, advancing simulator time by 1 second after each test. | Invalid Save explains the missing threshold. Saved PWM stays enabled at 70 after Cancel. The trace shows PWM: three 150 ms pulses; speed: two 150 ms pulses; battery: one 500 ms pulse; lost telemetry: one 150 ms pulse. Multi-pulse gaps are 150 ms. These are simulated traces, not physical vibration. |
+| R5 — riding controls and feedback | With fresh simulator readings, swipe left from dashboard and tap Road. Advance time by 0.2 seconds twice. Press/release the side button while awake. For a failure, set Settings readback to Missing, Send simulator readings, select Road again, then advance by 0.2 seconds repeatedly until confirmation expires after 10 seconds. Restore Matching, Send simulator readings and select Road again for an explicit retry. | A single tap returns immediately to the dashboard with Applying, then Confirmed after fresh matching readings. Missing readback cannot confirm; timeout is visible. A new explicit selection can succeed. The awake button reports a simulated horn request; holding it does not repeat. There is no audible-horn claim. |
+| R6 — replay and retention | End the simulator session. Load `experiments/laptop-feasibility/evidence/fixture-recording.jsonl` under Read-only replay and step its 13 events. Reload the browser; stop/relaunch when convenient. | Replay finishes at speed 0, PWM 2%, estimated battery 97%, average cell 4.09 V. Riding controls are unavailable in replay; local editing remains possible. Browser reload does not repeat commands. Relaunch is idle with saved preset/alert values, without drafts or a confirmed preset. |
+
+For R3, keypad Clear removes characters; it does not delete a preset. For R5,
+advancing once by 10 seconds would also make telemetry stale: use short advances
+so the missing-settings timeout can be reviewed with fresh telemetry. The
+non-default Missing setting is a labelled higher-level simulator injection.
+
+Report the row IDs accepted and any confusing or incorrect behavior. Acceptance
+must come from the owner; the automated run does not fill in this response.
+
+## Remaining live evidence
+
+Existing observations are reusable: Sherman L 006.0.10 single-setting
+30→31→30 sensitivity, 25→26→25 assist and 10→11→10 dip roundtrips, plus changed
+sensitivity power-cycle persistence. The owner's report that other apps change
+these settings during riding remains accepted planning evidence.
+
+The following remain incomplete under [#9](https://github.com/EvgenyHitexis/EucWatch/issues/9)
+and [#31](https://github.com/EvgenyHitexis/EucWatch/issues/31):
+
+- Current application telemetry/cadence and reconnect observations, with exact
+  application/wheel versions and private recording hashes.
+- Included setting ranges and owner app-version provenance; full application
+  preset submission and fresh all-field confirmation, including partial changes
+  and disconnect outcomes.
+- Changed assist and dip persistence through owner-operated power cycles.
+- Our implementation's behavior during riding.
+- Audible horn variant, result, latency, duration, repeated presses and alarm
+  coexistence. Horn work remains explicitly deferred.
+
+Each physical session needs a concrete bounded procedure and owner readiness;
+deferred horn tests, new riding experiments and watch deployment need separate
+authorization. Successful simulator review does not complete these rows or
+authorize installation. Physical laptop suspend testing remains omitted by the
+owner's earlier decision.

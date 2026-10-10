@@ -174,8 +174,8 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <p class="metadata">Pulse traces establish software timing. Physical vibration effectiveness requires watch acceptance.</p>
         <div class="divider"></div>
         <h2>Riding presets</h2>
-        <p class="intro">Edit all four slots on the watch-sized screen through Settings → Presets. Opening reads current wheel settings. Set completes a riding adjustment and writes directly to the wheel. Names, Save slot, clearing and dip inclusion stay local.</p>
-        <p class="metadata">Submitted changes are not undone by leaving. Requested, submitted and freshly confirmed values appear in the editor. Replay remains read-only.</p>
+        <p class="intro">Edit all four saved presets locally through watch Settings → Presets, without a wheel connection. Keypad OK accepts one value into the unsaved draft; keypad Cancel discards only that entry. Close the keypad before changing fields. Save stores the whole preset; Cancel on a field display discards the whole draft.</p>
+        <p class="metadata">Only choosing a preset in the riding menu applies its saved included values to the wheel. Saving locally is separate from wheel confirmation. Replay cannot send wheel commands.</p>
       </section>
     </div>
   </main>`;

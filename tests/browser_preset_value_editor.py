@@ -38,6 +38,11 @@ async def exercise(cdp, session, app, output):
         await type_percentage(tap, text)
 
     await cdp.wait("document.querySelector('#backend-status')?.textContent==='Application ready'", session)
+    instructions = await cdp.evaluate("document.querySelector('.panel').innerText", session)
+    assert 'Keypad OK accepts one value into the unsaved draft' in instructions
+    assert 'Save stores the whole preset' in instructions
+    assert 'Opening reads current wheel settings' not in instructions
+    assert 'writes directly to the wheel' not in instructions
     initial = app.view()['config']
     await pointer((120, 10), (120, 110))
     await tap(120, 196)

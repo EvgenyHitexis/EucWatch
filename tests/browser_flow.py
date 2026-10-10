@@ -22,6 +22,7 @@ from test_live import Scanner, Clients, ADDRESS, SOURCE_FRAME
 from test_live_control import WritingClient
 from test_control import settings_frame
 from browser_preset_editor import exercise
+from browser_alerts import exercise as exercise_alerts
 
 
 class Browser:
@@ -136,26 +137,7 @@ async def run():
                         await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard'",session)
                         assert behavior.view()['config']['alerts']['pwm']=={'enabled':False,'threshold':None}
                         navigation['back_discards_unsaved_alert_draft']='passed'
-                        await cdp.evaluate("document.querySelector('#alerts-edit').click()",session)
-                        await cdp.wait("!document.querySelector('#alert-pwm-enabled').disabled",session)
-                        await cdp.evaluate("document.querySelector('#alert-pwm-enabled').click(); document.querySelector('#alerts-editor').requestSubmit()",session)
-                        await cdp.wait("document.querySelector('#message').textContent.includes('threshold')",session)
-                        assert behavior.view()['config']['alerts']['pwm']['enabled'] is False
-                        await cdp.evaluate("const i=document.querySelector('#alert-pwm-threshold'); i.value='70'; i.dispatchEvent(new Event('change',{bubbles:true}))",session)
-                        await cdp.wait("!document.querySelector('#alerts-save').disabled",session)
-                        await cdp.evaluate("document.querySelector('#alerts-editor').requestSubmit()",session)
-                        await cdp.wait("document.querySelector('#alerts-status').textContent.includes('Saved') && document.querySelector('#alert-pwm-threshold').value==='70'",session)
-                        assert behavior.view()['config']['alerts']['pwm']=={'enabled':True,'threshold':70}
-                        await cdp.wait("!document.querySelector('[data-alert-test=pwm]').disabled",session)
-                        await cdp.evaluate("document.querySelector('[data-alert-test=pwm]').click()",session)
-                        await cdp.wait("document.querySelector('#vibration-trace').textContent.includes('PWM') || document.querySelector('#vibration-trace').textContent.includes('pwm')",session)
-                        host_clock.advance(.75)
-                        await cdp.wait("document.querySelector('#vibration-status').textContent.includes('idle')",session)
-                        starts=[e['duration_s'] for e in behavior.view()['vibration']['events'] if e['phase']=='start' and e['test']]
-                        assert starts==[.15,.15,.15],starts
-                        alert_result={'issue':20,'provenance':'actual Canvas and HTML editor / aiohttp / controlled clock',
-                            'expected':'back discards, missing enabled threshold refused, save authoritative threshold, PWM test three150ms pulses',
-                            'observed':'passed','pulse_durations_s':starts}
+                        alert_result = await exercise_alerts(cdp, session, behavior, host_clock)
                         preset_result = await exercise(cdp, session, behavior, Path('.test-output/preset-editor'))
                         await cdp.pointer('#watch',(120,215),(120,20),session)
                         await cdp.wait("document.querySelector('canvas').dataset.screen==='settings'",session)

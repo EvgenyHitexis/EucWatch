@@ -1,0 +1,9 @@
+{
+  "issue": 19,
+  "provenance": "actual Canvas gestures / button / aiohttp with controlled clock",
+  "expected": "fixed four slots, swipe back, Settings sleep, wake-only button, initial idle sleep",
+  "observed": "passed",
+  "preset_menu": "Preset menu. Four fixed slots: slot 1: Jump, configured; slot 2: Forest, configured; slot 3: Road, configured; slot 4: Drag, configured. Application unavailable. Swipe right to return without applying.",
+  "back_discards_unsaved_alert_draft": "passed",
+  "keep_awake_after_loss": "passed"
+}

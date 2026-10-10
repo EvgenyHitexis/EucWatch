@@ -1,0 +1,478 @@
+{
+  "issue": 31,
+  "provenance": "actual Canvas pointers / aiohttp / FileStore / controlled time; simulated vibration",
+  "expected": "watch-only validation, keypad entry/Cancel, whole Save/Cancel, restart persistence, four Test patterns, zero wheel commands",
+  "observed": "passed",
+  "inputs": [
+    {
+      "start": [
+        120,
+        10
+      ],
+      "end": [
+        120,
+        110
+      ]
+    },
+    {
+      "start": [
+        120,
+        140
+      ],
+      "end": [
+        120,
+        140
+      ]
+    },
+    {
+      "start": [
+        120,
+        88
+      ],
+      "end": [
+        120,
+        88
+      ]
+    },
+    {
+      "start": [
+        176,
+        217
+      ],
+      "end": [
+        176,
+        217
+      ]
+    },
+    {
+      "start": [
+        120,
+        135
+      ],
+      "end": [
+        120,
+        135
+      ]
+    },
+    {
+      "start": [
+        49,
+        140
+      ],
+      "end": [
+        49,
+        140
+      ]
+    },
+    {
+      "start": [
+        119,
+        173
+      ],
+      "end": [
+        119,
+        173
+      ]
+    },
+    {
+      "start": [
+        176,
+        217
+      ],
+      "end": [
+        176,
+        217
+      ]
+    },
+    {
+      "start": [
+        176,
+        217
+      ],
+      "end": [
+        176,
+        217
+      ]
+    },
+    {
+      "start": [
+        120,
+        140
+      ],
+      "end": [
+        120,
+        140
+      ]
+    },
+    {
+      "start": [
+        120,
+        135
+      ],
+      "end": [
+        120,
+        135
+      ]
+    },
+    {
+      "start": [
+        49,
+        140
+      ],
+      "end": [
+        49,
+        140
+      ]
+    },
+    {
+      "start": [
+        64,
+        217
+      ],
+      "end": [
+        64,
+        217
+      ]
+    },
+    {
+      "start": [
+        120,
+        178
+      ],
+      "end": [
+        120,
+        178
+      ]
+    },
+    {
+      "advance_seconds": 1
+    },
+    {
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "start": [
+        120,
+        178
+      ],
+      "end": [
+        120,
+        178
+      ]
+    },
+    {
+      "advance_seconds": 1
+    },
+    {
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "start": [
+        120,
+        178
+      ],
+      "end": [
+        120,
+        178
+      ]
+    },
+    {
+      "advance_seconds": 1
+    },
+    {
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "start": [
+        120,
+        178
+      ],
+      "end": [
+        120,
+        178
+      ]
+    },
+    {
+      "advance_seconds": 1
+    },
+    {
+      "start": [
+        220,
+        20
+      ],
+      "end": [
+        220,
+        20
+      ]
+    },
+    {
+      "start": [
+        120,
+        88
+      ],
+      "end": [
+        120,
+        88
+      ]
+    },
+    {
+      "start": [
+        64,
+        217
+      ],
+      "end": [
+        64,
+        217
+      ]
+    },
+    {
+      "start": [
+        120,
+        215
+      ],
+      "end": [
+        120,
+        20
+      ]
+    }
+  ],
+  "patterns": [
+    {
+      "alert": "pwm",
+      "expected_durations_s": [
+        0.15,
+        0.15,
+        0.15
+      ],
+      "expected_offsets_s": [
+        0,
+        0.15,
+        0.3,
+        0.45,
+        0.6,
+        0.75
+      ],
+      "observed": [
+        {
+          "alert": "pwm",
+          "test": true,
+          "phase": "start",
+          "at_s": 31.0,
+          "duration_s": 0.15
+        },
+        {
+          "alert": "pwm",
+          "test": true,
+          "phase": "stop",
+          "at_s": 31.15,
+          "duration_s": 0.15
+        },
+        {
+          "alert": "pwm",
+          "test": true,
+          "phase": "start",
+          "at_s": 31.299999999999997,
+          "duration_s": 0.15
+        },
+        {
+          "alert": "pwm",
+          "test": true,
+          "phase": "stop",
+          "at_s": 31.449999999999996,
+          "duration_s": 0.15
+        },
+        {
+          "alert": "pwm",
+          "test": true,
+          "phase": "start",
+          "at_s": 31.599999999999994,
+          "duration_s": 0.15
+        },
+        {
+          "alert": "pwm",
+          "test": true,
+          "phase": "stop",
+          "at_s": 31.749999999999993,
+          "duration_s": 0.15
+        }
+      ]
+    },
+    {
+      "alert": "speed",
+      "expected_durations_s": [
+        0.15,
+        0.15
+      ],
+      "expected_offsets_s": [
+        0,
+        0.15,
+        0.3,
+        0.45
+      ],
+      "observed": [
+        {
+          "alert": "speed",
+          "test": true,
+          "phase": "start",
+          "at_s": 32.0,
+          "duration_s": 0.15
+        },
+        {
+          "alert": "speed",
+          "test": true,
+          "phase": "stop",
+          "at_s": 32.15,
+          "duration_s": 0.15
+        },
+        {
+          "alert": "speed",
+          "test": true,
+          "phase": "start",
+          "at_s": 32.3,
+          "duration_s": 0.15
+        },
+        {
+          "alert": "speed",
+          "test": true,
+          "phase": "stop",
+          "at_s": 32.449999999999996,
+          "duration_s": 0.15
+        }
+      ]
+    },
+    {
+      "alert": "battery",
+      "expected_durations_s": [
+        0.5
+      ],
+      "expected_offsets_s": [
+        0,
+        0.5
+      ],
+      "observed": [
+        {
+          "alert": "battery",
+          "test": true,
+          "phase": "start",
+          "at_s": 33.0,
+          "duration_s": 0.5
+        },
+        {
+          "alert": "battery",
+          "test": true,
+          "phase": "stop",
+          "at_s": 33.5,
+          "duration_s": 0.5
+        }
+      ]
+    },
+    {
+      "alert": "lost",
+      "expected_durations_s": [
+        0.15
+      ],
+      "expected_offsets_s": [
+        0,
+        0.15
+      ],
+      "observed": [
+        {
+          "alert": "lost",
+          "test": true,
+          "phase": "start",
+          "at_s": 34.0,
+          "duration_s": 0.15
+        },
+        {
+          "alert": "lost",
+          "test": true,
+          "phase": "stop",
+          "at_s": 34.15,
+          "duration_s": 0.15
+        }
+      ]
+    }
+  ],
+  "saved": {
+    "version": 2,
+    "revision": 1,
+    "presets": [
+      {
+        "id": 1,
+        "name": "Jump",
+        "configured": true,
+        "pedal_sensitivity": 0,
+        "dynamic_assist": 0,
+        "pedal_dip_compensation": 0,
+        "dip_included": false
+      },
+      {
+        "id": 2,
+        "name": "Forest",
+        "configured": true,
+        "pedal_sensitivity": 70,
+        "dynamic_assist": 0,
+        "pedal_dip_compensation": 0,
+        "dip_included": false
+      },
+      {
+        "id": 3,
+        "name": "Road",
+        "configured": true,
+        "pedal_sensitivity": 30,
+        "dynamic_assist": 25,
+        "pedal_dip_compensation": 10,
+        "dip_included": false
+      },
+      {
+        "id": 4,
+        "name": "Drag",
+        "configured": true,
+        "pedal_sensitivity": 20,
+        "dynamic_assist": 70,
+        "pedal_dip_compensation": 5,
+        "dip_included": false
+      }
+    ],
+    "alerts": {
+      "pwm": {
+        "enabled": true,
+        "threshold": 70
+      },
+      "speed": {
+        "enabled": false,
+        "threshold": null
+      },
+      "battery": {
+        "enabled": false,
+        "threshold": null
+      },
+      "lost": {
+        "enabled": true
+      }
+    }
+  },
+  "wheel_commands": [],
+  "physical_vibration": "pending #38"
+}

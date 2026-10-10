@@ -27,7 +27,10 @@ The sanitized source fixture in `experiments/laptop-feasibility/evidence/` is
 safe to use for reproducible parser/replay checks.
 
 Run checks with `./scripts/check.sh`. Acceptance scenarios and evidence are in
-[docs/acceptance/laptop.md](docs/acceptance/laptop.md). Physical acceptance remains
+[docs/acceptance/laptop.md](docs/acceptance/laptop.md). Use the
+[isolated owner walkthrough](docs/acceptance/laptop-owner-review.md) to review
+the complete watch-sized flows without changing your normal saved settings.
+Physical acceptance remains
 separate: no live horn, riding experiment or watch deployment is authorized here.
 
 Edit the four saved presets through watch-sized **Settings → Presets**.

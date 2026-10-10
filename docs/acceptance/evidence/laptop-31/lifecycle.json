@@ -1,0 +1,7 @@
+{
+  "issue": 30,
+  "provenance": "actual built Chrome UI / aiohttp / background recorder / local durable store; accelerated0.7s test lease (production10s)",
+  "expected": "reload noresubmit; delayedoldpoll discarded; competition readonly; freeze backendcontinues; lease takeover oldownerreadonly; closure backendcontinues; backendloss controlsdisabled; offline relaunchsavedonly",
+  "observed": "passed",
+  "physical_suspend": "explicitly omitted by owner; synthetic resume covered in test_lifecycle.py"
+}

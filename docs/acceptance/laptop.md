@@ -1,16 +1,59 @@
 # Laptop acceptance evidence (#31)
 
-Current preset requirements and software evidence follow #43, superseding the
-wheel-owned #41 editor described in historical sections below. The four editable
-defaults, schema-1 migration, local whole-editor Save/Cancel and swipe hierarchy
-are documented in [preset acceptance](preset-editor.md) and the
-[#43 acceptance matrix](local-preset-revision.md). Historical JSON remains evidence
-only for its recorded interaction. Owner/live acceptance #31 remains pending.
+Current preset behavior uses keypad **OK/Cancel** for one value and field-display
+**Save/Cancel** for the whole preset. This owner-confirmed revision supersedes
+#43's completion/navigation inside active keypads and the older wheel-owned #41
+editor. Four editable defaults, local drafts, migration, separate dip inclusion
+and riding-menu application remain. See [current preset behavior](preset-editor.md).
+Historical evidence below retains only its original demonstrated scope.
 
+## Current acceptance audit — 2026-10-10
 
-This register collects software evidence incrementally. #31 and #9 remain open:
-live application evidence and explicit owner review are required for acceptance.
-The research worktree and private captures are excluded from implementation commits.
+**#31 remains incomplete.** The owner approved the appearance (“I like how app
+looks”); complete behavioral owner review and required live evidence are pending.
+The next owner action is the [isolated simulator walkthrough](laptop-owner-review.md).
+The research worktree and private captures remain outside this implementation.
+
+| #31 requirement | Current outcome | Evidence / next action |
+| --- | --- | --- |
+| Launch, shutdown, offline relaunch, XDG scenarios | Software pass | `tests/launch_smoke.py` starts the real launcher twice with isolated XDG directories; saved preset, alerts and complete scenario survive, without autostart or transient state. [Launch result](evidence/laptop-31/launch.json); [scenario format/import/export](scenarios.md). |
+| Complete actual watch-sized flows | Automated pass; owner behavior review pending | Six built Chrome flows cover dashboard, gestures/sleep, local presets, controls, horn model and lifecycle. Alert validation, keypad, Save/Cancel and all four Test patterns now use Canvas pointers. [Alert result](evidence/laptop-31/alerts.json); walkthrough R1–R6. |
+| Simulator, read-only replay, browser/session/storage failures | Software pass | Current [validation manifest](evidence/laptop-31/validation.json) indexes scenario, replay, control, lifecycle and storage evidence. Seed 0 is fixed input with controlled time. Control failure/readback injections are labelled; they are not measured hardware behavior. |
+| Live application telemetry, ranges, confirmation, persistence, multi-setting/partial/disconnect and riding behavior | Incomplete | Controlled BLE tests verify software only. Existing research observations below are reused within scope; application/live rows remain in the walkthrough's live-evidence list. |
+| Outstanding #9, including audible horn and assist/dip persistence | Incomplete | Horn remains deferred. Changed assist/dip persistence, unverified ranges and owner app versions, complete application presets and riding evidence remain outstanding. |
+| Reproducible, versioned, sanitized evidence | Software pass | [Run commands, source/artifact hashes and provenance](evidence/laptop-31/validation.json). New artifacts are under `evidence/laptop-31/`; original historical evidence is preserved. No private recordings or backups are committed. |
+| Explicit owner review and all required passes | Partial: appearance approved | R1–R6 behavior and physical rows require explicit observations. Unknown or failed checks remain incomplete. |
+| Separate hardware authorization and deployment gate | Retained | No live scan/connection, physical command or watch deployment in this pass. #37 still follows full #31 acceptance and separate deployment authorization; #38 follows installation. |
+
+Reproduce after setup:
+
+```sh
+EUCWATCH_BROWSER_CHECKS=1 ./scripts/check.sh
+uvx --offline ty check --python experiments/laptop-feasibility/.venv/bin/python laptop
+```
+
+The full check includes the real launcher smoke check, Python tests, frontend
+typechecking/build, six Chrome flows and thirteen offline watch suites. Isolated
+test stores do not change the owner's normal configuration. Offline relaunch
+means installed dependencies/assets and `uv --offline --no-sync`; this does not
+claim that the laptop's network was physically disconnected.
+
+The production panel's stale wheel-writing editor instructions were reproduced
+with a failing browser assertion and corrected to local draft/value completion.
+The previously desktop-driven alert Save/Test evidence is replaced by a full
+watch-sized pointer journey, including exact simulated pulse/gap observations.
+
+### Existing live evidence retained within scope
+
+The [three stationary roundtrips](https://github.com/EvgenyHitexis/EucWatch/issues/9#issuecomment-6038773104)
+on Sherman L 006.0.10 confirmed sensitivity 30→31→30, assist 25→26→25 and dip
+10→11→10 with two fresh CRC-valid settings frames per change/restoration.
+[Sensitivity power-cycle evidence](https://github.com/EvgenyHitexis/EucWatch/issues/9#issuecomment-6039826955)
+confirmed 31 remained after the owner-operated off/on cycle, then restored 30.
+The [owner's moving-support report](https://github.com/EvgenyHitexis/EucWatch/issues/9#issuecomment-6040353913)
+remains valid planning evidence. These observations came from research tools,
+not the current application. They do not establish full ranges, assist/dip
+persistence, complete presets, current riding behavior or audible horn support.
 
 ## Application boundary
 
