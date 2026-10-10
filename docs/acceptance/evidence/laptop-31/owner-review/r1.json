@@ -1,0 +1,81 @@
+{
+  "issue": 31,
+  "review": "R1 dashboard/freshness/reconnect",
+  "source_commit": "6c0573b5d8f502af969ee4cb7a28efa2a8a6a7e0",
+  "provenance": "Owner-operated built laptop UI on port 8766; supplied screenshots visually inspected by assistant; controlled simulator only",
+  "scenario": "../../../scenarios/freshness.json",
+  "scenario_sha256": "142bdd489013ddc61c71cca7870429439ae8d2387be4f6e13cf6e08de5d159e6",
+  "observations": [
+    {
+      "scenario_position": 0,
+      "expected": "25 km/h; PWM 45%; estimated battery 100%; 4.11 V/cell; Connected; watch battery 80%",
+      "observed": "25 km/h; PWM 45%; estimated battery 100%; 4.11 V/cell; Connected; watch battery 80%",
+      "result": "matched supplied screenshot",
+      "screenshot": "r1-start.png",
+      "sha256": "01f5f8bc7302a5d3c81c98cd92170ee14b1554e38166990881875459461f88e7"
+    },
+    {
+      "scenario_position": 2,
+      "expected": "Speed/PWM dashes; retained 100% and 4.11 V/cell dimmed; Telemetry lost; watch battery 80%",
+      "observed": "Speed/PWM dashes; retained 100% and 4.11 V/cell dimmed; Telemetry lost; watch battery 80%",
+      "result": "matched supplied screenshot",
+      "screenshot": "r1-stale.png",
+      "sha256": "422d9a7d2dfc23219a5c7a02d1e23b6ff4ebf37d3ca37ae1485445b5623d60e9"
+    },
+    {
+      "scenario_position": 4,
+      "expected": "25 km/h; PWM 45%; bright estimated battery 100%; 4.11 V/cell; Connected",
+      "observed": "25 km/h; PWM 45%; bright estimated battery 100%; 4.11 V/cell; Connected",
+      "result": "matched supplied screenshot",
+      "screenshot": "r1-fresh-again.png",
+      "sha256": "01f5f8bc7302a5d3c81c98cd92170ee14b1554e38166990881875459461f88e7"
+    },
+    {
+      "scenario_position": 5,
+      "expected": "Speed/PWM dashes; retained battery dimmed; Disconnected",
+      "observed": "Speed/PWM dashes; retained battery dimmed; Disconnected",
+      "result": "matched supplied screenshot",
+      "screenshot": "r1-disconnected.png",
+      "sha256": "24d4f30bf569039d59bc14555201962c826a6cd4c54a9f11dd7e3a4f4bfb3c41"
+    },
+    {
+      "scenario_position": 6,
+      "expected": "Speed/PWM dashes; retained battery dimmed; Waiting for telemetry",
+      "observed": "Speed/PWM dashes; retained battery dimmed; Waiting for telemetry",
+      "result": "matched supplied screenshot",
+      "screenshot": "r1-waiting.png",
+      "sha256": "18a9d87f06d13bd7d889da09aabbc8dbceb4d618d895f22b54deea942739bc6e"
+    },
+    {
+      "scenario_position": 7,
+      "expected": "25 km/h; PWM 45%; bright estimated battery 100%; 4.11 V/cell; Connected; watch battery 80%",
+      "observed": "25 km/h; PWM 45%; bright estimated battery 100%; 4.11 V/cell; Connected; watch battery 80%",
+      "result": "matched supplied screenshot",
+      "screenshot": "r1-recovered.png",
+      "sha256": "01f5f8bc7302a5d3c81c98cd92170ee14b1554e38166990881875459461f88e7"
+    }
+  ],
+  "final_read_only_backend_state": {
+    "mode": "simulator",
+    "screen": "dashboard",
+    "awake": true,
+    "fresh": true,
+    "dashboard": {
+      "speed": "25",
+      "pwm": "45",
+      "wheel_battery_percent": "100",
+      "average_cell_voltage": "4.11",
+      "wheel_battery_dimmed": false,
+      "watch_battery_percent": "80",
+      "watch_battery_simulated": true,
+      "connection": "Connected"
+    },
+    "scenario_name": "Freshness and reconnect",
+    "scenario_position": 7,
+    "scenario_total": 7,
+    "scenario_active": false
+  },
+  "result": "observed pass",
+  "overall_owner_acceptance": "pending; R2-R6 and required live evidence remain incomplete",
+  "scope_note": "Earlier 65% screenshot was from the separate port 8765 session at 138 V and is excluded from this scenario. Both apps were stopped; owner relaunched the prepared profile on port 8766 before this sequence."
+}

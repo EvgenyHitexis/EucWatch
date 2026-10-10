@@ -14,6 +14,10 @@ looks”); complete behavioral owner review and required live evidence are pendi
 The next owner action is the [isolated simulator walkthrough](laptop-owner-review.md).
 The research worktree and private captures remain outside this implementation.
 
+Owner walkthrough progress: [R1 dashboard/freshness/reconnect observed pass](evidence/laptop-31/owner-review/r1.json),
+with six owner-supplied screenshots and a completed 7/7 simulator scenario.
+R2–R6, overall owner acceptance and required live evidence remain pending.
+
 | #31 requirement | Current outcome | Evidence / next action |
 | --- | --- | --- |
 | Launch, shutdown, offline relaunch, XDG scenarios | Software pass | `tests/launch_smoke.py` starts the real launcher twice with isolated XDG directories; saved preset, alerts and complete scenario survive, without autostart or transient state. [Launch result](evidence/laptop-31/launch.json); [scenario format/import/export](scenarios.md). |

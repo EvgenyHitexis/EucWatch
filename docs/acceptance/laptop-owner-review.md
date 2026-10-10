@@ -4,6 +4,11 @@ The owner said “I like how app looks” on 2026-10-10. This records visual app
 the complete behavioral review below is still pending. Automated results and
 remaining live evidence are in [the acceptance register](laptop.md).
 
+Review progress: **R1 observed pass** through the owner-operated simulator.
+[Six supplied screenshots and the completed 7/7 backend state](evidence/laptop-31/owner-review/r1.json)
+show initial readings, stale presentation, recovery, disconnect, waiting without
+fresh data and final recovery. R2–R6 and overall owner acceptance remain pending.
+
 ## Review session
 
 Use a separate profile so review edits preserve the owner's normal saved presets.
