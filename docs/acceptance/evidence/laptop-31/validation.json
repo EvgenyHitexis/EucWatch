@@ -4,7 +4,7 @@
   "milestone": "incomplete",
   "review_base": "0190ce6fc0cff52613186cc0771efb8b71609723",
   "branch": "research/watch-recovery",
-  "source_version": "review_base plus implementation changes in the commit containing this manifest; exact tested bytes below",
+  "source_version": "Full suite: commit 1a568b3. Only launch_smoke.py changed during executable review; focused rerun passed. Current tested source bytes below.",
   "provenance": "simulator / sanitized source-fixture replay / fake BLE / simulated watch hardware; no physical operations",
   "commands": [
     {
@@ -16,12 +16,21 @@
       "chrome_flows": 6,
       "watch_suites": 13,
       "watch_bundle": "5c292596",
-      "log": "full-check.log"
+      "log": "full-check.log",
+      "source_commit": "1a568b3",
+      "launcher_source_sha256": "a79c7ede1669caacc7f5b1309415328b2c85846bc73245a325093d907f8ee40c"
     },
     {
       "command": "uvx --offline ty check --python experiments/laptop-feasibility/.venv/bin/python laptop",
       "exit_code": 0,
       "output": "All checks passed!"
+    },
+    {
+      "command": "env PYTHONPATH=laptop experiments/laptop-feasibility/.venv/bin/python tests/launch_smoke.py",
+      "exit_code": 0,
+      "scope": "review correction: require TCP refusal for shutdown; real launch/SIGINT/relaunch with isolated XDG files",
+      "launcher_source_sha256": "1ef036f5159c3d4477ad783ffdbb9c0a0dce810331081eaed28d2cc077ed6bd7",
+      "log": "review-launch.log"
     }
   ],
   "runtime_versions": {
@@ -73,7 +82,7 @@
     "tests/browser_preset_editor.py": "688825084c9001981602ad4f305ff74e9bbcb7e125bfe089b22142effcc3d1e1",
     "tests/browser_preset_navigation.py": "ec438089502d7b7e0363736261f7674b5e1544ef319dd6068018b154450f0a3d",
     "tests/browser_preset_value_editor.py": "1a609f5c1203cb0dc5dbe4913b6e88a1044ff5b2b0db03986435aafaefc0e19b",
-    "tests/launch_smoke.py": "a79c7ede1669caacc7f5b1309415328b2c85846bc73245a325093d907f8ee40c",
+    "tests/launch_smoke.py": "1ef036f5159c3d4477ad783ffdbb9c0a0dce810331081eaed28d2cc077ed6bd7",
     "tests/preset_fixture.py": "18f07e2e598fdd561ad8cb7005ae9e921227dccce4f2075d362807b8bacdebdf",
     "tests/test_alerts.py": "d12bfb8f3e112c76efaf1e9091c2f79e60cbbc4668c73038c703b1c1c462160c",
     "tests/test_backup.py": "171171e8af6028fb79b503fab6126b2fb40e814ca6da9b3f0df3b7a99025b62b",
@@ -154,6 +163,7 @@
     "navigation.json": "7705f52565657b670853ff6888a143387fdc2edffd80b2f68b19e47b758bdbed",
     "replay.json": "4969a5b1f04f7c8aef6e22396c66bb923feab49d7059baaf6ac20534121f9c7b",
     "resume.json": "e139d8e03a63bdebfee676c6f904b85fa532f4d3340a64bdc6ee46f8875723d8",
+    "review-launch.log": "35d32e625925ef7e32fe26d635c30799beaab500476938dd5d8b39e26806cf0c",
     "scenarios.json": "55165db59e26fcb92c5f84f0275a958d1ed2ac6e4d8dcf836bc2f6b876b75ea6",
     "slot-1-dip-input.png": "d8eb14a5b71b7fa890dcdbeb99ec563393a6c47c79bc6df23275c386e8df8e29",
     "slot-1-name.png": "7b824898b3cf8858f6a033e120ace373f41394a00193059f746babad02931d88",
@@ -204,5 +214,6 @@
     }
   ],
   "physical_suspend": "omitted by owner; synthetic resume checked",
-  "deployment": "pending full laptop acceptance and separate owner authorization"
+  "deployment": "pending full laptop acceptance and separate owner authorization",
+  "review": "../../laptop-review.md"
 }

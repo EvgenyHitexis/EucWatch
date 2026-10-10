@@ -60,9 +60,11 @@ def run():
                 deadline = time.monotonic() + 5
                 while time.monotonic() < deadline:
                     try:
-                        get('/api/state')
-                    except (URLError, TimeoutError):
+                        connection = socket.create_connection(('127.0.0.1', port), timeout=1)
+                    except ConnectionRefusedError:
                         return
+                    else:
+                        connection.close()
                     time.sleep(.05)
                 raise AssertionError('Backend survived launcher shutdown')
             finally:

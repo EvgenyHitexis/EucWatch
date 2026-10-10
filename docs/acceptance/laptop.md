@@ -42,6 +42,9 @@ The production panel's stale wheel-writing editor instructions were reproduced
 with a failing browser assertion and corrected to local draft/value completion.
 The previously desktop-driven alert Save/Test evidence is replaced by a full
 watch-sized pointer journey, including exact simulated pulse/gap observations.
+The [independent Standards and Spec review](laptop-review.md) corrected shutdown
+test sensitivity and walkthrough navigation. Its focused launcher rerun passed;
+the remaining shared-label-helper suggestion is nonblocking.
 
 ### Existing live evidence retained within scope
 
