@@ -205,7 +205,7 @@ class AlertTests(unittest.TestCase):
         app.action("swipe", direction="down")
         app.action("alerts_begin")
         app.action("alerts_update", alert="pwm", enabled=True, threshold=80)
-        state = app.action("swipe", direction="right")
+        state = app.action("swipe", direction="up")
         self.assertIsNone(state["alerts_draft"])
         self.assertFalse(state["config"]["alerts"]["pwm"]["enabled"])
         self.enable(app, "speed", 40)

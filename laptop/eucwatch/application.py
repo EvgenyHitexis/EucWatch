@@ -536,17 +536,27 @@ class Application:
             direction = payload.get("direction")
             if direction not in ("left", "right", "down", "up"):
                 raise ValueError("Invalid swipe direction")
-            if self.awake:
-                if direction == "left" and self.screen == "dashboard":
+            if self.awake and not self.recovery:
+                if self.screen == "preset_editor":
+                    self.editor.require(payload.get("editor_id"))
+                    if direction in ("left", "right"):
+                        self.editor.set_page((self.editor.page + (1 if direction == "left" else -1)) % 4)
+                    elif direction == "up":
+                        self._leave_editor()
+                        self.screen = "preset_slots"
+                elif direction == "left" and self.screen == "dashboard":
                     self.screen = "presets"
-                elif direction == "down" and payload.get("from_top", True):
-                    self._leave_editor()
+                elif direction == "down" and self.screen == "dashboard" and payload.get("from_top", True):
                     self.screen = "settings"
-                elif direction == "right" and self.screen != "dashboard":
-                    previous_screen = self.screen
-                    self._leave_editor()
-                    self.screen = "preset_slots" if previous_screen == "preset_editor" else "settings" if previous_screen == "preset_slots" else "dashboard"
-                    self.alerts_draft = None
+                elif direction == "up" and self.screen == "preset_slots":
+                    self.screen = "settings"
+                elif direction == "up" and self.screen == "settings":
+                    if self.alerts_draft is not None:
+                        self.alerts_draft = None
+                    else:
+                        self.screen = "dashboard"
+                elif direction == "right" and self.screen == "presets":
+                    self.screen = "dashboard"
         elif name == "alerts_begin":
             self.alerts_draft = deepcopy(self.config["alerts"])
         elif name == "configuration_export":

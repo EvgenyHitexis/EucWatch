@@ -17,7 +17,7 @@ class NavigationTests(unittest.TestCase):
         self.assertEqual(
             app.action("swipe", direction="down", from_top=True)["screen"], "settings"
         )
-        state = app.action("swipe", direction="right")
+        state = app.action("swipe", direction="up")
         self.assertEqual(state["screen"], "dashboard")
         self.assertEqual(state["mode"], "idle")
         self.assertFalse(state["connected"])

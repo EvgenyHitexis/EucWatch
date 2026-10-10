@@ -48,7 +48,7 @@ async def defaults(cdp, session, app, output):
     observed=[]
     for slot,packets in enumerate(FIXTURE['default_packets'],1):
         app.action('swipe',direction='right')
-        while app.view()['screen']!='dashboard':app.action('swipe',direction='right')
+        while app.view()['screen']!='dashboard':app.action('swipe',direction='up')
         await screen('dashboard')
         await pointer((215,120),(20,120));await screen('presets')
         x=66 if slot%2 else 174;y=80 if slot<=2 else 170

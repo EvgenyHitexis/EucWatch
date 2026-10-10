@@ -40,3 +40,22 @@ The same directory holds 240×240 PNGs for every slot and validation/save failur
 `evidence/preset-editor/` is retained historical #41 evidence for the superseded
 wheel-owned interaction. It cannot establish #43 acceptance. Owner review, live
 wheel validation, deployment and physical watch acceptance remain pending.
+
+## Laptop gestures (#48)
+
+Down from the dashboard opens Settings. Up returns editor → preset selection →
+Settings → dashboard one level per gesture, discarding an editor exactly like
+Cancel. Left/right wrap through all four fields, including active keypads and
+unfinished numeric text. Right leaves only the separate riding preset menu.
+Alert Settings uses upward back navigation while keeping independent Save/Cancel.
+
+`tests/browser_preset_navigation.py` drives actual pointer down/move/up events
+across former control coordinates. `evidence/local-presets/navigation-laptop.json`
+contains each input with literal expected screen/page/text, observed drafts and
+saved revisions. It covers all slots, both wraps, active name/numeric input,
+empty validation, Save after navigation, failed Save then up, restart and zero
+packets. Run it with the same Python environment as the editor flow above.
+34 focused navigation/editor/lifecycle/alert checks, frontend build and Python
+typechecking passed.
+The built Chrome browser ownership/reload/background/lease lifecycle flow also
+passed (`tests/browser_lifecycle.py`; current output `.test-output/lifecycle.json`).

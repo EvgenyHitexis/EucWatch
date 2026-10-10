@@ -97,7 +97,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
       <section class="watch-area" aria-label="Watch interface">
         <div class="watch"><canvas id="watch" width="240" height="240" role="img" aria-label="Connecting to application"></canvas><button class="side-button" id="watch-button" aria-label="Watch physical button" disabled></button></div>
         <p class="watch-caption">Riding dashboard · 240 × 240</p>
-        <p class="watch-note">Swipe left for presets, down from the top for Settings.<br>Swipe right to go back. Side button wakes the screen.<br>Watch battery is simulated.</p>
+        <p class="watch-note">Swipe left for presets, down from the top for Settings.<br>Swipe up to leave Settings; left/right change preset fields.<br>Swipe right from riding presets to return. Side button wakes the screen.<br>Watch battery is simulated.</p>
         <p id="watch-feedback" role="status"></p>
       </section>
       <section class="panel" aria-labelledby="scenario-title">
@@ -350,9 +350,9 @@ function render(view: View | null): void {
       text('Vibration alerts', 120, 152, 18, '#ffffff', 'center');
       ctx.strokeRect(12, 180, 216, 32);
       text('Presets', 120, 202, 18, '#ffffff', 'center');
-      canvas.setAttribute('aria-label', 'Settings. Sleep screen. Vibration alerts. Presets. Swipe right to return without saving.'+(view?.horn_feedback ? ` ${view.horn_feedback.message}` : ''));
+      canvas.setAttribute('aria-label', 'Settings. Sleep screen. Vibration alerts. Presets. Swipe up to return without saving.'+(view?.horn_feedback ? ` ${view.horn_feedback.message}` : ''));
     }
-    text(view?.horn_feedback?.message ?? '‹ Swipe right to return', 120, 228, 11, '#ffffff', 'center');
+    text(view?.horn_feedback?.message ?? (screen === 'presets' ? '‹ Swipe right to return' : 'Swipe up to return'), 120, 228, 11, '#ffffff', 'center');
     return;
   }
   const d = view?.dashboard;
@@ -636,10 +636,10 @@ function watchPoint(event: PointerEvent): { x: number; y: number } {
   const bounds = canvas.getBoundingClientRect();
   return { x: (event.clientX - bounds.left) * 240 / bounds.width, y: (event.clientY - bounds.top) * 240 / bounds.height };
 }
-let gesture: { x: number; y: number; pointer: number } | null = null;
+let gesture: { x: number; y: number; pointer: number; editor_id?: number } | null = null;
 canvas.addEventListener('pointerdown', event => {
   if (!available || !session?.controller || !current?.awake || current.recovery) return;
-  gesture = { ...watchPoint(event), pointer: event.pointerId };
+  gesture = { ...watchPoint(event), pointer: event.pointerId, editor_id: current.preset_editor?.id };
   canvas.setPointerCapture(event.pointerId);
   enqueueWatch('interact');
 });
@@ -651,11 +651,10 @@ canvas.addEventListener('pointerup', event => {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy)) {
-    thresholdEntry = null;
-    if (dx > 0 && watchPresets.cancelInput()) return;
-    enqueueWatch('swipe', { direction: dx < 0 ? 'left' : 'right', from_top: start.y <= 45 });
-  } else if (dy >= 40 && Math.abs(dy) > Math.abs(dx)) {
-    enqueueWatch('swipe', { direction: 'down', from_top: start.y <= 45 });
+    enqueueWatch('swipe', { direction: dx < 0 ? 'left' : 'right', from_top: start.y <= 45, editor_id: start.editor_id });
+  } else if (Math.abs(dy) >= 40 && Math.abs(dy) > Math.abs(dx)) {
+    if (dy < 0 && thresholdEntry !== null) { thresholdEntry = null; return; }
+    enqueueWatch('swipe', { direction: dy < 0 ? 'up' : 'down', from_top: start.y <= 45, editor_id: start.editor_id });
   } else if (Math.abs(dx) < 12 && Math.abs(dy) < 12 && current && ['preset_slots', 'preset_editor'].includes(current.screen)) {
     watchPresets.tap(current, end.x, end.y);
   } else if (Math.abs(dx) < 12 && Math.abs(dy) < 12 && current?.screen === 'settings') {
@@ -718,7 +717,6 @@ function releaseForLifecycle(): void {
   replayLoadGeneration++;
   inputGeneration++;
   gesture = null;
-  watchPresets.cancelInput();
   if (holdTimer !== null) window.clearTimeout(holdTimer);
   holdTimer = null;
   const pressed = buttonCycleOpen || !!current?.button.down;

@@ -38,7 +38,6 @@ export class WatchPresets {
   constructor(private ctx: CanvasRenderingContext2D, private canvas: HTMLCanvasElement,
               private enqueue: (action: string, payload?: Record<string, unknown>) => Promise<unknown>) {}
   stateKey(): string { return ''; }
-  cancelInput(): boolean { return false; }
   private text(value: string, x: number, y: number, size = 14): void {
     this.ctx.fillStyle = '#ffffff'; this.ctx.font = `${size}px sans-serif`;
     this.ctx.textAlign = 'center'; this.ctx.fillText(value, x, y, 216);
@@ -56,8 +55,8 @@ export class WatchPresets {
     if (view.screen === 'preset_slots') {
       this.text('SETTINGS · PRESETS', 120, 22);
       view.config.presets.forEach((slot, index) => this.button(`${slot.id} · ${slot.name}`, 12, 36 + index * 44, 216, 38));
-      this.text((view.persistence_error || error || 'Tap a slot to edit').slice(0, 34), 120, 231, 11);
-      this.canvas.setAttribute('aria-label', `Settings Presets. ${view.config.presets.map(slot => `Slot ${slot.id}: ${slot.name}, configured`).join('; ')}. ${view.persistence_error ?? error}`);
+      this.text((view.persistence_error || error || 'Tap to edit · swipe up to return').slice(0, 34), 120, 231, 11);
+      this.canvas.setAttribute('aria-label', `Settings Presets. ${view.config.presets.map(slot => `Slot ${slot.id}: ${slot.name}, configured`).join('; ')}. Swipe up to Settings. ${view.persistence_error ?? error}`);
       return true;
     }
     if (view.screen !== 'preset_editor' || !view.preset_draft || !view.preset_editor) return false;
@@ -82,7 +81,7 @@ export class WatchPresets {
       this.text(notice.slice(0, 38), 120, 194, 11);
     }
     this.button('Cancel', 12, 214, 104, 24); this.button('Save', 124, 214, 104, 24);
-    this.canvas.setAttribute('aria-label', `Preset editor slot ${draft.id}. ${labels[page]}: ${draft[field]}. ${input ? `${field} keypad. Input ${input.text || 'empty'}.` : ''} Previous and next field. ${field === 'pedal_dip_compensation' ? `Dip ${draft.dip_included ? 'included' : 'omitted'}.` : ''} Whole-editor Save or Cancel. ${notice}`);
+    this.canvas.setAttribute('aria-label', `Preset editor slot ${draft.id}. ${labels[page]}: ${draft[field]}. ${input ? `${field} keypad. Input ${input.text || 'empty'}.` : ''} Swipe left/right through fields; up cancels. ${field === 'pedal_dip_compensation' ? `Dip ${draft.dip_included ? 'included' : 'omitted'}.` : ''} Whole-editor Save or Cancel. ${notice}`);
     return true;
   }
   tap(view: WatchPresetView, x: number, y: number): void {
