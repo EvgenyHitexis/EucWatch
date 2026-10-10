@@ -595,7 +595,7 @@ class Application:
         elif name in ("preset_update", "preset_save", "preset_cancel", "preset_include_dip",
                       "preset_page", "preset_input_begin", "preset_input_key", "preset_input_page"):
             self.editor.require(payload.pop("editor_id", None))
-            if not self.awake or self.recovery:
+            if name != "preset_cancel" and (not self.awake or self.recovery):
                 raise ValueError("Preset editing unavailable")
             payload.pop("source", None)
             assert self.editor.draft is not None and self.editor.request is not None

@@ -1,5 +1,12 @@
 # Offline watch implementation evidence
 
+Current preset defaults, migration, local Save/Cancel and native swipe expectations
+follow #43. See [watch editor acceptance](watch-preset-editor.md) and the
+[#43 matrix](local-preset-revision.md). Prior #42 artifacts retain their original
+provenance and cannot establish acceptance of the current interaction. Physical
+watch, deployment and owner acceptance remain pending under #9/#31/#37/#38.
+
+
 This records #32/#33 software verification for the original P22 Espruino 2v14
 application. It is not watch deployment or hardware acceptance. The installed
 Espruino runtime, SoftDevice and bootloader remain unchanged.
@@ -46,7 +53,7 @@ dashboard artifact.
 | Render scheduling | At most five draws/second; fresh/stale presentation within target schedule under controlled time | Passed | Production presentation seam; fake clock, not a device timing measurement |
 | Wheel percentage and average rounding | Clamp at 119.02/148.05 V; accepted estimate; two decimals including 4.115→4.12 | Passed | Synthetic voltage boundaries |
 | Watch battery and charging | Clamp/truncate 3.5–4.19 V; disconnect sampled analog pin; refresh independently | Passed | Actual hardware adapter with fake ADC/PIN_CNF; charger debounce 500 ms |
-| Physical navigation paths | Left→four slots, down from top→Settings, right→dashboard, Settings Sleep; whole wake button cycle consumed | Passed | Public actions and raw CST816 interrupt bytes with fake pins |
+| Physical navigation paths | Left→riding slots, down from top→Settings, up→Settings hierarchy, right→dashboard from riding slots, Settings Sleep; whole wake button cycle consumed | Passed | Public actions and raw CST816 interrupt bytes with fake pins |
 | Initial idle versus established loss | Sleep after 30 idle seconds before connection; keep warning awake after connected loss | Passed | Controlled clock |
 | Direct connection and cleanup | Explicit discovery/selection, FFE0/FFE1 subscribe, bounded operations, no wheel writes; failed cleanup blocks replacement connection | Passed | Actual direct adapter with fake Promise-returning 2v14 GATT |
 | Startup vibration and reconnect retry | D16 idle 0; first failed reconnect can recover on a later attempt; stop after three retries; initial selection failure stays terminal | Passed | Actual hardware/transport with fake pins and delayed wheel availability |

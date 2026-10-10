@@ -1,5 +1,13 @@
 # Laptop acceptance evidence (#31)
 
+Current preset requirements and software evidence follow #43, superseding the
+wheel-owned #41 editor described in historical sections below. The four editable
+defaults, schema-1 migration, local whole-editor Save/Cancel and swipe hierarchy
+are documented in [preset acceptance](preset-editor.md) and the
+[#43 acceptance matrix](local-preset-revision.md). Historical JSON remains evidence
+only for its recorded interaction. Owner/live acceptance #31 remains pending.
+
+
 This register collects software evidence incrementally. #31 and #9 remain open:
 live application evidence and explicit owner review are required for acceptance.
 The research worktree and private captures are excluded from implementation commits.
@@ -115,7 +123,8 @@ covered at that exact deadline; earlier pulse phases still finish in order.
 
 ### #21 — four fixed preset definitions (historical)
 
-The local-only editor and watch editing refusal below were superseded by #41.
+This early editor account and the later wheel-owned #41 account are historical;
+#43 defines the current local watch-sized editor.
 The retained artifacts describe the former scope; current editor behavior and
 checks are recorded in [preset editor acceptance](preset-editor.md).
 
@@ -180,7 +189,7 @@ saved alerts, invalidates confirmation and stops unsent settings requests.
 The actual HTML/aiohttp/file flow downloads a JSON backup, reviews a complete
 candidate without activation, cancels it, then explicitly restores. Unsupported
 versions are visibly rejected; no wheel commands are produced.
-[Backup result](evidence/backup.json). Schema 1 is the only existing product
+[Backup result](evidence/backup.json). This historical result used schema 1 as the only product
 format: compatible application updates preserve its meaning and fixed identities;
 unknown schemas require owner review rather than invented historical migrations.
 
@@ -251,7 +260,7 @@ The check entry point replaces transfer suites and the browser transfer flow wit
 local-configuration checks and the revised complete browser journey. Historical
 transfer artifacts are preserved unchanged and are not rerun as current gates.
 
-### #41 — watch-sized editor with direct wheel writes
+### Historical #41 — superseded by local editing in #43
 
 Settings → Presets exposes all four slot editors inside the 240×240 Canvas.
 New current-session complete settings seed each opening; completed field edits

@@ -194,6 +194,7 @@ let replayLoadGeneration = 0;
 let alertPage = 0;
 let watchError = '';
 let presetError = '';
+const documentId = crypto.randomUUID();
 let liveError = '';
 let discoveredDevices = '';
 let thresholdEntry: string | null = null;
@@ -210,7 +211,7 @@ async function acquireSession(): Promise<Session> {
   if (!acquiringSession) {
     const token = storedController();
     const query = token ? `?controller=${encodeURIComponent(token)}` : '';
-    acquiringSession = read<Session>(`/api/session${query}`).then(result => {
+    acquiringSession = read<Session>(`/api/session${query}${query ? '&' : '?'}document=${encodeURIComponent(documentId)}`).then(result => {
       if (result.controller) {
         try { sessionStorage.setItem(controllerStorageKey, result.controller); } catch { /* Storage is optional. */ }
       }

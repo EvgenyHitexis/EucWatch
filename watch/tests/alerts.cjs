@@ -27,7 +27,7 @@ assert.deepEqual(clone(editing.saved().alerts.pwm),{enabled:true,threshold:70});
 const restarted=scenario(editing.saved());assert.deepEqual(clone(restarted.app.view().config.alerts.pwm),{enabled:true,threshold:70});
 editing.app.action('alerts_begin');editing.app.action('alerts_update',{alert:'pwm',threshold:80});editing.app.action('alerts_cancel');
 assert.equal(editing.app.view().config.alerts.pwm.threshold,70);
-editing.app.action('alerts_begin');editing.app.action('alerts_update',{alert:'pwm',threshold:80});editing.app.action('swipe',{direction:'right'});
+editing.app.action('alerts_begin');editing.app.action('alerts_update',{alert:'pwm',threshold:80});editing.app.action('swipe',{direction:'up'});
 assert.equal(editing.app.view().alerts_draft,null);assert.equal(editing.app.view().config.alerts.pwm.threshold,70);
 console.log('watch alert explicit Save/Cancel, validation, restart and back discard: passed');
 const source=fs.readFileSync(path.resolve(root,'../experiments/laptop-feasibility/evidence/fixture-recording.jsonl'),'utf8').trim().split('\n').map(JSON.parse);

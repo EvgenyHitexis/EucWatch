@@ -54,6 +54,14 @@ async function failures(){
     env.storageFailure(null);running.core.action('preset_save',{editor_id:id});assert.equal(running.core.view().config.presets[3].name,'Retry local');assert.equal(running.core.view().config.presets[3].pedal_dip_compensation,17);
     results.push({mode,previous:initial,saved:plain(running.core.view().config),storage:env.storageEffects});running.stop();
   }
+  const fixture=JSON.parse(fs.readFileSync('docs/acceptance/scenarios/local-editor-frames.json'));
+  const frames=environment(),editing=frames.start();frames.advance(200);
+  editing.core.action('preset_begin',{slot:4});const identity=editing.core.view().preset_editor.id;
+  editing.core.action('preset_input_begin',{editor_id:identity});editing.core.action('preset_input_key',{editor_id:identity,key:'Clear'});editing.core.action('preset_input_key',{editor_id:identity,key:'A'});
+  editing.transport.discover();editing.transport.select('11:22:33:44:55:66 public');await flush();
+  for(const raw of [fixture.frame_hex,fixture.corrupt_hex]){frames.notification(Buffer.from(raw,'hex'));assert.deepEqual(plain(editing.core.view().preset_draft),fixture.expected_draft);assert.equal(editing.core.view().preset_input.text,fixture.expected_input);}
+  const old=editing.core.view().session;frames.loss();await flush();editing.core.receive(old,Buffer.from(fixture.frame_hex,'hex'));assert.deepEqual(plain(editing.core.view().preset_draft),fixture.expected_draft);assert.equal(frames.bleWrites.length,0);
+  results.push({mode:'shared-raw-frame-fixture',fixture,draft:plain(editing.core.view().preset_draft),input:plain(editing.core.view().preset_input),packets:frames.bleWrites});editing.stop();
   // A save invalidates a pending native packet, preventing its unsent chunks.
   const env=environment(),running=env.start();running.transport.discover();running.transport.select('11:22:33:44:55:66 public');await flush();env.advance(200);env.notification(frame());env.writeHang(true);
   running.core.action('preset_apply',{slot:2});await flush();assert.equal(env.bleWrites.length,1);

@@ -1,0 +1,7 @@
+{
+  "issue": 30,
+  "provenance": "actual Canvas pending preset / controlled simulator clock / independent synthetic host suspend / aiohttp",
+  "expected": "host resume invalidates source and pending intent even with paused virtual time; late old frame cannot recover; no overdue command",
+  "observed": "passed",
+  "physical_suspend": "omitted by owner"
+}

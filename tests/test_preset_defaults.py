@@ -88,3 +88,16 @@ class PresetDefaultsTests(unittest.TestCase):
                 self.assertIn('review',app.view()['persistence_error'])
                 self.assertEqual(path.read_text(),content)
                 self.assertEqual(app.view()['command_events'],[])
+
+    def test_partial_active_write_is_detected_before_publish_and_recovers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path=Path(directory)/'configuration.json';path.write_text(json.dumps(FIXTURE['cases'][0]['input']))
+            app=Application(clock=ManualClock(),store=FileStore(path));before=app.view()['config']
+            app.action('configuration_import_prepare',content=json.dumps(FIXTURE['fresh']))
+            original_replace=__import__('os').replace
+            def partial(source,target):
+                original_replace(source,target)
+                if target==path:target.write_text('{partial')
+            with patch('os.replace',side_effect=partial):state=app.action('configuration_import_commit')
+            self.assertEqual(state['config'],before);self.assertIn('save failed',state['persistence_error'])
+            self.assertEqual(Application(store=FileStore(path)).view()['config'],before)

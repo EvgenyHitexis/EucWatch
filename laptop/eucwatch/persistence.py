@@ -73,6 +73,8 @@ class FileStore:
                 handle.write(data)
                 handle.flush()
                 os.fsync(handle.fileno())
+            if Path(temporary).read_bytes() != data:
+                raise OSError("Staged configuration readback failed")
             os.replace(temporary, path)
         finally:
             if os.path.exists(temporary):
@@ -99,6 +101,8 @@ class FileStore:
             # The first persisted copy needs a validated recovery companion too.
             self._replace(self.backup, (json.dumps(default_configuration()) + "\n").encode())
         self._replace(self.path, data)
+        if self._read(self.path) != validated:
+            raise ValueError("Active configuration readback failed")
         directory = os.open(self.path.parent, os.O_DIRECTORY)
         try:
             os.fsync(directory)

@@ -1164,6 +1164,39 @@
       "storage": []
     },
     {
+      "included_dip": 0,
+      "expected_packet": "4c64417021010280808080808080808080808080808080808080808000f0fc0bd4",
+      "observed_chunks": [
+        "4c6441700f01028080801ff753d033",
+        "4c6441701f010280808080808080808080808080",
+        "8080808080801aba3c7b2f",
+        "4c64417021010280808080808080808080808080",
+        "808080808080808000f0fc0bd4"
+      ]
+    },
+    {
+      "included_dip": 11,
+      "expected_packet": "4c6441702101028080808080808080808080808080808080808080800b672ed25c",
+      "observed_chunks": [
+        "4c6441700f01028080802aa1e01410",
+        "4c6441701f010280808080808080808080808080",
+        "80808080808012b4e7f31d",
+        "4c64417021010280808080808080808080808080",
+        "80808080808080800b672ed25c"
+      ]
+    },
+    {
+      "mode": "native-json-precision-refusal",
+      "warning": "Configuration save failed: Error: Native JSON precision changed configuration meaning; review required",
+      "storage": [
+        {
+          "key": "sw-config-stage.json",
+          "value": "{\"version\":2,\"revision\":1,\"presets\":[{\"id\":1,\"name\":\"Jump\",\"configured\":true,\"pedal_sensitivity\":0,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":2,\"name\":\"Forest\",\"configured\":true,\"pedal_sensitivity\":70,\"dynamic_assist\":0,\"pedal_dip_compensation\":0,\"dip_included\":false},{\"id\":3,\"name\":\"Road\",\"configured\":true,\"pedal_sensitivity\":30,\"dynamic_assist\":25,\"pedal_dip_compensation\":10,\"dip_included\":false},{\"id\":4,\"name\":\"Drag\",\"configured\":true,\"pedal_sensitivity\":20,\"dynamic_assist\":70,\"pedal_dip_compensation\":5,\"dip_included\":false}],\"alerts\":{\"pwm\":{\"enabled\":false,\"threshold\":70.1},\"speed\":{\"enabled\":false,\"threshold\":null},\"battery\":{\"enabled\":false,\"threshold\":null},\"lost\":{\"enabled\":true}}}",
+          "failed": false
+        }
+      ]
+    },
+    {
       "slot": 1,
       "expected_packets": [
         "4c6441700f0102808080007a5bddc6",
@@ -1230,7 +1263,7 @@
     "watch/preset-control.js": "616486d1ebe6fa7b6da63abbf285b6a7aea9794035abe5fb4a693e6a09160d1a",
     "watch/preset-editor.js": "f610e0f396a3c55d96095409d7dd47cde73e9ba370f9e75052f021d6b2407981",
     "watch/protocol.js": "173c2d4d534747a7e251ae06fb0b28a0578af8e3db229afd676ac2f6a2ab11b8",
-    "watch/render.js": "1d3e4aa9bbdfab6acd799f2c190c71a494d4a45c0b21b5a6798cebd0f10d57ed",
+    "watch/render.js": "de894687c07e3638ed0791e4fb908c2fd02c416a7840289624f6174a4a6a85b9",
     "watch/store.js": "bf69ae5b56a0a9cec823c579d237bd5f6675a29572ec484dc9024bf070529a39",
     "watch/transport.js": "ee51d586a555e7dbc4557702442c386fda43648b3a21b7ab1df74ebab2005a56"
   }

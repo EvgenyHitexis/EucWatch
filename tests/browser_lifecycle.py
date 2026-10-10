@@ -19,7 +19,7 @@ from eucwatch.server import create_app
 
 
 async def run():
-    with tempfile.TemporaryDirectory(prefix='eucwatch-lifecycle-') as directory:
+    with tempfile.TemporaryDirectory(prefix='eucwatch-lifecycle-', ignore_cleanup_errors=True) as directory:
         root=Path(directory)
         app=Application(store=FileStore(root/'configuration.json'))
         save_preset(app, slot=1, name='Retained',pedal_sensitivity=31,dynamic_assist=26)
@@ -48,10 +48,22 @@ async def run():
                     await cdp.wait("document.querySelector('#backend-status')?.textContent==='Application ready'",owner)
                     await cdp.evaluate("document.querySelector('#controlled').checked=false;document.querySelector('#start').click()",owner)
                     await cdp.wait("document.querySelector('#mode').textContent==='SIMULATOR'",owner)
+                    # Reload abandons a local editor operation, including active text.
+                    await cdp.pointer('#watch',(120,10),(120,110),owner)
+                    await cdp.wait("document.querySelector('canvas').dataset.screen==='settings'",owner)
+                    await cdp.pointer('#watch',(120,196),(120,196),owner)
+                    await cdp.wait("document.querySelector('canvas').dataset.screen==='preset_slots'",owner)
+                    await cdp.pointer('#watch',(80,55),(80,55),owner)
+                    await cdp.wait("document.querySelector('canvas').dataset.screen==='preset_editor'",owner)
+                    await cdp.pointer('#watch',(120,80),(120,80),owner)
+                    await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('keypad')",owner)
+                    saved_before_reload=app.view()['config']
                     count=len(app.view()['command_events'])
                     await cdp.call('Page.reload',session=owner)
                     await cdp.wait("document.querySelector('#backend-status')?.textContent==='Application ready' && document.querySelector('#mode').textContent==='SIMULATOR'",owner)
                     assert len(app.view()['command_events'])==count
+                    assert app.view()['preset_editor'] is None
+                    assert app.view()['config']==saved_before_reload
                     await cdp.evaluate("window.originalFetch=window.fetch;window.fetch=(url,...args)=>window.originalFetch(url,...args).then(response=>String(url).includes('/api/state')&&!window.capturedOldState ? (window.capturedOldState=true,new Promise(resolve=>window.finishOldState=()=>resolve(response))) : response)",owner)
                     await cdp.wait("typeof window.finishOldState==='function'",owner)
                     await cdp.evaluate("document.querySelector('#stop').click()",owner)

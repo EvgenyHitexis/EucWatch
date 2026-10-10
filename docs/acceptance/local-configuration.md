@@ -4,8 +4,8 @@ The [resolved owner correction](https://github.com/EvgenyHitexis/EucWatch/issues
 removes laptop/watch configuration synchronization, transfer and conflict review.
 The laptop is the staging prototype; each environment retains its own four
 preset slots and vibration preferences. This implements the removal slice in
-[issue #40](https://github.com/EvgenyHitexis/EucWatch/issues/40). The direct
-wheel-owned preset editor remains a separate implementation slice.
+[issue #40](https://github.com/EvgenyHitexis/EucWatch/issues/40). The local preset editor revision is implemented under #43; its current evidence
+is linked below.
 
 The laptop panel and both watch-sized and production-watch Settings have no
 transfer entry. Former `transfer_*` and `nordic_*` laptop actions fail without
@@ -13,9 +13,8 @@ replacing saved content or ending the current wheel session. The watch rejects
 retired actions and no longer loads or bundles `sw-transfer`: there is no JSONL
 configuration receiver, staging/commit endpoint, or transfer advertising path.
 
-Local schema 1, fixed slot identities, laptop XDG paths, watch `sw-config.json`
-and their last-known-good copies are unchanged. Existing configuration needs no
-re-entry. Old shared-base/journal files are ignored and left intact, including
+Schema 2 retains fixed slot identities, laptop XDG paths, watch `sw-config.json`
+and last-known-good recovery. Explicit schema-1 migration needs no re-entry. Old shared-base/journal files are ignored and left intact, including
 pending outcomes from the retired workflow. They never activate configuration.
 Native Storage staging still serves local saves. Validated laptop file
 export/import/review/Cancel/restore remains available; this local backup review
@@ -75,8 +74,7 @@ tests and watch exchange bridge are removed with their application interfaces.
 Their original evidence JSON, source fingerprints and 2026-10-08 results remain
 unchanged for provenance. They describe the previous product scope and do not
 count as acceptance of independent local configuration. Earlier editor evidence
-also retains its recorded scope; it does not establish the corrected direct
-wheel-owned editor behavior.
+also retains its recorded scope; it does not establish the current local editor behavior under #43.
 
 ## Local preset revision #43 — slice #44
 

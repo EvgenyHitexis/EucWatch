@@ -72,7 +72,11 @@ export class WatchPresets {
         this.button(`${input.letters + 1}/3`, 186, 185, 42, 24);
       }
       // Feedback replaces the value line while input remains available for correction.
-      if (notice) { this.ctx.fillStyle = '#000000'; this.ctx.fillRect(0, 29, 240, 28); this.text(notice.slice(0, 40), 120, 46, 10); }
+      if (notice) {
+        const reason = notice.replace('Configuration save failed: ', 'Save failed: ');
+        this.ctx.fillStyle = '#000000'; this.ctx.fillRect(0, 29, 240, 28);
+        this.text(reason.slice(0, 35), 120, 40, 10); this.text(reason.slice(35, 70), 120, 53, 10);
+      }
     } else {
       this.text(`SLOT ${draft.id} · ${page + 1}/4`, 120, 49, 14);
       this.button(String(draft[field]), 12, 65, 216, 38);

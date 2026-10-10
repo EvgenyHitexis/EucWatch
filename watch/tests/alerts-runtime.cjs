@@ -12,7 +12,7 @@ assert.equal(running.core.view().config.alerts.pwm.enabled,false);
 assert.match(running.core.view().validation_error,/threshold/i);
 const escape=value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;');
 const svg=env.context.graphics.ops.map(op=>op.kind==='text'?`<text x="${op.x}" y="${op.y+op.size}" font-size="${op.size}" text-anchor="${op.align===-1?'start':op.align===1?'end':'middle'}">${escape(op.value)}</text>`:op.kind==='line'?`<line x1="${op.x1}" y1="${op.y1}" x2="${op.x2}" y2="${op.y2}" stroke="white"/>`:`<rect x="${op.x1}" y="${op.y1}" width="${op.x2-op.x1}" height="${op.y2-op.y1}" fill="${op.kind==='fill'?'white':'none'}" stroke="white"/>`).join('\n');
-fs.writeFileSync(path.resolve(__dirname,'../evidence/alerts-editor.svg'),`<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240"><rect width="240" height="240" fill="black"/><g fill="white" font-family="sans-serif">${svg}</g></svg>\n`);
+fs.writeFileSync(path.resolve(__dirname,'../evidence/local-presets/regression-alerts-editor.svg'),`<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240"><rect width="240" height="240" fill="black"/><g fill="white" font-family="sans-serif">${svg}</g></svg>\n`);
 running.core.action('alert_test',{alert:'lost'});
 assert.equal(env.context.D16.state,1,'actual hardware adapter drives the installed active level');
 env.advance(1150);assert.equal(env.context.D16.state,0,'weak lost pattern ends after 150ms');

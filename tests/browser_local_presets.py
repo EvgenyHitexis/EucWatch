@@ -65,7 +65,7 @@ async def defaults(cdp, session, app, output):
 
 async def run(flow=defaults, name='defaults-laptop'):
     output=Path('docs/acceptance/evidence/local-presets');output.mkdir(parents=True,exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix='eucwatch-local-') as temporary:
+    with tempfile.TemporaryDirectory(prefix='eucwatch-local-', ignore_cleanup_errors=True) as temporary:
         app=Application(clock=ManualClock(),store=FileStore(Path(temporary)/'config.json'))
         runner=web.AppRunner(create_app(app));await runner.setup()
         sock=socket.socket();sock.bind(('127.0.0.1',0));await web.SockSite(runner,sock).start()

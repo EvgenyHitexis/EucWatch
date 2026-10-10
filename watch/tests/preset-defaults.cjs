@@ -32,6 +32,19 @@ const results=[];
     }
     results.push({mode,observed:plain(running.core.view().config),warning:running.core.view().persistence_error,storage:env.storageEffects});running.stop();
   }
+  for(const [slot,dip,packet] of [[1,0,'4c64417021010280808080808080808080808080808080808080808000f0fc0bd4'],[2,11,'4c6441702101028080808080808080808080808080808080808080800b672ed25c']]){
+    const env=environment();env.context.storage['sw-config.json']=JSON.stringify(fixture.cases[0].input);const running=env.start();
+    running.transport.discover();running.transport.select('11:22:33:44:55:66 public');await flush();env.advance(200);env.notification(frame(44,55,83));env.touch(2,120,20);env.touch(3,20,120);env.touch(5,slot===1?66:174,80);await flush();
+    assert.deepEqual(env.bleWrites.slice(-2),[packet.slice(0,40),packet.slice(40)]);
+    assert.equal(running.core.view().preset_attempt.fields.pedal_dip_compensation.requested,dip);
+    results.push({included_dip:dip,expected_packet:packet,observed_chunks:env.bleWrites});running.stop();
+  }
+  {
+    const env=environment();env.context.JSON={parse:JSON.parse,stringify:value=>JSON.stringify(value,(key,value)=>key==='threshold'&&value===70.125?70.1:value)};
+    const running=env.start(),before=plain(running.core.view().config);running.core.action('swipe',{direction:'down',from_top:true});running.core.action('alerts_begin');running.core.action('alerts_update',{alert:'pwm',threshold:70.125});running.core.action('alerts_save');
+    assert.match(running.core.view().persistence_error,/precision/);assert.deepEqual(plain(running.core.view().config),before);assert.equal(env.context.storage['sw-config.json'],undefined);
+    results.push({mode:'native-json-precision-refusal',warning:running.core.view().persistence_error,storage:env.storageEffects});running.stop();
+  }
   const env=environment(),running=env.start();running.transport.discover();running.transport.select('11:22:33:44:55:66 public');await flush();
   let now=200;env.advance(now);env.notification(frame(44,55,83));env.touch(2,120,20);
   env.touch(0,120,10);env.touch(1,120,110);env.touch(5,120,196);env.advance(now+=200);

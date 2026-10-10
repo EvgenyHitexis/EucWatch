@@ -1,0 +1,87 @@
+{
+  "fixture": {
+    "provenance": "sanitized source recording with explicit synthetic settings 44/55/66 and recalculated CRC; corruption flips sensitivity without CRC update",
+    "frame_hex": "dc5a5c53397afffe0aa400000df10000000a0b3d0e0e0000037a035217730064000e00b480c80000808080808080088080802c80800ff30ff50ff50ff50ff50fef0f370f420ff30ff30ff30fed0ff30ff40ff58a13b46c",
+    "corrupt_hex": "dc5a5c53397afffe0aa400000df10000000a0b3d0e0e0000037a035217730064000e00b480c80000808080808080088080802d80800ff30ff50ff50ff50ff50fef0f370f420ff30ff30ff30fed0ff30ff40ff58a13b46c",
+    "expected_input": "A",
+    "expected_draft": {
+      "id": 4,
+      "name": "A",
+      "configured": true,
+      "pedal_sensitivity": 20,
+      "dynamic_assist": 70,
+      "pedal_dip_compensation": 5,
+      "dip_included": false
+    },
+    "expected_packets": []
+  },
+  "observations": [
+    {
+      "session": 1,
+      "raw_hex": "dc5a5c53397afffe0aa400000df10000000a0b3d0e0e0000037a035217730064000e00b480c80000808080808080088080802c80800ff30ff50ff50ff50ff50fef0f370f420ff30ff30ff30fed0ff30ff40ff58a13b46c",
+      "draft": {
+        "id": 4,
+        "name": "A",
+        "configured": true,
+        "pedal_sensitivity": 20,
+        "dynamic_assist": 70,
+        "pedal_dip_compensation": 5,
+        "dip_included": false
+      },
+      "input": {
+        "field": "name",
+        "text": "A",
+        "letters": 0,
+        "lowercase": false
+      },
+      "packets": []
+    },
+    {
+      "session": 1,
+      "raw_hex": "dc5a5c53397afffe0aa400000df10000000a0b3d0e0e0000037a035217730064000e00b480c80000808080808080088080802d80800ff30ff50ff50ff50ff50fef0f370f420ff30ff30ff30fed0ff30ff40ff58a13b46c",
+      "draft": {
+        "id": 4,
+        "name": "A",
+        "configured": true,
+        "pedal_sensitivity": 20,
+        "dynamic_assist": 70,
+        "pedal_dip_compensation": 5,
+        "dip_included": false
+      },
+      "input": {
+        "field": "name",
+        "text": "A",
+        "letters": 0,
+        "lowercase": false
+      },
+      "packets": []
+    },
+    {
+      "session": 0,
+      "raw_hex": "dc5a5c53397afffe0aa400000df10000000a0b3d0e0e0000037a035217730064000e00b480c80000808080808080088080802c80800ff30ff50ff50ff50ff50fef0f370f420ff30ff30ff30fed0ff30ff40ff58a13b46c",
+      "draft": {
+        "id": 4,
+        "name": "A",
+        "configured": true,
+        "pedal_sensitivity": 20,
+        "dynamic_assist": 70,
+        "pedal_dip_compensation": 5,
+        "dip_included": false
+      },
+      "input": {
+        "field": "name",
+        "text": "A",
+        "letters": 0,
+        "lowercase": false
+      },
+      "packets": []
+    }
+  ],
+  "reconnect_input": {
+    "field": "name",
+    "text": "A",
+    "letters": 0,
+    "lowercase": false
+  },
+  "outcome": "passed"
+}

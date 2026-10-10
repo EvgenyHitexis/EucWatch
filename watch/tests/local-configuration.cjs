@@ -57,7 +57,7 @@ assert.equal(env.context.consoleEnabled,true,'independent recovery retains BLE c
 assert.equal(services.at(-1).uart,true,'independent recovery retains UART communication');
 const root=path.resolve(__dirname,'../..');
 const sources=['watch/main.js','watch/app.js','watch/controls.js','watch/render.js','watch/store.js','watch/boot.js','watch/tests/local-configuration.cjs','watch/tests/runtime.cjs'];
-fs.writeFileSync(path.join(root,'watch/evidence/local-configuration.json'),JSON.stringify({
+fs.writeFileSync(path.join(root,'watch/evidence/local-presets/regression-local-configuration.json'),JSON.stringify({
   issue:40,
   provenance:'Node VM executes production watch main/app/hardware/Storage/boot; fake pins/radio/native drivers/clock; preexisting schema-2 watch configuration',
   expected:'no transfer in Settings or stale actions/UART endpoint; independent local presets and alert edits persist across restart and recover interrupted active save; independent recovery console remains available',

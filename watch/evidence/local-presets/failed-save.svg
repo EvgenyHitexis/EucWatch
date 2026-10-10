@@ -31,4 +31,5 @@
 <text x="64" y="233.5" font-size="15" text-anchor="middle">Cancel</text>
 <rect x="124" y="214" width="104" height="24" fill="none" stroke="white"/>
 <text x="176" y="233.5" font-size="15" text-anchor="middle">Save</text>
-<text x="120" y="43" font-size="10" text-anchor="middle">Configuration save failed: Error: Config</text></g></svg>
+<text x="120" y="39" font-size="10" text-anchor="middle">Save failed: Configuration write/re</text>
+<text x="120" y="52" font-size="10" text-anchor="middle">adback failed</text></g></svg>

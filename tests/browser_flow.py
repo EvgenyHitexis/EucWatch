@@ -14,6 +14,7 @@ from aiohttp import ClientSession, web
 
 from eucwatch import Application, ManualClock
 from eucwatch.server import create_app
+from eucwatch.persistence import FileStore
 from eucwatch.recording import Recorder
 from eucwatch.live import LiveSession
 from eucwatch.scenarios import FileScenarioStore
@@ -65,7 +66,7 @@ async def run():
     host_clock = ManualClock()
     run_id=uuid4().hex
     recorder = Recorder(Path(f'.test-output/ui-recording-{run_id}.jsonl'))
-    behavior = Application(clock=host_clock, event_sink=recorder.record)
+    behavior = Application(clock=host_clock, event_sink=recorder.record, store=FileStore(Path(f'.test-output/ui-config-{run_id}.json')))
     live_clients = Clients()
     def writing_client(*args,**options):
         client=WritingClient(*args,**options)
@@ -103,7 +104,7 @@ async def run():
                         await cdp.pointer('#watch', (215, 120), (20, 120), session)
                         await cdp.wait("document.querySelector('canvas').dataset.screen === 'presets'", session)
                         presets = await cdp.evaluate("document.querySelector('canvas').getAttribute('aria-label')", session)
-                        assert all(f'Preset {i}' in presets for i in range(1, 5))
+                        assert all(name in presets for name in ['Jump','Forest','Road','Drag'])
                         await cdp.pointer('#watch', (20, 120), (215, 120), session)
                         await cdp.wait("document.querySelector('canvas').dataset.screen === 'dashboard'", session)
                         await cdp.pointer('#watch', (120, 10), (120, 110), session)
@@ -114,7 +115,7 @@ async def run():
                         await cdp.wait("document.querySelector('canvas').dataset.awake === 'true'", session)
                         self_button = behavior.view()['button']
                         assert self_button['down'] is False and self_button['wake_cycle'] is False
-                        await cdp.pointer('#watch', (20, 120), (215, 120), session)
+                        await cdp.pointer('#watch', (120, 215), (120, 20), session)
                         await cdp.wait("document.querySelector('canvas').dataset.screen === 'dashboard'", session)
                         host_clock.advance(31)
                         await cdp.wait("document.querySelector('canvas').dataset.awake === 'false'", session)
@@ -129,8 +130,10 @@ async def run():
                         await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('Alert editor 1')",session)
                         await cdp.pointer('#watch',(120,88),(120,88),session)
                         await cdp.wait("document.querySelector('#alert-pwm-enabled').checked",session)
-                        await cdp.pointer('#watch',(20,120),(215,120),session)
-                        await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard' && document.querySelector('#alerts-status').textContent.includes('Saved')",session)
+                        await cdp.pointer('#watch',(120,215),(120,20),session)
+                        await cdp.wait("document.querySelector('#alerts-status').textContent.includes('Saved')",session)
+                        await cdp.pointer('#watch',(120,215),(120,20),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard'",session)
                         assert behavior.view()['config']['alerts']['pwm']=={'enabled':False,'threshold':None}
                         navigation['back_discards_unsaved_alert_draft']='passed'
                         await cdp.evaluate("document.querySelector('#alerts-edit').click()",session)
@@ -153,8 +156,12 @@ async def run():
                         alert_result={'issue':20,'provenance':'actual Canvas and HTML editor / aiohttp / controlled clock',
                             'expected':'back discards, missing enabled threshold refused, save authoritative threshold, PWM test three150ms pulses',
                             'observed':'passed','pulse_durations_s':starts}
-                        preset_result = await exercise(cdp, session, behavior, Path('docs/acceptance/evidence/preset-editor'))
-                        await cdp.evaluate("document.querySelector('[data-action=simulator_start]').click()", session)
+                        preset_result = await exercise(cdp, session, behavior, Path('.test-output/preset-editor'))
+                        await cdp.pointer('#watch',(120,215),(120,20),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='settings'",session)
+                        await cdp.pointer('#watch',(120,215),(120,20),session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard'",session)
+                        await cdp.evaluate("document.querySelector('#controlled').checked=true;document.querySelector('[data-action=simulator_start]').click()", session)
                         await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('Connected')", session)
                         async def scenario(speed, voltage, pwm, traffic='normal'):
                             await cdp.evaluate(f"""document.querySelector('#speed').value={json.dumps(str(speed))};
@@ -169,15 +176,15 @@ async def run():
                         await cdp.pointer('#watch',(215,120),(20,120),session)
                         await cdp.wait("document.querySelector('canvas').dataset.screen==='presets'",session)
                         await cdp.pointer('#watch',(177,80),(177,80),session)
-                        await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard' && document.querySelector('canvas').getAttribute('aria-label').includes('RAIN · Applying')",session)
+                        await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard' && document.querySelector('canvas').getAttribute('aria-label').includes('Ab 2 · Applying')",session)
                         await cdp.evaluate("document.querySelector('#advance-seconds').value='0.2'",session)
                         for index in range(2):
                             await cdp.wait("!document.querySelector('#advance').disabled",session)
                             await cdp.evaluate("document.querySelector('#advance').click()",session)
                             await cdp.wait(f"Number(document.querySelector('canvas').dataset.elapsed)>={.2*(index+1)-.00001}",session)
-                        await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('RAIN · Confirmed')",session)
+                        await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('Ab 2 · Confirmed')",session)
                         control_result={'issue':22,'provenance':'actual Canvas one-tap / aiohttp / actual settings-frame parser / moving simulator',
-                            'expected':'RAIN onetap immediately dashboard Applying while speed25; two matching fresh settings frames Confirmed',
+                            'expected':'Ab 2 onetap immediately dashboard Applying while speed25; two matching fresh settings frames Confirmed',
                             'observed':'passed','attempt':behavior.view()['preset_attempt']}
                         def horn_count():
                             return sum(row.get('kind')=='horn' and row['event']=='submission' for row in behavior.view()['command_events'])
@@ -195,7 +202,7 @@ async def run():
                         await cdp.pointer('#watch-button',(10,20),(10,20),session)
                         await cdp.wait("document.querySelector('#watch-feedback').textContent==='Horn request sent'",session)
                         assert horn_count()==before_horn+2
-                        await cdp.pointer('#watch',(20,120),(215,120),session)
+                        await cdp.pointer('#watch',(120,215),(120,20),session)
                         await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard'",session)
                         horn_result={'issue':23,'provenance':'actual modeled sidebutton / Canvas / aiohttp / simulator command outputs',
                             'expected':'awakepressone LkAp request, wholeSleepwakecycle no horn, freshpressrequired; pending/stale pressesdiscarded',
@@ -237,7 +244,7 @@ async def run():
                         await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard'",session)
                         await advance_control(.2)
                         await advance_control(.2)
-                        await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('RAIN · Confirmed')",session)
+                        await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('Ab 2 · Confirmed')",session)
                         control_result['explicit_retry']='Confirmed; late readings before retry retained prior failure'
                         await cdp.evaluate("document.querySelector('#advance-seconds').value='1.1'",session)
                         await scenario(25, 119.02, 45)
@@ -247,7 +254,7 @@ async def run():
                         await cdp.wait("document.querySelector('canvas').dataset.fresh === 'false'", session)
                         stale = await cdp.evaluate("document.querySelector('canvas').getAttribute('aria-label')", session)
                         assert 'Speed —' in stale and 'wheel battery dimmed' in stale
-                        assert 'RAIN · Confirmed' not in stale
+                        assert 'Ab 2 · Confirmed' not in stale
                         blocked_count=horn_count()
                         await cdp.pointer('#watch-button',(10,20),(10,20),session)
                         await cdp.wait("document.querySelector('#watch-feedback').textContent==='Horn unavailable: connection unavailable'",session)
@@ -333,11 +340,11 @@ async def run():
                                 await asyncio.sleep(.01)
                         assert [len(data) for _,data,_ in live_clients.created[0].writes]==[15,20,11]
                         host_clock.advance(.1)
-                        live_clients.created[0].emit(settings_frame(sensitivity=30,assist=20))
+                        live_clients.created[0].emit(settings_frame(sensitivity=31,assist=26))
                         assert behavior.view()['confirmed_preset'] is None
                         host_clock.advance(.1)
-                        live_clients.created[0].emit(settings_frame(sensitivity=30,assist=20))
-                        await cdp.wait("document.querySelector('#preset-outcome').textContent==='RAIN · Confirmed'",session)
+                        live_clients.created[0].emit(settings_frame(sensitivity=31,assist=26))
+                        await cdp.wait("document.querySelector('#preset-outcome').textContent==='Ab 2 · Confirmed'",session)
                         await cdp.pointer('#watch-button',(10,20),(10,20),session)
                         await cdp.wait("document.querySelector('#watch-feedback').textContent==='Horn request sent'",session)
                         assert [len(data) for _,data,_ in live_clients.created[0].writes]==[15,20,11,14]
@@ -410,7 +417,7 @@ async def run():
                         assert behavior.view()['config']['presets'][0]['name']=='Backup slot'
                         backup_result={'issue':27,'provenance':'actual file download/import/review/Cancel/Restore / HTML / aiohttp',
                             'expected':'saved-only export, preview noactivation, Cancelpreserves, explicitrestore, unknownversionrefused, no commands',
-                            'observed':'passed','migration':'Only existing schema1; compatible updates preserve meaning; unknown versions require review'}
+                            'observed':'passed','migration':'Schema 2 export; schema 1 migration is explicit; compatible updates preserve meaning; unknown versions require review'}
                         (output/'backup.json').write_text(json.dumps(backup_result,indent=2)+'\n')
                         await cdp.pointer('#watch',(120,10),(120,110),session)
                         await cdp.wait("document.querySelector('canvas').dataset.screen==='settings'",session)
@@ -430,7 +437,7 @@ async def run():
                             'source_sha256':{source:hashlib.sha256(Path(source).read_bytes()).hexdigest() for source in ['frontend/src/main.ts','frontend/src/backup.ts','laptop/eucwatch/server.py','tests/browser_flow.py']},
                             'physical_operation':'none'
                         },indent=2)+'\n')
-                        await cdp.pointer('#watch',(20,120),(215,120),session)
+                        await cdp.pointer('#watch',(120,215),(120,20),session)
                         await cdp.wait("document.querySelector('canvas').dataset.screen==='dashboard'",session)
                         await cdp.wait("!document.querySelector('#scenario-save').disabled",session)
                         await cdp.evaluate("document.querySelector('#scenario-name').value='Reproducible dashboard';document.querySelector('#scenario-save').click()",session)

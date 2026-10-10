@@ -1,0 +1,76 @@
+{
+  "issue": 22,
+  "provenance": "actual Canvas one-tap / aiohttp / actual settings-frame parser / moving simulator",
+  "expected": "Ab 2 onetap immediately dashboard Applying while speed25; two matching fresh settings frames Confirmed",
+  "observed": "passed",
+  "attempt": {
+    "kind": "preset",
+    "id": 1,
+    "slot": 2,
+    "name": "Ab 2",
+    "revision": 10,
+    "session": 1,
+    "status": "Confirmed",
+    "pending": false,
+    "requested_s": 0.0,
+    "submitted_s": 0.0,
+    "finished_s": 0.4,
+    "reason": "",
+    "fields": {
+      "pedal_sensitivity": {
+        "requested": 31,
+        "actual": 31,
+        "state": "confirmed",
+        "submitted_s": 0.0,
+        "matches": 2
+      },
+      "dynamic_assist": {
+        "requested": 26,
+        "actual": 26,
+        "state": "confirmed",
+        "submitted_s": 0.0,
+        "matches": 2
+      }
+    },
+    "readbacks": [
+      0.2,
+      0.4
+    ],
+    "matching_frames": 2,
+    "next_index": 2,
+    "awaiting": null
+  },
+  "failure_scenarios": [
+    {
+      "readback": "missing",
+      "submission": "normal",
+      "observed": "Not confirmed",
+      "reason": "Confirmation timeout"
+    },
+    {
+      "readback": "mismatch",
+      "submission": "normal",
+      "observed": "Not confirmed",
+      "reason": "Confirmation timeout"
+    },
+    {
+      "readback": "partial",
+      "submission": "normal",
+      "observed": "Partially applied",
+      "reason": "Confirmation timeout"
+    },
+    {
+      "readback": "normal",
+      "submission": "fail",
+      "observed": "Not confirmed",
+      "reason": "Transport submission failed"
+    },
+    {
+      "readback": "normal",
+      "submission": "hang",
+      "observed": "Not confirmed",
+      "reason": "Submission timeout"
+    }
+  ],
+  "explicit_retry": "Confirmed; late readings before retry retained prior failure"
+}

@@ -6679,9 +6679,17 @@
         },
         {
           "kind": "text",
-          "value": "Error: Pedal sensitivity: enter a whole ",
+          "value": "Pedal sensitivity: enter a whole pe",
           "x": 120,
-          "y": 33,
+          "y": 29,
+          "size": 10,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "rcentage 0-100",
+          "x": 120,
+          "y": 42,
           "size": 10,
           "align": 0
         }
@@ -13862,9 +13870,17 @@
         },
         {
           "kind": "text",
-          "value": "Error: Pedal sensitivity: enter a whole ",
+          "value": "Pedal sensitivity: enter a whole pe",
           "x": 120,
-          "y": 33,
+          "y": 29,
+          "size": 10,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "rcentage 0-100",
+          "x": 120,
+          "y": 42,
           "size": 10,
           "align": 0
         }
@@ -21045,9 +21061,17 @@
         },
         {
           "kind": "text",
-          "value": "Error: Pedal sensitivity: enter a whole ",
+          "value": "Pedal sensitivity: enter a whole pe",
           "x": 120,
-          "y": 33,
+          "y": 29,
+          "size": 10,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "rcentage 0-100",
+          "x": 120,
+          "y": 42,
           "size": 10,
           "align": 0
         }
@@ -28228,9 +28252,17 @@
         },
         {
           "kind": "text",
-          "value": "Error: Pedal sensitivity: enter a whole ",
+          "value": "Pedal sensitivity: enter a whole pe",
           "x": 120,
-          "y": 33,
+          "y": 29,
+          "size": 10,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "rcentage 0-100",
+          "x": 120,
+          "y": 42,
           "size": 10,
           "align": 0
         }
@@ -33992,9 +34024,17 @@
         },
         {
           "kind": "text",
-          "value": "Configuration save failed: Error: Config",
+          "value": "Save failed: Configuration write/re",
           "x": 120,
-          "y": 33,
+          "y": 29,
+          "size": 10,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "adback failed",
+          "x": 120,
+          "y": 42,
           "size": 10,
           "align": 0
         }
@@ -34408,9 +34448,17 @@
         },
         {
           "kind": "text",
-          "value": "Configuration save failed: Error: Config",
+          "value": "Save failed: Configuration write/re",
           "x": 120,
-          "y": 33,
+          "y": 29,
+          "size": 10,
+          "align": 0
+        },
+        {
+          "kind": "text",
+          "value": "adback failed",
+          "x": 120,
+          "y": 42,
           "size": 10,
           "align": 0
         }
@@ -35012,7 +35060,7 @@
     "watch/preset-control.js": "616486d1ebe6fa7b6da63abbf285b6a7aea9794035abe5fb4a693e6a09160d1a",
     "watch/preset-editor.js": "f610e0f396a3c55d96095409d7dd47cde73e9ba370f9e75052f021d6b2407981",
     "watch/protocol.js": "173c2d4d534747a7e251ae06fb0b28a0578af8e3db229afd676ac2f6a2ab11b8",
-    "watch/render.js": "1d3e4aa9bbdfab6acd799f2c190c71a494d4a45c0b21b5a6798cebd0f10d57ed",
+    "watch/render.js": "de894687c07e3638ed0791e4fb908c2fd02c416a7840289624f6174a4a6a85b9",
     "watch/store.js": "bf69ae5b56a0a9cec823c579d237bd5f6675a29572ec484dc9024bf070529a39",
     "watch/transport.js": "ee51d586a555e7dbc4557702442c386fda43648b3a21b7ab1df74ebab2005a56"
   }

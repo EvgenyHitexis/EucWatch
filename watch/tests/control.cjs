@@ -155,7 +155,7 @@ async function testWriter(){
  hang=false;resolveWrite();await flush();assert.equal(written.length,8,'late completion never sends remaining packet chunks/settings');
  server.connected=false;server.device.connected=false;disconnected();await flush();assert.equal(test.app.view().fresh,false);
  evidence.writer={chunk_hex:written.map(bytes=>bytes.toString('hex')),timeout_result:timeoutResult,expected:'serialized <=20-byte writes, unsent dip stopped on rejection; fresh-telemetry timeout; no queued retry or remaining late chunks',observed:'assertions passed',native_writer_released_after_settlement:true};
- if(!process.env.EUCWATCH_CONTROL_CASE)fs.writeFileSync(path.join(root,'evidence/control.json'),JSON.stringify(evidence,null,2)+'\n');
+ if(!process.env.EUCWATCH_CONTROL_CASE)fs.writeFileSync(path.join(root,'evidence/local-presets/regression-control.json'),JSON.stringify(evidence,null,2)+'\n');
  console.log('watch same-session 2v14 property-selected 20-byte writer, horn request, bounded hang and late rejection: passed');
 }
 if(process.env.EUCWATCH_CONTROL_CASE==='horn')testHorn();else if(process.env.EUCWATCH_CONTROL_CASE==='writer')testWriter().catch(error=>{console.error(error);process.exitCode=1;});else{testMoving();testHorn();testFailureTraces();testLaptopParity();testWriter().catch(error=>{console.error(error);process.exitCode=1;});}

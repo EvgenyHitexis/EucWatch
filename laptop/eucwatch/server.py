@@ -38,6 +38,7 @@ def create_app(
     behavior.live_command_output = control.submit
     credential = secrets.token_urlsafe(32)
     controllers = set()
+    controller_documents: dict[str, str] = {}
     results = {}
     seen = set()
     intent_lock = asyncio.Lock()
@@ -45,7 +46,11 @@ def create_app(
 
     def expire_controller():
         if controllers and time.monotonic() - last_ui_seen > controller_timeout:
+            editor = behavior.view()["preset_editor"]
+            if editor is not None:
+                behavior.action("preset_cancel", editor_id=editor["id"])
             controllers.clear()
+            controller_documents.clear()
             results.clear()
             seen.clear()
             if behavior.view()["button"]["down"]:
@@ -95,6 +100,14 @@ def create_app(
                 controller = secrets.token_urlsafe(16)
                 controllers.add(controller)
         if controller is not None:
+            document = request.query.get("document")
+            if document and len(document) <= 100:
+                previous = controller_documents.get(controller)
+                if previous is not None and previous != document:
+                    editor = behavior.view()["preset_editor"]
+                    if editor is not None:
+                        behavior.action("preset_cancel", editor_id=editor["id"])
+                controller_documents[controller] = document
             last_ui_seen = time.monotonic()
         return web.json_response(
             {"credential": credential, "controller": controller},

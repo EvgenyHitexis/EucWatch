@@ -3,7 +3,7 @@
   "provenance": "production main/CST816/Graphics/parser/GATT/native Storage; simulated physical inputs, time, BLE and flash; no hardware operations",
   "trace": {
     "trace": "docs/acceptance/evidence/local-presets/editor-laptop.json",
-    "trace_sha256": "19234169a069fe24a1bbf2e6510eeb3916e195f52342a6b76bf9fe513b2a7940",
+    "trace_sha256": "8c03fba04ae55960c26df43e22f6586ad24faff7779e71795f20f2f3bec9e35e",
     "states": [
       {
         "input": {
@@ -18113,6 +18113,41 @@
       ]
     },
     {
+      "mode": "shared-raw-frame-fixture",
+      "fixture": {
+        "provenance": "sanitized source recording with explicit synthetic settings 44/55/66 and recalculated CRC; corruption flips sensitivity without CRC update",
+        "frame_hex": "dc5a5c53397afffe0aa400000df10000000a0b3d0e0e0000037a035217730064000e00b480c80000808080808080088080802c80800ff30ff50ff50ff50ff50fef0f370f420ff30ff30ff30fed0ff30ff40ff58a13b46c",
+        "corrupt_hex": "dc5a5c53397afffe0aa400000df10000000a0b3d0e0e0000037a035217730064000e00b480c80000808080808080088080802d80800ff30ff50ff50ff50ff50fef0f370f420ff30ff30ff30fed0ff30ff40ff58a13b46c",
+        "expected_input": "A",
+        "expected_draft": {
+          "id": 4,
+          "name": "A",
+          "configured": true,
+          "pedal_sensitivity": 20,
+          "dynamic_assist": 70,
+          "pedal_dip_compensation": 5,
+          "dip_included": false
+        },
+        "expected_packets": []
+      },
+      "draft": {
+        "id": 4,
+        "name": "A",
+        "configured": true,
+        "pedal_sensitivity": 20,
+        "dynamic_assist": 70,
+        "pedal_dip_compensation": 5,
+        "dip_included": false
+      },
+      "input": {
+        "field": "name",
+        "text": "A",
+        "letters": 0,
+        "lowercase": false
+      },
+      "packets": []
+    },
+    {
       "mode": "pending-native-write-and-disconnect",
       "chunks": [
         "4c6441700f010280808046e5e43963"
@@ -18192,7 +18227,7 @@
     "watch/preset-control.js": "616486d1ebe6fa7b6da63abbf285b6a7aea9794035abe5fb4a693e6a09160d1a",
     "watch/preset-editor.js": "f610e0f396a3c55d96095409d7dd47cde73e9ba370f9e75052f021d6b2407981",
     "watch/protocol.js": "173c2d4d534747a7e251ae06fb0b28a0578af8e3db229afd676ac2f6a2ab11b8",
-    "watch/render.js": "b02f163cc2b92efe9e8f5e2ad81daa057f4b163b4468baf2bdb255da5e58a9f6",
+    "watch/render.js": "de894687c07e3638ed0791e4fb908c2fd02c416a7840289624f6174a4a6a85b9",
     "watch/store.js": "bf69ae5b56a0a9cec823c579d237bd5f6675a29572ec484dc9024bf070529a39",
     "watch/transport.js": "ee51d586a555e7dbc4557702442c386fda43648b3a21b7ab1df74ebab2005a56"
   }

@@ -77,3 +77,18 @@ class PresetEditorTests(unittest.TestCase):
         app.action('preset_begin',slot=1);edit(app,'preset_update',dynamic_assist=12);edit(app,'preset_save')
         app.action('command_result',attempt=row['attempt'],session=row['session'],index=0,success=True)
         self.assertEqual(len(writes),1);self.assertFalse(app.view()['preset_attempt']['pending']);self.assertIn('changed',app.view()['preset_attempt']['reason'])
+
+    def test_shared_raw_frame_fixture_cannot_replace_active_keypad(self):
+        fixture=json.loads(Path('docs/acceptance/scenarios/local-editor-frames.json').read_text())
+        app=Application(clock=ManualClock());app.action('preset_begin',slot=4)
+        edit(app,'preset_input_begin');edit(app,'preset_input_key',key='Clear');edit(app,'preset_input_key',key='A')
+        observations=[]
+        app.action('connect');old=app.session
+        for session,raw in [(old,fixture['frame_hex']),(old,fixture['corrupt_hex']),(old-1,fixture['frame_hex'])]:
+            app.clock.advance(.1);app.receive(session,bytes.fromhex(raw))
+            self.assertEqual(app.view()['preset_draft'],fixture['expected_draft']);self.assertEqual(app.view()['preset_input']['text'],fixture['expected_input'])
+            observations.append({'session':session,'raw_hex':raw,'draft':app.view()['preset_draft'],'input':app.view()['preset_input'],'packets':app.view()['command_events']})
+        app.action('disconnect');app.action('connect');app.receive(old,bytes.fromhex(fixture['frame_hex']))
+        self.assertEqual(app.view()['preset_draft'],fixture['expected_draft']);self.assertEqual(app.view()['command_events'],[])
+        output=Path('.test-output/local-editor-frames.json');output.parent.mkdir(exist_ok=True)
+        output.write_text(json.dumps({'fixture':fixture,'observations':observations,'reconnect_input':app.view()['preset_input'],'outcome':'passed'},indent=2)+'\n')

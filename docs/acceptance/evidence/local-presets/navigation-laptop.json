@@ -11519,19 +11519,19 @@
     "laptop/eucwatch/installation.py": "57de9ba903ec940e4f31a5855545a36cbc3e10aaae58f2178ba68ba2256136e7",
     "laptop/eucwatch/presets.py": "89ac4c92d9fe2f8a4cd8b9a3c859f5910470ebfc0e2e24365f69538ebcdf0dfa",
     "laptop/eucwatch/recording.py": "fbf021f8238a854257d47ac58b979211de423c60ca5e0cb0988dffaecc049bc9",
-    "laptop/eucwatch/server.py": "e078a419e389be6b63a8eab9adf333f79c61337618d8f601bf9a090f0cf92ebc",
+    "laptop/eucwatch/server.py": "eea35ec2eb0fb36a2b40281bf6312853c9f617fcb2807c8eec3c61bdfde71440",
     "laptop/eucwatch/clock.py": "880f2fe3c7af6f5a0087bd0b3c1998306684456c294ef20de4fbb7d31ed7f219",
     "laptop/eucwatch/live.py": "794450dbcf19b58a3895f36f9f9cb32d20d0c5ceae4e12693af6ca25722231b0",
     "laptop/eucwatch/live_control.py": "b70f9d49b80aeb84eca9cf837e99fe8edb3e6aa721434b8ce83121a04c9a13d0",
-    "laptop/eucwatch/application.py": "eb88bb4435283cf8991b3c0c9c42797d15e5961274e03e4ff11d88636d3decfa",
-    "laptop/eucwatch/persistence.py": "0eb90cf866acdb302995cf24e98a9e595ccf9c0a3350b032910dfb703269b81d",
+    "laptop/eucwatch/application.py": "ebc02f69b83e867b5fec343feb4741e0c2a99a41c03629b76027a4c0b0d3b95d",
+    "laptop/eucwatch/persistence.py": "6b62cf86878e387fe8b106e4cfff41e66638fd8a959ffa461e8551d121a9744f",
     "laptop/eucwatch/__init__.py": "117d2ce7b89f227b3a013afcb87c32cad3a5b44d45fba7d9f5076a5ca38336bf",
     "laptop/eucwatch/alerts.py": "142e3d81cd810b15667ffd8b6bfbec3d54e2a28ff01a5313bc0c28f7bccd24d8",
     "laptop/eucwatch/simulator.py": "3ddecb614f2567b8b8032825c7b6dee7bddf91023bdaaf174543f882ca0f5305",
-    "frontend/src/main.ts": "1df952cdd03b61f85678acd62ac532a0d33aa440712512034b2cc4e8c3d369db",
+    "frontend/src/main.ts": "6c999e83e0408cfbfab37a630d5e5513ab801bf61bfc28554284bd7f1048b353",
     "frontend/src/scenarios.ts": "5c434107b4925d6cbfa4bdb3148f9af3442a7f61e71551a8a71b8f34b2a111da",
-    "frontend/src/preset-editor.ts": "16c3006a7af2feb403a15c44367ed9ad939a5018e34bec540fc9be2bc1a760ad",
+    "frontend/src/preset-editor.ts": "a25a7d380f0fe3b01129ec8cb840f48ac88a1b541fa90258940a2d1b304b7669",
     "frontend/src/backup.ts": "fa9c7acce752f61b6d525f1b3ee9f0d797e4ec757f200c42d175ea087e342175",
-    "/home/evbu13/dev/EucWatch/tests/browser_local_presets.py": "08f5f45b1a0a5ea9243d49eceed63766ad798eb099dc29bfbfd6c412956735dc"
+    "/home/evbu13/dev/EucWatch/tests/browser_local_presets.py": "039015242c8be63aa0321d13100d4442a25592afb864a81a63697cc59d4bf531"
   }
 }

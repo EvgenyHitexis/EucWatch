@@ -100,10 +100,10 @@ if(require.main===module)(async()=>{
   for(const row of rows.slice(0,5))env.notification(Buffer.from(row.raw_hex,'hex'));
   assert.equal(running.core.view().dashboard.wheel_battery_percent,'97');env.advance(31500);
   assert.equal(running.core.view().diagnostics.memory.simulated,true);
-  const out=path.join(root,'evidence');fs.mkdirSync(out,{recursive:true});
+  const out=path.join(root,'evidence/local-presets');fs.mkdirSync(out,{recursive:true});
   function escape(value){return String(value).replaceAll('&','&amp;').replaceAll('<','&lt;');}
   const svg=env.context.graphics.ops.map(op=>op.kind==='text'?`<text x="${op.x}" y="${op.y+op.size}" font-size="${op.size}" text-anchor="${op.align===-1?'start':op.align===1?'end':'middle'}">${escape(op.value)}</text>`:op.kind==='line'?`<line x1="${op.x1}" y1="${op.y1}" x2="${op.x2}" y2="${op.y2}" stroke="white"/>`:`<rect x="${op.x1}" y="${op.y1}" width="${op.x2-op.x1}" height="${op.y2-op.y1}" fill="${op.kind==='fill'?'white':'none'}" stroke="white"/>`).join('\n');
-  fs.writeFileSync(path.join(out,'dashboard.svg'),`<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240"><rect width="240" height="240" fill="black"/><g fill="white" font-family="sans-serif">${svg}</g></svg>\n`);
+  fs.writeFileSync(path.join(out,'regression-dashboard.svg'),`<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240"><rect width="240" height="240" fill="black"/><g fill="white" font-family="sans-serif">${svg}</g></svg>\n`);
   const old=running.core.view().session;env.loss();assert.equal(running.core.view().fresh,false);env.advance(32500);await flush();
   assert.ok(running.core.view().session>old);assert.equal(running.core.view().fresh,false);
   for(const row of rows.slice(0,5))env.notification(Buffer.from(row.raw_hex,'hex'));assert.equal(running.core.view().fresh,true);
@@ -157,6 +157,6 @@ if(require.main===module)(async()=>{
   const broken=environment();broken.context.storage['sw-active.json']=JSON.stringify({main:'sw-missing'});broken.boot();
   assert.ok(broken.context.global.ShermanRecovery.reason.includes('startup failed'));
   assert.deepEqual(broken.context.watchdog,[30,false]);
-  fs.writeFileSync(path.join(out,'offline.json'),JSON.stringify({issue:32,provenance:'Node VM executes original ES5 application/hardware; fake radio/pins/clock; SVG replays Graphics operations, host fonts',fixture:'experiments/laptop-feasibility/evidence/fixture-recording.jsonl',observed:'240x240 1-bpp buffer7200; sourcebattery97/avg4.09; battery sampling/pinrelease; raw816 nav/wake; D16 startup0 inactive; failed reconnect retries up to3 and later recovery requires newtelemetry; independent recovery beforeimports',hardware_acceptance:'pending: no deployment, device memory, radio, fonts, timing or physical controls measured'},null,2)+'\n');
+  fs.writeFileSync(path.join(out,'regression-offline.json'),JSON.stringify({issue:32,provenance:'Node VM executes original ES5 application/hardware; fake radio/pins/clock; SVG replays Graphics operations, host fonts',fixture:'experiments/laptop-feasibility/evidence/fixture-recording.jsonl',observed:'240x240 1-bpp buffer7200; sourcebattery97/avg4.09; battery sampling/pinrelease; raw816 nav/wake; D16 startup0 inactive; failed reconnect retries up to3 and later recovery requires newtelemetry; independent recovery beforeimports',hardware_acceptance:'pending: no deployment, device memory, radio, fonts, timing or physical controls measured'},null,2)+'\n');
   console.log('actual watch entry/hardware, battery, touch/button, fake direct BLE and recovery: passed');
 })().catch(error=>{console.error(error);process.exitCode=1;});

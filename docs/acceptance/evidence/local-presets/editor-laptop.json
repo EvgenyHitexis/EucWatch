@@ -2211,43 +2211,43 @@
   "renderings": [
     {
       "file": "slot-1-name.png",
-      "label": "Preset editor slot 1. Name: Ab 1. name keypad. Input Ab 1. Previous and next field.  Whole-editor Save or Cancel. "
+      "label": "Preset editor slot 1. Name: Ab 1. name keypad. Input Ab 1. Swipe left/right through fields; up cancels.  Whole-editor Save or Cancel. "
     },
     {
       "file": "slot-1-numeric.png",
-      "label": "Preset editor slot 1. Dynamic assist: 26. dynamic_assist keypad. Input 26. Previous and next field.  Whole-editor Save or Cancel. "
+      "label": "Preset editor slot 1. Dynamic assist: 26. dynamic_assist keypad. Input 26. Swipe left/right through fields; up cancels.  Whole-editor Save or Cancel. "
     },
     {
       "file": "slot-2-name.png",
-      "label": "Preset editor slot 2. Name: Ab 2. name keypad. Input Ab 2. Previous and next field.  Whole-editor Save or Cancel. "
+      "label": "Preset editor slot 2. Name: Ab 2. name keypad. Input Ab 2. Swipe left/right through fields; up cancels.  Whole-editor Save or Cancel. "
     },
     {
       "file": "slot-2-numeric.png",
-      "label": "Preset editor slot 2. Dynamic assist: 26. dynamic_assist keypad. Input 26. Previous and next field.  Whole-editor Save or Cancel. "
+      "label": "Preset editor slot 2. Dynamic assist: 26. dynamic_assist keypad. Input 26. Swipe left/right through fields; up cancels.  Whole-editor Save or Cancel. "
     },
     {
       "file": "slot-3-name.png",
-      "label": "Preset editor slot 3. Name: Ab 3. name keypad. Input Ab 3. Previous and next field.  Whole-editor Save or Cancel. "
+      "label": "Preset editor slot 3. Name: Ab 3. name keypad. Input Ab 3. Swipe left/right through fields; up cancels.  Whole-editor Save or Cancel. "
     },
     {
       "file": "slot-3-numeric.png",
-      "label": "Preset editor slot 3. Dynamic assist: 26. dynamic_assist keypad. Input 26. Previous and next field.  Whole-editor Save or Cancel. "
+      "label": "Preset editor slot 3. Dynamic assist: 26. dynamic_assist keypad. Input 26. Swipe left/right through fields; up cancels.  Whole-editor Save or Cancel. "
     },
     {
       "file": "slot-4-name.png",
-      "label": "Preset editor slot 4. Name: Ab 4. name keypad. Input Ab 4. Previous and next field.  Whole-editor Save or Cancel. "
+      "label": "Preset editor slot 4. Name: Ab 4. name keypad. Input Ab 4. Swipe left/right through fields; up cancels.  Whole-editor Save or Cancel. "
     },
     {
       "file": "slot-4-numeric.png",
-      "label": "Preset editor slot 4. Dynamic assist: 26. dynamic_assist keypad. Input 26. Previous and next field.  Whole-editor Save or Cancel. "
+      "label": "Preset editor slot 4. Dynamic assist: 26. dynamic_assist keypad. Input 26. Swipe left/right through fields; up cancels.  Whole-editor Save or Cancel. "
     },
     {
       "file": "invalid-save.png",
-      "label": "Preset editor slot 1. Pedal sensitivity: . pedal_sensitivity keypad. Input empty. Previous and next field.  Whole-editor Save or Cancel. Pedal sensitivity: enter a whole percentage 0\u2013100"
+      "label": "Preset editor slot 1. Pedal sensitivity: . pedal_sensitivity keypad. Input empty. Swipe left/right through fields; up cancels.  Whole-editor Save or Cancel. Pedal sensitivity: enter a whole percentage 0\u2013100"
     },
     {
       "file": "failed-save.png",
-      "label": "Preset editor slot 1. Pedal sensitivity: 32. pedal_sensitivity keypad. Input 32. Previous and next field.  Whole-editor Save or Cancel. Configuration save failed: Controlled disk full"
+      "label": "Preset editor slot 1. Pedal sensitivity: 32. pedal_sensitivity keypad. Input 32. Swipe left/right through fields; up cancels.  Whole-editor Save or Cancel. Configuration save failed: Controlled disk full"
     }
   ],
   "saved": {
@@ -2324,19 +2324,19 @@
     "laptop/eucwatch/installation.py": "57de9ba903ec940e4f31a5855545a36cbc3e10aaae58f2178ba68ba2256136e7",
     "laptop/eucwatch/presets.py": "89ac4c92d9fe2f8a4cd8b9a3c859f5910470ebfc0e2e24365f69538ebcdf0dfa",
     "laptop/eucwatch/recording.py": "fbf021f8238a854257d47ac58b979211de423c60ca5e0cb0988dffaecc049bc9",
-    "laptop/eucwatch/server.py": "e078a419e389be6b63a8eab9adf333f79c61337618d8f601bf9a090f0cf92ebc",
+    "laptop/eucwatch/server.py": "eea35ec2eb0fb36a2b40281bf6312853c9f617fcb2807c8eec3c61bdfde71440",
     "laptop/eucwatch/clock.py": "880f2fe3c7af6f5a0087bd0b3c1998306684456c294ef20de4fbb7d31ed7f219",
     "laptop/eucwatch/live.py": "794450dbcf19b58a3895f36f9f9cb32d20d0c5ceae4e12693af6ca25722231b0",
     "laptop/eucwatch/live_control.py": "b70f9d49b80aeb84eca9cf837e99fe8edb3e6aa721434b8ce83121a04c9a13d0",
-    "laptop/eucwatch/application.py": "596258b05028876729411a75abded4caa9476c6a7847a0f8a6b59411f66c620e",
-    "laptop/eucwatch/persistence.py": "0eb90cf866acdb302995cf24e98a9e595ccf9c0a3350b032910dfb703269b81d",
+    "laptop/eucwatch/application.py": "ebc02f69b83e867b5fec343feb4741e0c2a99a41c03629b76027a4c0b0d3b95d",
+    "laptop/eucwatch/persistence.py": "6b62cf86878e387fe8b106e4cfff41e66638fd8a959ffa461e8551d121a9744f",
     "laptop/eucwatch/__init__.py": "117d2ce7b89f227b3a013afcb87c32cad3a5b44d45fba7d9f5076a5ca38336bf",
     "laptop/eucwatch/alerts.py": "142e3d81cd810b15667ffd8b6bfbec3d54e2a28ff01a5313bc0c28f7bccd24d8",
     "laptop/eucwatch/simulator.py": "3ddecb614f2567b8b8032825c7b6dee7bddf91023bdaaf174543f882ca0f5305",
-    "frontend/src/main.ts": "0e555d1056d65758e7f61b2534c9df457a2f734aafe97dde0d9f52a9af471e71",
+    "frontend/src/main.ts": "6c999e83e0408cfbfab37a630d5e5513ab801bf61bfc28554284bd7f1048b353",
     "frontend/src/scenarios.ts": "5c434107b4925d6cbfa4bdb3148f9af3442a7f61e71551a8a71b8f34b2a111da",
-    "frontend/src/preset-editor.ts": "1d36fc757921729728046f544f42245e86811997e7ff9520848d5a50f2d30026",
+    "frontend/src/preset-editor.ts": "a25a7d380f0fe3b01129ec8cb840f48ac88a1b541fa90258940a2d1b304b7669",
     "frontend/src/backup.ts": "fa9c7acce752f61b6d525f1b3ee9f0d797e4ec757f200c42d175ea087e342175",
-    "/home/evbu13/dev/EucWatch/tests/browser_local_presets.py": "c664ed35d0985edf9a7351b30fac034803a297c739317947db05df16cc97fecd"
+    "/home/evbu13/dev/EucWatch/tests/browser_local_presets.py": "039015242c8be63aa0321d13100d4442a25592afb864a81a63697cc59d4bf531"
   }
 }
