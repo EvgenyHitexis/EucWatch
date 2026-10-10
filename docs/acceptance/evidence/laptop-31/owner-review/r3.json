@@ -1,0 +1,378 @@
+{
+  "issue": 31,
+  "review": "R3 local preset editing",
+  "source_commit": "90cecdf60d538d1737f6b220aeec1cd59368e962",
+  "provenance": "Owner-operated laptop Canvas on port 8766; owner completion replies and read-only backend/configuration observations; isolated simulator profile only",
+  "initial_configuration": {
+    "version": 2,
+    "revision": 0,
+    "presets": [
+      {
+        "id": 1,
+        "name": "Jump",
+        "configured": true,
+        "pedal_sensitivity": 0,
+        "dynamic_assist": 0,
+        "pedal_dip_compensation": 0,
+        "dip_included": false
+      },
+      {
+        "id": 2,
+        "name": "Forest",
+        "configured": true,
+        "pedal_sensitivity": 70,
+        "dynamic_assist": 0,
+        "pedal_dip_compensation": 0,
+        "dip_included": false
+      },
+      {
+        "id": 3,
+        "name": "Road",
+        "configured": true,
+        "pedal_sensitivity": 30,
+        "dynamic_assist": 25,
+        "pedal_dip_compensation": 10,
+        "dip_included": false
+      },
+      {
+        "id": 4,
+        "name": "Drag",
+        "configured": true,
+        "pedal_sensitivity": 20,
+        "dynamic_assist": 70,
+        "pedal_dip_compensation": 5,
+        "dip_included": false
+      }
+    ],
+    "alerts": {
+      "pwm": {
+        "enabled": false,
+        "threshold": null
+      },
+      "speed": {
+        "enabled": false,
+        "threshold": null
+      },
+      "battery": {
+        "enabled": false,
+        "threshold": null
+      },
+      "lost": {
+        "enabled": true
+      }
+    }
+  },
+  "owner_reported_observations": [
+    {
+      "action": "Inspect Road, edit sensitivity 30 to 40 and accept with keypad OK",
+      "observed": "Owner replied done; backend showed draft 40 and saved 30"
+    },
+    {
+      "action": "Enter 42 and use keypad Cancel",
+      "observed": "Owner replied done; backend showed restored draft 40 and saved 30"
+    },
+    {
+      "action": "Save Road from the field display and reopen it",
+      "observed": "Owner replied done; backend and disk showed saved sensitivity 40 with all other saved content preserved"
+    },
+    {
+      "action": "Accept draft sensitivity 55, then cancel the whole preset",
+      "observed": "Owner replied done; backend showed draft 55 before Cancel and saved 40 afterward"
+    },
+    {
+      "action": "Inspect Jump, Forest and Drag and swipe left through each field loop back to Name",
+      "observed": "Owner replied done to each loop: Jump 0/0/0 omitted; Forest 70/0/0 omitted; Drag 20/70/5 omitted. Subsequent backend read showed Drag on Name with the expected draft and saved values"
+    },
+    {
+      "action": "Swipe right from Drag Name to dip and toggle omitted to included",
+      "observed": "Owner replied done; backend verified dip page, draft value 5 included, and saved value 5 omitted"
+    },
+    {
+      "action": "Toggle Drag dip back to omitted, then swipe up through the preset list and Settings to the dashboard",
+      "observed": "Owner replied done to retaining value 5 and completing the three upward transitions; final backend verified dashboard, no draft/input, and saved Drag 5 omitted"
+    }
+  ],
+  "backend_checkpoints": [
+    {
+      "checkpoint": "accept sensitivity 40 into draft before Save",
+      "observed": {
+        "screen": "preset_editor",
+        "field_index": 1,
+        "draft": {
+          "id": 3,
+          "name": "Road",
+          "configured": true,
+          "pedal_sensitivity": 40,
+          "dynamic_assist": 25,
+          "pedal_dip_compensation": 10,
+          "dip_included": false
+        },
+        "input": null,
+        "saved_road": {
+          "id": 3,
+          "name": "Road",
+          "configured": true,
+          "pedal_sensitivity": 30,
+          "dynamic_assist": 25,
+          "pedal_dip_compensation": 10,
+          "dip_included": false
+        },
+        "saved_configuration_unchanged": true,
+        "command_events": []
+      }
+    },
+    {
+      "checkpoint": "cancel entry 42 and restore latest accepted draft value 40",
+      "observed": {
+        "screen": "preset_editor",
+        "field_index": 1,
+        "draft": {
+          "id": 3,
+          "name": "Road",
+          "configured": true,
+          "pedal_sensitivity": 40,
+          "dynamic_assist": 25,
+          "pedal_dip_compensation": 10,
+          "dip_included": false
+        },
+        "input": null,
+        "saved_road": {
+          "id": 3,
+          "name": "Road",
+          "configured": true,
+          "pedal_sensitivity": 30,
+          "dynamic_assist": 25,
+          "pedal_dip_compensation": 10,
+          "dip_included": false
+        },
+        "saved_configuration_unchanged": true,
+        "command_events": []
+      }
+    },
+    {
+      "checkpoint": "whole-preset Save persists Road sensitivity 40 and preserves other saved content",
+      "expected_configuration": {
+        "version": 2,
+        "revision": 1,
+        "presets": [
+          {
+            "id": 1,
+            "name": "Jump",
+            "configured": true,
+            "pedal_sensitivity": 0,
+            "dynamic_assist": 0,
+            "pedal_dip_compensation": 0,
+            "dip_included": false
+          },
+          {
+            "id": 2,
+            "name": "Forest",
+            "configured": true,
+            "pedal_sensitivity": 70,
+            "dynamic_assist": 0,
+            "pedal_dip_compensation": 0,
+            "dip_included": false
+          },
+          {
+            "id": 3,
+            "name": "Road",
+            "configured": true,
+            "pedal_sensitivity": 40,
+            "dynamic_assist": 25,
+            "pedal_dip_compensation": 10,
+            "dip_included": false
+          },
+          {
+            "id": 4,
+            "name": "Drag",
+            "configured": true,
+            "pedal_sensitivity": 20,
+            "dynamic_assist": 70,
+            "pedal_dip_compensation": 5,
+            "dip_included": false
+          }
+        ],
+        "alerts": {
+          "pwm": {
+            "enabled": false,
+            "threshold": null
+          },
+          "speed": {
+            "enabled": false,
+            "threshold": null
+          },
+          "battery": {
+            "enabled": false,
+            "threshold": null
+          },
+          "lost": {
+            "enabled": true
+          }
+        }
+      },
+      "observed": {
+        "screen": "preset_slots",
+        "draft": null,
+        "input": null,
+        "saved_road": {
+          "id": 3,
+          "name": "Road",
+          "configured": true,
+          "pedal_sensitivity": 40,
+          "dynamic_assist": 25,
+          "pedal_dip_compensation": 10,
+          "dip_included": false
+        },
+        "configuration_matches_expected": true,
+        "disk_configuration_matches_expected": true,
+        "command_events": []
+      }
+    },
+    {
+      "checkpoint": "accepted draft sensitivity 55 before whole-preset Cancel; saved Road remains 40",
+      "observed": {
+        "screen": "preset_editor",
+        "field_index": 1,
+        "draft": {
+          "id": 3,
+          "name": "Road",
+          "configured": true,
+          "pedal_sensitivity": 55,
+          "dynamic_assist": 25,
+          "pedal_dip_compensation": 10,
+          "dip_included": false
+        },
+        "input": null,
+        "saved_road": {
+          "id": 3,
+          "name": "Road",
+          "configured": true,
+          "pedal_sensitivity": 40,
+          "dynamic_assist": 25,
+          "pedal_dip_compensation": 10,
+          "dip_included": false
+        },
+        "saved_configuration_matches_expected": true,
+        "command_events": []
+      }
+    },
+    {
+      "checkpoint": "whole-preset Cancel discarded sensitivity 55 and preserved saved Road 40",
+      "observed": {
+        "screen": "preset_slots",
+        "draft": null,
+        "input": null,
+        "saved_road": {
+          "id": 3,
+          "name": "Road",
+          "configured": true,
+          "pedal_sensitivity": 40,
+          "dynamic_assist": 25,
+          "pedal_dip_compensation": 10,
+          "dip_included": false
+        },
+        "configuration_matches_expected": true,
+        "disk_configuration_matches_expected": true,
+        "command_events": []
+      }
+    },
+    {
+      "checkpoint": "reverse wrap from Drag name to dip; include remembered dip value 5 in draft",
+      "owner_report": "Owner replied done after inspecting Jump, Forest and Drag field loops and after toggling Drag dip from omitted to included.",
+      "observed": {
+        "screen": "preset_editor",
+        "field_index": 3,
+        "draft": {
+          "id": 4,
+          "name": "Drag",
+          "configured": true,
+          "pedal_sensitivity": 20,
+          "dynamic_assist": 70,
+          "pedal_dip_compensation": 5,
+          "dip_included": true
+        },
+        "input": null,
+        "saved_drag": {
+          "id": 4,
+          "name": "Drag",
+          "configured": true,
+          "pedal_sensitivity": 20,
+          "dynamic_assist": 70,
+          "pedal_dip_compensation": 5,
+          "dip_included": false
+        },
+        "saved_configuration_matches_expected": true,
+        "command_events": []
+      }
+    },
+    {
+      "checkpoint": "omit Drag dip while retaining 5; swipe up through preset list and Settings to dashboard",
+      "owner_report": "Owner replied done after being asked to restore omitted with value 5 and swipe up three times to the dashboard.",
+      "observed": {
+        "mode": "simulator",
+        "session": 5,
+        "screen": "dashboard",
+        "awake": true,
+        "fresh": true,
+        "draft": null,
+        "input": null,
+        "saved_road": {
+          "id": 3,
+          "name": "Road",
+          "configured": true,
+          "pedal_sensitivity": 40,
+          "dynamic_assist": 25,
+          "pedal_dip_compensation": 10,
+          "dip_included": false
+        },
+        "saved_drag": {
+          "id": 4,
+          "name": "Drag",
+          "configured": true,
+          "pedal_sensitivity": 20,
+          "dynamic_assist": 70,
+          "pedal_dip_compensation": 5,
+          "dip_included": false
+        },
+        "configuration_matches_expected": true,
+        "disk_configuration_matches_expected": true,
+        "command_events": [],
+        "preset_attempt": null
+      }
+    }
+  ],
+  "final_read_only_backend_state": {
+    "mode": "simulator",
+    "session": 5,
+    "screen": "dashboard",
+    "awake": true,
+    "fresh": true,
+    "draft": null,
+    "input": null,
+    "saved_road": {
+      "id": 3,
+      "name": "Road",
+      "configured": true,
+      "pedal_sensitivity": 40,
+      "dynamic_assist": 25,
+      "pedal_dip_compensation": 10,
+      "dip_included": false
+    },
+    "saved_drag": {
+      "id": 4,
+      "name": "Drag",
+      "configured": true,
+      "pedal_sensitivity": 20,
+      "dynamic_assist": 70,
+      "pedal_dip_compensation": 5,
+      "dip_included": false
+    },
+    "configuration_matches_expected": true,
+    "disk_configuration_matches_expected": true,
+    "command_events": [],
+    "preset_attempt": null
+  },
+  "result": "observed pass",
+  "scope": "Local editing, value versus whole-preset Save/Cancel, field wrapping, dip inclusion separate from remembered value and upward return. All recorded checkpoints had zero wheel command events. Intermediate visual results without screenshots are owner-reported.",
+  "overall_owner_acceptance": "pending; R4-R6 and required live evidence remain incomplete"
+}

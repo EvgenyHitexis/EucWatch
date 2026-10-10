@@ -18,7 +18,10 @@ Owner walkthrough progress: [R1 dashboard/freshness/reconnect observed pass](evi
 with six owner-supplied screenshots and a completed 7/7 simulator scenario.
 [R2 navigation and sleep also passed](evidence/laptop-31/owner-review/r2.json),
 including wake-only button behavior and riding-menu entry/return without commands.
-R3–R6, overall owner acceptance and required live evidence remain pending.
+[R3 local preset editing also passed](evidence/laptop-31/owner-review/r3.json):
+Road sensitivity is saved at 40 after value and whole-preset Save/Cancel checks;
+field loops and dip inclusion preserve the other saved content, with no wheel
+commands. R4–R6, overall owner acceptance and required live evidence remain pending.
 
 | #31 requirement | Current outcome | Evidence / next action |
 | --- | --- | --- |
@@ -28,7 +31,7 @@ R3–R6, overall owner acceptance and required live evidence remain pending.
 | Live application telemetry, ranges, confirmation, persistence, multi-setting/partial/disconnect and riding behavior | Incomplete | Controlled BLE tests verify software only. Existing research observations below are reused within scope; application/live rows remain in the walkthrough's live-evidence list. |
 | Outstanding #9, including audible horn and assist/dip persistence | Incomplete | Horn remains deferred. Changed assist/dip persistence, unverified ranges and owner app versions, complete application presets and riding evidence remain outstanding. |
 | Reproducible, versioned, sanitized evidence | Software pass | [Run commands, source/artifact hashes and provenance](evidence/laptop-31/validation.json). New artifacts are under `evidence/laptop-31/`; original historical evidence is preserved. No private recordings or backups are committed. |
-| Explicit owner review and all required passes | Partial: appearance approved | R1–R6 behavior and physical rows require explicit observations. Unknown or failed checks remain incomplete. |
+| Explicit owner review and all required passes | Partial: appearance approved; R1–R3 observed pass | R4–R6 behavior, overall owner acceptance and physical rows remain pending. Unknown or failed checks remain incomplete. |
 | Separate hardware authorization and deployment gate | Retained | No live scan/connection, physical command or watch deployment in this pass. #37 still follows full #31 acceptance and separate deployment authorization; #38 follows installation. |
 
 Reproduce after setup:
