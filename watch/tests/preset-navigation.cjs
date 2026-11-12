@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict');
-const {environment,flush,dispatchRecordedInput,snapshot,evidence,plain,readJson,watchSourceHashes}=require('./harness.cjs');
-const laptop=readJson('docs/acceptance/evidence/touch-layout/navigation-laptop.json');
+const {environment,flush,dispatchRecordedInput,snapshot,evidence,laptopTrace,plain,readJson,watchSourceHashes}=require('./harness.cjs');
+const laptop=readJson(laptopTrace('touch-layout/navigation-laptop.json'));
 (async()=>{
  const env=environment();let running=env.start(),now=200;env.advance(now);const states=[];
  for(const [index,event] of laptop.timeline.entries()){

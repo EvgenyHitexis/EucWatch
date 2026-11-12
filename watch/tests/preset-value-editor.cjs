@@ -1,6 +1,6 @@
 // Value-entry completion through production touch, Graphics and native Storage.
 const assert=require('node:assert/strict');
-const {environment,dispatchRecordedInput,evidence,plain,readJson,sha256}=require('./harness.cjs');
+const {environment,dispatchRecordedInput,evidence,laptopTrace,plain,readJson,sha256}=require('./harness.cjs');
 const env=environment(),running=env.start();
 let now=200;env.advance(now);
 function tap(x,y){env.touch(5,x,y);env.advance(now+=200);return running.core.view();}
@@ -69,7 +69,7 @@ assert.ok(reason,'the complete range remains visible beside invalid dip input');
 assert.ok(reason.y+reason.size<=value.y,'the reason and entered value do not overlap');
 wideApp.stop();
 // Replay the actual laptop pointer trace through CST816/main/Graphics/Storage.
-const tracePath='docs/acceptance/evidence/touch-layout/value-editor-laptop.json';
+const tracePath=laptopTrace('touch-layout/value-editor-laptop.json');
 const trace=readJson(tracePath);
 const native=environment();let app=native.start(),time=200;native.advance(time);
 const renderings=[];

@@ -4,15 +4,20 @@ evidence regenerated at the working tree.
 
 Each side is exported to a temporary directory outside the repository: the base
 with `git archive`, the working tree as its tracked files with their uncommitted
-changes plus untracked files that are not ignored. In each copy the watch evidence
-directory is emptied and every watch suite that copy's scripts/check.sh lists runs
-with EUCWATCH_WRITE_EVIDENCE=1. With --browser, the copy's frontend is built and
-its browser flows run without the flag, so they write into the copy's empty
-.test-output/evidence/. The two outputs are compared file by file, ignoring only
-provenance: source_sha256, fingerprints, trace_sha256, and the version-derived
-names, sizes and checksums in bundle.json. Every remaining difference is printed.
-Both copies run on this tree's ignored dependencies (the Python .venv and
-frontend/node_modules), so a base with other locked dependencies runs on these.
+changes plus untracked files that are not ignored. Every suite and flow runs in
+those copies with EUCWATCH_WRITE_EVIDENCE=1, so it writes the copy's evidence
+paths and never the repository's.
+
+In each copy the watch evidence directory is emptied and every watch suite that
+the copy's scripts/check.sh lists runs. With --browser, the copy's acceptance
+evidence directory is emptied too, and the copy's frontend is built and its
+browser flows run before the watch suites, so the watch parity suites replay the
+laptop traces those flows just wrote, not the committed ones. The two outputs
+are compared file by file, ignoring only provenance: source_sha256,
+fingerprints, trace_sha256, and the version-derived names, sizes and checksums
+in bundle.json. Every remaining difference is printed. Both copies run on this
+tree's ignored dependencies (the Python .venv and frontend/node_modules), so a
+base with other locked dependencies runs on these.
 
 Exit 0: no difference. Exit 1: differences. Exit 2: the run itself failed.
 The repository is never written: git status and git worktree list are unchanged.
@@ -32,9 +37,12 @@ import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-# Regenerated evidence in a copy, and the tracked directory it stands for.
-WATCH_EVIDENCE = ("watch/evidence", "watch/evidence")
-BROWSER_EVIDENCE = (".test-output/evidence", "docs/acceptance/evidence")
+# The regenerated evidence, at the same paths in each copy as in the repository.
+WATCH_EVIDENCE = "watch/evidence"
+BROWSER_EVIDENCE = "docs/acceptance/evidence"
+# This tree's ignored dependencies, which both copies use.
+VENV = "experiments/laptop-feasibility/.venv"
+NODE_MODULES = "frontend/node_modules"
 
 
 def files(directory: Path) -> set[str]:
@@ -49,7 +57,12 @@ BUNDLE_SIZES_AND_CHECKSUMS = {"bytes", "required_bytes", "sha256", "crc32"}
 ABSENT = object()
 
 
-def shown(value) -> str:
+class Failed(Exception):
+    """The comparison could not be made."""
+
+
+def rendered(value) -> str:
+    """A compared value as the report prints it: its JSON text, or `absent`."""
     return "absent" if value is ABSENT else json.dumps(value, ensure_ascii=False)
 
 
@@ -65,24 +78,34 @@ def json_differences(base, tree, where="$"):
         yield where, base, tree
 
 
+def parsed(relative: str, side: str, content: bytes):
+    try:
+        return json.loads(content)
+    except ValueError as error:
+        raise Failed(f"{relative}: the {side} copy is not valid JSON ({error})") from None
+
+
 def file_differences(relative: str, base: bytes, tree: bytes) -> list[str]:
     if base == tree:
         return []
     if relative.endswith(".json"):
-        base, tree = json.loads(base), json.loads(tree)
+        base, tree = parsed(relative, "base", base), parsed(relative, "working tree", tree)
         if Path(relative).name == "bundle.json":
-            base, tree = without_version(base), without_version(tree)
-        return [f"{relative}: {field}: base {shown(left)}, working tree {shown(right)}"
+            base, tree = without_version(relative, "base", base), without_version(relative, "working tree", tree)
+        return [f"{relative}: {field}: base {rendered(left)}, working tree {rendered(right)}"
                 for field, left, right in json_differences(base, tree)]
     if relative.endswith(".svg"):
-        return [f"{relative}: line {number}: base {shown(left)}, working tree {shown(right)}"
+        return [f"{relative}: line {number}: base {rendered(left)}, working tree {rendered(right)}"
                 for number, left, right in line_differences(base.decode().splitlines(), tree.decode().splitlines())]
     return [f"{relative}: bytes differ"]
 
 
-def without_version(bundle):
+def without_version(relative: str, side: str, bundle):
     """bundle.json with its version written as <version> and no sizes or checksums."""
-    version = bundle["manifest"]["version"]
+    manifest = bundle.get("manifest") if isinstance(bundle, dict) else None
+    version = manifest.get("version") if isinstance(manifest, dict) else None
+    if not isinstance(version, str) or not version:
+        raise Failed(f"{relative}: the {side} copy has no manifest.version")
 
     def strip(value):
         if isinstance(value, dict):
@@ -115,15 +138,22 @@ def differences(base: Path, tree: Path) -> list[str]:
     return found
 
 
-class Failed(Exception):
-    """The comparison could not be made."""
-
-
-def git(*args, binary=False):
+def git(*args, binary=False, allow_failure=False):
+    """Run git in this repository. A failure raises Failed unless allow_failure is set."""
     result = subprocess.run(["git", "-C", str(ROOT), *args], capture_output=True)
-    if result.returncode and "--quiet" not in args:
+    if result.returncode and not allow_failure:
         raise Failed(f"git {' '.join(args)}: {result.stderr.decode().strip()}")
     return result.stdout if binary else result.stdout.decode()
+
+
+def require_dependencies(browser: bool):
+    """Fail before exporting anything if something both copies need is missing."""
+    for relative in [VENV] + ([NODE_MODULES] if browser else []):
+        if not (ROOT / relative).is_dir():
+            raise Failed(f"{relative} is missing; run ./scripts/setup.sh")
+    for command in ["node"] + (["npm"] if browser else []):
+        if shutil.which(command) is None:
+            raise Failed(f"{command} is not on PATH")
 
 
 def export_base(commit: str, copy: Path):
@@ -151,29 +181,38 @@ def listed(copy: Path, variable: str) -> list[str]:
 
 
 def run(copy: Path, command: list[str], **variables):
-    """Run command in the copy with no inherited EUCWATCH_* settings."""
+    """Run command in the copy with EUCWATCH_WRITE_EVIDENCE=1 and no other inherited EUCWATCH_* setting."""
     env = {key: value for key, value in os.environ.items() if not key.startswith("EUCWATCH_")}
-    result = subprocess.run(command, cwd=copy, env={**env, **variables}, capture_output=True, text=True)
+    try:
+        result = subprocess.run(command, cwd=copy, env={**env, **variables, "EUCWATCH_WRITE_EVIDENCE": "1"},
+                                capture_output=True, text=True)
+    except OSError as error:
+        raise Failed(f"{copy.name}: cannot run {command[0]}: {error.strerror}") from None
     if result.returncode:
         raise Failed(f"{copy.name}: {' '.join(command)} exited {result.returncode}\n{result.stdout}{result.stderr}")
+
+
+def empty(directory: Path):
+    shutil.rmtree(directory, ignore_errors=True)
+    directory.mkdir(parents=True)
 
 
 def regenerate(copy: Path, browser: bool):
     """Regenerate the copy's evidence into empty directories."""
     # Dependencies are ignored, so neither export has them: use this tree's.
-    venv = copy / "experiments/laptop-feasibility/.venv"
-    venv.symlink_to(ROOT / "experiments/laptop-feasibility/.venv", target_is_directory=True)
-    shutil.rmtree(copy / WATCH_EVIDENCE[0], ignore_errors=True)
-    (copy / WATCH_EVIDENCE[0]).mkdir(parents=True)
-    for suite in listed(copy, "suite"):
-        run(copy, ["node", f"watch/tests/{suite}.cjs"], EUCWATCH_WRITE_EVIDENCE="1")
+    venv = copy / VENV
+    venv.symlink_to(ROOT / VENV, target_is_directory=True)
+    empty(copy / WATCH_EVIDENCE)
     if browser:
-        if "def evidence_directory" not in (copy / "tests/support.py").read_text():
-            raise Failed(f"{copy.name}: --browser needs browser flows that write .test-output/evidence/ (#65)")
-        (copy / "frontend/node_modules").symlink_to(ROOT / "frontend/node_modules", target_is_directory=True)
+        # The flows run first: they write the copy's laptop traces, and the watch
+        # parity suites below replay those instead of the committed ones.
+        empty(copy / BROWSER_EVIDENCE)
+        (copy / NODE_MODULES).symlink_to(ROOT / NODE_MODULES, target_is_directory=True)
         run(copy, ["npm", "run", "build", "--prefix", "frontend"])
         for flow in listed(copy, "flow"):
             run(copy, [str(venv / "bin/python"), f"tests/{flow}.py"], PYTHONPATH="laptop:tests")
+    for suite in listed(copy, "suite"):
+        run(copy, ["node", f"watch/tests/{suite}.cjs"])
 
 
 def main() -> int:
@@ -185,7 +224,8 @@ def main() -> int:
     args = parser.parse_args()
     scratch = Path(tempfile.mkdtemp(prefix="eucwatch-evidence-compare-"))
     try:
-        commit = git("rev-parse", "--verify", "--quiet", f"{args.base}^{{commit}}").strip()
+        require_dependencies(args.browser)
+        commit = git("rev-parse", "--verify", "--quiet", f"{args.base}^{{commit}}", allow_failure=True).strip()
         if not commit:
             raise Failed(f"{args.base} is not a commit")
         base, tree = scratch / "base", scratch / "working-tree"
@@ -198,12 +238,12 @@ def main() -> int:
             print(f"regenerating evidence: {copy.name}", flush=True)
             regenerate(copy, args.browser)
         found, count = [], 0
-        for directory, shown_as in compared:
+        for directory in compared:
             count += len(files(base / directory) | files(tree / directory))
-            found += [f"{shown_as}/{difference}" for difference in differences(base / directory, tree / directory)]
+            found += [f"{directory}/{difference}" for difference in differences(base / directory, tree / directory)]
         for difference in found:
             print(difference)
-        names = " and ".join(shown_as for _, shown_as in compared)
+        names = " and ".join(compared)
         if found:
             print(f"{len(found)} difference(s) in {names} between {args.base} ({commit[:7]}) and the working tree")
             return 1
@@ -212,6 +252,9 @@ def main() -> int:
         return 0
     except Failed as error:
         print(f"evidence-compare: {error}", file=sys.stderr)
+        return 2
+    except Exception as error:  # Exit 1 means differences only, so anything unforeseen is a failed run.
+        print(f"evidence-compare: the run failed: {type(error).__name__}: {error}", file=sys.stderr)
         return 2
     finally:
         if args.keep:

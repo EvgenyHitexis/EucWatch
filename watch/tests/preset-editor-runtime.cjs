@@ -1,6 +1,6 @@
 // Production main/touch/render/Storage, replaying the literal laptop input journey.
 const assert=require('node:assert/strict');
-const {environment,flush,frame,dispatchRecordedInput,snapshot,evidence,plain,readJson,sha256,watchSourceHashes}=require('./harness.cjs');
+const {environment,flush,frame,dispatchRecordedInput,snapshot,evidence,laptopTrace,plain,readJson,sha256,watchSourceHashes}=require('./harness.cjs');
 const riding={settings:{pedal_sensitivity:41,dynamic_assist:51,pedal_dip_compensation:61}};
 async function replay(file,name){
   const laptop=readJson(file);const env=environment();let running=env.start(),now=200;env.advance(now);const states=[],renderings=[];
@@ -73,7 +73,7 @@ async function failures(){
   results.push({mode:'pending-native-write-and-disconnect',chunks:env.bleWrites,config:plain(running.core.view().config)});running.stop();return results;
 }
 (async()=>{
-  const trace=await replay('docs/acceptance/evidence/touch-layout/editor-laptop.json','editor');
+  const trace=await replay(laptopTrace('touch-layout/editor-laptop.json'),'editor');
   const faults=await failures();
   evidence.json('watch/evidence/touch-layout/editor.json',{spec:'docs/design/preset-value-editor.md',provenance:'production main/CST816/Graphics/parser/GATT/native Storage; simulated physical inputs, time, BLE and flash; no hardware operations',trace,faults,source_sha256:watchSourceHashes()});
   console.log('watch native local editor: laptop trace, Graphics, Storage faults, restart and stopped continuation passed');

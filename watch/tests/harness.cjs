@@ -12,6 +12,7 @@
 //   harness.frame({voltage,speed,pwm,firmware,length,settings})  // CRC-valid frame from the fixture
 //   harness.fixture.rows                     // parsed fixture-recording.jsonl
 //   harness.evidence.json(path,value)        // writes only when EUCWATCH_WRITE_EVIDENCE=1
+//   harness.laptopTrace('touch-layout/x.json')  // where the laptop browser flows' trace is, for parity replays
 //
 // Paths given to the harness are relative to the repository root, never to the current directory.
 const assert=require('node:assert/strict'),crypto=require('node:crypto'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),zlib=require('node:zlib');
@@ -165,6 +166,16 @@ const evidence={
   json(relative,value){evidence.text(relative,JSON.stringify(value,null,2)+'\n');},
   svg(relative,ops,style){evidence.text(relative,svg(ops,style));}
 };
+// Where a laptop browser flow's trace docs/acceptance/evidence/<relative> is. It mirrors
+// tests/support.py:evidence_directory(): an EUCWATCH_BROWSER_CHECKS=1 run without
+// EUCWATCH_WRITE_EVIDENCE=1 has just written it to .test-output/evidence/ (check.sh runs the
+// flows before the suites), so a parity suite replays the laptop's current behavior. Any other
+// run, such as a plain check.sh or a suite run on its own, replays the tracked trace;
+// `EUCWATCH_BROWSER_CHECKS=1 node watch/tests/<suite>.cjs` replays what the last flow run wrote.
+function laptopTrace(relative){
+  const fresh=process.env.EUCWATCH_BROWSER_CHECKS==='1'&&!evidence.enabled();
+  return (fresh?'.test-output/evidence/':'docs/acceptance/evidence/')+relative;
+}
 // The device's current screen as touch-layout evidence; returns the plain Graphics operations.
 function snapshot(env,name){const ops=plain(env.context.graphics.ops);evidence.svg('watch/evidence/touch-layout/'+name+'.svg',ops,'touch-layout');return ops;}
 
@@ -175,4 +186,4 @@ const watchSourceHashes=()=>sourceHashes(fs.readdirSync(watch).filter(name=>name
 // The laptop interpreter for the differential suites.
 const python=()=>process.env.EUCWATCH_TEST_PYTHON||repoPath('experiments/laptop-feasibility/.venv/bin/python');
 
-module.exports={environment,flush,dispatchRecordedInput,fixture,frame,svg,evidence,snapshot,plain,repo,repoPath,readJson,sha256,sourceHashes,watchSourceHashes,python};
+module.exports={environment,flush,dispatchRecordedInput,fixture,frame,svg,evidence,laptopTrace,snapshot,plain,repo,repoPath,readJson,sha256,sourceHashes,watchSourceHashes,python};

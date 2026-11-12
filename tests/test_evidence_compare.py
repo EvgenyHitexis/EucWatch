@@ -1,16 +1,24 @@
 """The evidence comparison behind scripts/evidence-compare.py.
 
-Each test builds two regenerated evidence directories by hand, one for the base
-ref and one for the working tree, and checks which differences are reported.
+The comparison tests build two regenerated evidence directories by hand, one for
+the base ref and one for the working tree, and check which differences are
+reported. The others pin the exit-2 failures and the lists read from check.sh.
 """
 
+import contextlib
 import importlib.util
+import io
 import json
+import os
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-ROOT = Path(__file__).resolve().parents[1]
+from support import ROOT
+
 spec = importlib.util.spec_from_file_location("evidence_compare", ROOT / "scripts" / "evidence-compare.py")
 evidence_compare = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(evidence_compare)
@@ -107,6 +115,92 @@ class EvidenceCompareTests(unittest.TestCase):
         self.write(self.base, "touch-layout/invalid-save.png", b"\x89PNG\r\n\x1a\n\x00")
         self.write(self.tree, "touch-layout/invalid-save.png", b"\x89PNG\r\n\x1a\n\x01")
         self.assertEqual(self.differences(), ["touch-layout/invalid-save.png: bytes differ"])
+
+    def test_evidence_that_is_not_json_fails_the_run(self):
+        self.write(self.base, "touch-layout/editor.json", {"outcome": "passed"})
+        self.write(self.tree, "touch-layout/editor.json", '{"outcome": ')
+        with self.assertRaisesRegex(evidence_compare.Failed,
+                                    r"^touch-layout/editor\.json: the working tree copy is not valid JSON \("):
+            self.differences()
+
+    def test_bundle_without_a_manifest_version_fails_the_run(self):
+        valid = self.bundle("72615351", 4696, "37e778e8" * 8, 1)
+        for broken in ({**valid, "manifest": {"files": []}}, {"rehearsal": {}}):
+            with self.subTest(broken=broken):
+                self.write(self.base, "local-presets/bundle.json", broken)
+                self.write(self.tree, "local-presets/bundle.json", valid)
+                with self.assertRaisesRegex(evidence_compare.Failed,
+                                            r"^local-presets/bundle\.json: the base copy has no manifest\.version$"):
+                    self.differences()
+
+
+class RunFailureTests(unittest.TestCase):
+    """Exit 1 means differences only: every way the run itself fails exits 2 with one line."""
+
+    def main(self, *args):
+        stderr = io.StringIO()
+        with patch.object(sys, "argv", ["evidence-compare.py", *args]), contextlib.redirect_stderr(stderr), \
+                contextlib.redirect_stdout(io.StringIO()):
+            code = evidence_compare.main()
+        return code, stderr.getvalue().strip().splitlines()
+
+    def test_a_missing_command_fails_the_run(self):
+        with tempfile.TemporaryDirectory() as copy:
+            with self.assertRaisesRegex(evidence_compare.Failed, "cannot run eucwatch-no-such-command"):
+                evidence_compare.run(Path(copy), ["eucwatch-no-such-command"])
+
+    def test_missing_dependencies_fail_before_anything_is_exported(self):
+        with tempfile.TemporaryDirectory() as root, patch.object(evidence_compare, "ROOT", Path(root)):
+            with self.assertRaisesRegex(evidence_compare.Failed, r"^experiments/laptop-feasibility/\.venv is missing"):
+                evidence_compare.require_dependencies(browser=False)
+            (Path(root) / evidence_compare.VENV).mkdir(parents=True)
+            evidence_compare.require_dependencies(browser=False)
+            with self.assertRaisesRegex(evidence_compare.Failed, r"^frontend/node_modules is missing"):
+                evidence_compare.require_dependencies(browser=True)
+
+    def test_missing_node_exits_2(self):
+        with tempfile.TemporaryDirectory() as empty, patch.dict(os.environ, {"PATH": empty}):
+            self.assertEqual(self.main("HEAD"), (2, ["evidence-compare: node is not on PATH"]))
+
+    def test_an_unknown_ref_exits_2(self):
+        self.assertEqual(self.main("eucwatch-no-such-ref"), (2, ["evidence-compare: eucwatch-no-such-ref is not a commit"]))
+
+    def test_an_unforeseen_error_exits_2_not_1(self):
+        with patch.object(evidence_compare, "export_base", side_effect=KeyError("version")):
+            self.assertEqual(self.main("HEAD"), (2, ["evidence-compare: the run failed: KeyError: 'version'"]))
+
+    def test_git_failures_raise_unless_allowed(self):
+        self.assertEqual(evidence_compare.git("rev-parse", "--verify", "--quiet", "eucwatch-no-such-ref",
+                                              allow_failure=True), "")
+        with self.assertRaisesRegex(evidence_compare.Failed, "^git rev-parse --verify eucwatch-no-such-ref: "):
+            evidence_compare.git("rev-parse", "--verify", "eucwatch-no-such-ref")
+
+
+class CheckScriptTests(unittest.TestCase):
+    """evidence-compare reads its suite and flow lists out of scripts/check.sh."""
+
+    def test_listed_names_exactly_what_check_sh_runs(self):
+        # Run the real check.sh with node, npm and uv replaced by loggers, and
+        # compare what it ran with what listed() parses out of it.
+        with tempfile.TemporaryDirectory() as temporary:
+            bin_directory, log = Path(temporary) / "bin", Path(temporary) / "commands.log"
+            bin_directory.mkdir()
+            for command in ("node", "npm", "uv"):
+                fake = bin_directory / command
+                fake.write_text(f'#!/bin/sh\necho "{command} $*" >> "$CHECK_SH_LOG"\n')
+                fake.chmod(0o755)
+            env = {**os.environ, "PATH": f"{bin_directory}:/usr/bin:/bin", "CHECK_SH_LOG": str(log),
+                   "EUCWATCH_BROWSER_CHECKS": "1"}
+            subprocess.run(["bash", str(ROOT / "scripts/check.sh")], env=env, check=True, timeout=60)
+            commands = [line.split() for line in log.read_text().splitlines()]
+        suites = [words[1].removeprefix("watch/tests/").removesuffix(".cjs")
+                  for words in commands if words[0] == "node"]
+        flows = [words[-1].removeprefix("tests/").removesuffix(".py") for words in commands
+                 if words[0] == "uv" and words[-1].startswith("tests/") and words[-1] != "tests/launch_smoke.py"]
+        self.assertEqual(len(suites), 13)
+        self.assertEqual(evidence_compare.listed(ROOT, "suite"), suites)
+        self.assertGreater(len(flows), 1)
+        self.assertEqual(evidence_compare.listed(ROOT, "flow"), flows)
 
 
 if __name__ == "__main__":
