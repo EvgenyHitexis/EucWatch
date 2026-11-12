@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+# Watch modules must stay ES5 for Espruino 2v14: parse exactly what the bundle builder ships.
+uv run --offline --no-sync --project experiments/laptop-feasibility python scripts/check-es5.py
 env PYTHONPATH=laptop uv run --offline --no-sync --project experiments/laptop-feasibility python -m unittest discover -s tests
 npm run build --prefix frontend
 # Configuration-transfer gates (#28/#29/#35) were superseded by #40.

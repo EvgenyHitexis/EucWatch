@@ -1,0 +1,30 @@
+# Software checks only: ./scripts/setup.sh, then the plain ./scripts/check.sh.
+# No Chrome (EUCWATCH_BROWSER_CHECKS stays unset), no Bluetooth, wheel, horn or
+# watch deployment, and nothing from experiments/wheel-verification/.
+name: check
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      # uv installs Python 3.12 for experiments/laptop-feasibility (requires-python ==3.12.*).
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          version: "0.13.6"
+          python-version: "3.12"
+      - run: ./scripts/setup.sh
+      - run: ./scripts/check.sh

@@ -9,6 +9,7 @@
     "build": "tsc --noEmit && vite build"
   },
   "devDependencies": {
+    "acorn": "8.15.0",
     "typescript": "5.9.3",
     "vite": "7.1.12"
   }

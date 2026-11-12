@@ -78,11 +78,16 @@ class Bundle:
         return bundle
 
 
+def bundle_modules(source: Path) -> list[Path]:
+    """The watch modules a bundle ships, in Storage order; the ES5 check covers exactly these."""
+    return sorted(source.glob("*.js"))
+
+
 def build_bundle(source: Path, version: str) -> Bundle:
     if not re.fullmatch(r"[a-z0-9]{1,8}", version):
         raise ValueError("Version must contain 1–8 lowercase letters or digits")
     files = []
-    for path in sorted(source.glob("*.js")):
+    for path in bundle_modules(source):
         name = f"sw-{version}-{path.stem}"
         if len(name.encode()) > 28:
             raise ValueError("Versioned Storage name exceeds 28 bytes")
