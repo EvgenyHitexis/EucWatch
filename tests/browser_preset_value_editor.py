@@ -1,18 +1,17 @@
 """Confirmed value completion through built Canvas, HTTP and real FileStore."""
 import asyncio
-import base64
 import json
 from eucwatch import Application
 from unittest.mock import patch
-from browser_preset_editor import type_percentage
+from support import main, record_flow, type_percentage
 
 
-async def exercise(cdp, session, app, output):
+async def exercise(page, app, output):
     timeline = []
     renderings = []
 
     async def pointer(start, end):
-        await cdp.pointer('#watch', start, end, session)
+        await page.pointer(start, end)
         await asyncio.sleep(.13)
         state = app.view()
         assert state['command_events'] == []
@@ -24,21 +23,19 @@ async def exercise(cdp, session, app, output):
     async def tap(x, y):
         return await pointer((x, y), (x, y))
 
-    async def label(text):
-        await cdp.wait(f"document.querySelector('#watch').getAttribute('aria-label').includes({json.dumps(text)})", session)
+    label = page.label
 
     async def snapshot(name):
         await asyncio.sleep(.15)
-        data = await cdp.evaluate("document.querySelector('#watch').toDataURL().split(',')[1]", session)
-        (output / (name + '.png')).write_bytes(base64.b64decode(data))
+        await page.snapshot(output / (name + '.png'))
         renderings.append(name + '.png')
 
     async def number(text):
         await tap(120, 80)
         await type_percentage(tap, text)
 
-    await cdp.wait("document.querySelector('#backend-status')?.textContent==='Application ready'", session)
-    instructions = await cdp.evaluate("document.querySelector('.panel').innerText", session)
+    await page.wait("document.querySelector('#backend-status')?.textContent==='Application ready'")
+    instructions = await page.evaluate("document.querySelector('.panel').innerText")
     assert 'Keypad OK accepts one value into the unsaved draft' in instructions
     assert 'Save stores the whole preset' in instructions
     assert 'Opening reads current wheel settings' not in instructions
@@ -168,6 +165,9 @@ async def exercise(cdp, session, app, output):
             'renderings': renderings, 'saved': expected, 'packets': [], 'outcome': 'passed'}
 
 
+async def value_editor_laptop():
+    await record_flow(exercise, 'value-editor-laptop', 'touch-layout')
+
+
 if __name__ == '__main__':
-    from browser_local_presets import run
-    asyncio.run(run(exercise, 'value-editor-laptop', 'touch-layout'))
+    main(value_editor_laptop)

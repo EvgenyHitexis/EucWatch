@@ -5,6 +5,7 @@ from pathlib import Path
 
 from eucwatch import Application, ManualClock
 from eucwatch.persistence import FileStore
+from support import edit, settings_frame
 
 
 class PresetTests(unittest.TestCase):
@@ -17,8 +18,6 @@ class PresetTests(unittest.TestCase):
         self.assertTrue(all(slot["configured"] and not slot["available"] for slot in menu))
 
     def test_direct_edit_restart_retains_definitions_without_commands_or_confirmation(self):
-        from test_control import settings_frame
-        from test_preset_editor import edit
         with tempfile.TemporaryDirectory() as directory:
             store = FileStore(Path(directory) / "configuration.json")
             clock = ManualClock()

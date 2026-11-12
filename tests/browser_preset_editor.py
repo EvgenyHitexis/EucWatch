@@ -1,39 +1,31 @@
 """Reusable #46 native-sized local input journey; all expectations are literal."""
 import asyncio
-import base64
-import json
+from pathlib import Path
 from eucwatch import Application
 from unittest.mock import patch
+from support import main, record_flow, served_laptop, type_percentage, write_evidence
 
-async def type_percentage(tap, text):
-    await tap(49,166)
-    for digit in text:
-        index=10 if digit=='0' else '123456789'.index(digit)
-        await tap(49+index%3*70,73+index//3*31)
-
-async def exercise(cdp, session, app, output):
+async def exercise(page, app, output):
     output.mkdir(parents=True,exist_ok=True)
     timeline=[];renderings=[];observed=[]
-    async def wait(text):
-        await cdp.wait(f"document.querySelector('canvas').getAttribute('aria-label').includes({json.dumps(text)})",session)
+    wait=page.label
     async def pointer(start,end):
         timeline.append({'input':'tap' if start==end else 'swipe','start':start,'end':end})
-        await cdp.pointer('#watch',start,end,session)
+        await page.pointer(start,end)
         await asyncio.sleep(.12)
     async def tap(x,y):await pointer((x,y),(x,y))
-    async def page(index):
+    async def page_index(index):
         while app.view()['preset_page']!=index:await tap(220,20)
         await wait(['Name:','Pedal sensitivity:','Dynamic assist:','Pedal dip compensation:'][index])
     async def snap(name):
         await asyncio.sleep(.12)
-        image=await cdp.evaluate("document.querySelector('canvas').toDataURL().split(',')[1]",session)
-        (output/(name+'.png')).write_bytes(base64.b64decode(image))
-        renderings.append({'file':name+'.png','label':await cdp.evaluate("document.querySelector('canvas').getAttribute('aria-label')",session)})
+        await page.snapshot(output/(name+'.png'))
+        renderings.append({'file':name+'.png','label':await page.description()})
     async def number(text):
         if app.view()['preset_input'] is None:await tap(120,80)
         await type_percentage(tap,text)
         await wait('Input '+(text or 'empty'))
-    await cdp.wait("document.querySelector('#backend-status')?.textContent==='Application ready'",session)
+    await page.wait("document.querySelector('#backend-status')?.textContent==='Application ready'")
     if app.view()['mode']!='idle':app.action('stop')
     await pointer((120,10),(120,110));await wait('Settings.')
     await tap(120,196);await wait('Settings Presets.')
@@ -51,7 +43,7 @@ async def exercise(cdp, session, app, output):
         # OK accepts the name, then whole-preset Save persists it.
         await snap(f'slot-{slot}-name');await tap(176,226);await wait('Whole-preset Save');await tap(176,226);await wait('Settings Presets.')
         assert app.view()['config']['presets'][slot-1]['name']==name
-        await tap(80,55+(slot-1)*44);await page(3)
+        await tap(80,55+(slot-1)*44);await page_index(3)
         assert app.view()['preset_draft']['dip_included'] is False
         await tap(120,162);await tap(120,162) # Inclusion does not erase stored value.
         await number('11')
@@ -62,13 +54,13 @@ async def exercise(cdp, session, app, output):
             assert app.view()['preset_input']['text']=='11'
             assert app.view()['config']['presets'][slot-1]['dip_included'] is False
         await snap(f'slot-{slot}-dip-input')
-        await tap(176,226);await page(1);await number('31');await tap(176,226);await page(2);await number('26')
+        await tap(176,226);await page_index(1);await number('31');await tap(176,226);await page_index(2);await number('26')
         await snap(f'slot-{slot}-numeric');await tap(176,226);await tap(176,226);await wait('Settings Presets.')
         expected={'id':slot,'name':name,'configured':True,'pedal_sensitivity':31,'dynamic_assist':26,'pedal_dip_compensation':11,'dip_included':False}
         assert app.view()['config']['presets'][slot-1]==expected
         assert app.view()['config']['alerts']==before['alerts']
         assert app.view()['config']['presets'][:slot-1]+app.view()['config']['presets'][slot:]==before['presets'][:slot-1]+before['presets'][slot:]
-        await tap(80,55+(slot-1)*44);await page(1);await number('99');await tap(176,226);await page(2);await number('98');await tap(64,226);await tap(64,226);await wait('Settings Presets.')
+        await tap(80,55+(slot-1)*44);await page_index(1);await number('99');await tap(176,226);await page_index(2);await number('98');await tap(64,226);await tap(64,226);await wait('Settings Presets.')
         assert app.view()['config']['presets'][slot-1]==expected
         observed.append({'slot':slot,'expected':expected,'observed':app.view()['config']['presets'][slot-1]})
     saved=app.view()['config']
@@ -80,7 +72,7 @@ async def exercise(cdp, session, app, output):
     assert app.view()['preset_input']['text']==''
     assert app.view()['config']==saved
     await tap(64,226);await tap(64,226);await wait('Settings Presets.')
-    await tap(80,55);await page(1);await number('')
+    await tap(80,55);await page_index(1);await number('')
     await tap(176,226);await wait('Pedal sensitivity: enter');await snap('invalid-save')
     assert app.view()['config']==saved
     await number('32');await tap(176,226)
@@ -98,6 +90,16 @@ async def exercise(cdp, session, app, output):
     result={'spec':'docs/design/preset-value-editor.md','timeline':timeline,'observed':observed,'renderings':renderings,'saved':app.view()['config'],'packets':[],'expected':'four offline slots; name/numeric OK; whole-preset Save; retained accepted values; Cancel; validation; failed FileStore save and retry; no commands','outcome':'passed','hardware_acceptance':'pending'}
     return result
 
+async def editor_laptop():
+    """The touch-layout acceptance record of the journey."""
+    await record_flow(exercise,'editor-laptop','touch-layout')
+
+async def presets():
+    """The same journey on the served laptop, recorded in .test-output/presets.json (#46)."""
+    async with served_laptop() as laptop:
+        result=await exercise(laptop.page,laptop.app,laptop.output/'preset-editor')
+    write_evidence(Path('.test-output/presets.json'),result)
+    print('presets: passed')
+
 if __name__=='__main__':
-    from browser_local_presets import run
-    asyncio.run(run(exercise,'editor-laptop','touch-layout'))
+    main(editor_laptop,presets)

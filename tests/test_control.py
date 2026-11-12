@@ -2,21 +2,10 @@
 from preset_fixture import save_preset
 
 import unittest
-import zlib
 
 from eucwatch import Application, ManualClock
 from eucwatch.recording import Replay
-
-
-def settings_frame(sensitivity=31, assist=26, dip=10, subtype=8):
-    frame = bytearray(71)
-    frame[:4] = bytes.fromhex("dc5a5c47")
-    frame[4:6] = (13500).to_bytes(2, "big")
-    frame[6:8] = (250).to_bytes(2, "big", signed=True)
-    frame[28:30] = (6010).to_bytes(2, "big")
-    frame[46] = subtype
-    frame[50], frame[66], frame[68] = sensitivity, assist, dip
-    return bytes(frame) + zlib.crc32(frame).to_bytes(4, "big")
+from support import edit, settings_frame
 
 
 class ControlTests(unittest.TestCase):
@@ -278,7 +267,6 @@ class ControlTests(unittest.TestCase):
         app.action("command_result", attempt=first["preset_attempt"]["id"], session=first["session"], index=0, success=True)
         self.assertEqual(len(output), 1)
         second = app.action("preset_apply", slot=1)
-        from test_preset_editor import edit
         app.action("preset_begin", slot=1)
         edit(app, "preset_update", name="Changed")
         edit(app, "preset_save")

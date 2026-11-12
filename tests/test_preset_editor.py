@@ -7,15 +7,7 @@ from unittest.mock import patch
 from eucwatch import Application, ManualClock
 from eucwatch.persistence import FileStore
 from eucwatch.recording import Replay
-from test_control import settings_frame
-
-
-def edit(app, action, **payload):
-    request=app.view()['preset_editor']
-    entry=app.view()['preset_input']
-    if entry and 'id' in entry:
-        payload.setdefault('entry_id', entry['id'])
-    return app.action(action, editor_id=request['id'] if request else -1, **payload)
+from support import edit, settings_frame
 
 
 class PresetEditorTests(unittest.TestCase):
