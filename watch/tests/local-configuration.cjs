@@ -1,7 +1,6 @@
 /* Production entry point and input adapters, with fake hardware only. */
 const assert=require('node:assert/strict');
-const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
-const {environment}=require('./runtime.cjs');
+const {environment,evidence,sourceHashes}=require('./harness.cjs');
 const env=environment(),serialHandlers={},services=[];
 env.context.Bluetooth={on:(name,handler)=>serialHandlers[name]=handler,setConsole:value=>{env.context.consoleEnabled=value;}};
 env.context.NRF.setServices=(value,options)=>services.push(options);
@@ -55,14 +54,13 @@ assert.match(recovered.core.view().persistence_error,/Recovered previous good/);
 recovered.stop();env.context.BTN1.state=1;env.boot();
 assert.equal(env.context.consoleEnabled,true,'independent recovery retains BLE console');
 assert.equal(services.at(-1).uart,true,'independent recovery retains UART communication');
-const root=path.resolve(__dirname,'../..');
 const sources=['watch/main.js','watch/app.js','watch/controls.js','watch/render.js','watch/store.js','watch/boot.js','watch/tests/local-configuration.cjs','watch/tests/runtime.cjs'];
-fs.writeFileSync(path.join(root,'watch/evidence/local-presets/regression-local-configuration.json'),JSON.stringify({
+evidence.json('watch/evidence/local-presets/regression-local-configuration.json',{
   issue:40,
   provenance:'Node VM executes production watch main/app/hardware/Storage/boot; fake pins/radio/native drivers/clock; preexisting schema-2 watch configuration',
   expected:'no transfer in Settings or stale actions/UART endpoint; independent local presets and alert edits persist across restart and recover interrupted active save; independent recovery console remains available',
   observed:{settings_and_former_touch:'passed',stale_actions:'rejected',configuration_endpoint:'absent',existing_revision:23,retained_slot:'Watch local',saved_pwm_threshold:82,restart_and_recovery:'passed',independent_recovery_uart:'available'},
-  source_sha256:Object.fromEntries(sources.map(source=>[source,crypto.createHash('sha256').update(fs.readFileSync(path.join(root,source))).digest('hex')])),
+  source_sha256:sourceHashes(sources),
   physical_operation:'none; physical flash atomicity, radio and update deployment acceptance remain separate'
-},null,2)+'\n');
+});
 console.log('watch local configuration, withdrawn entry points, restart/save recovery and independent recovery UART: passed');

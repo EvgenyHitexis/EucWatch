@@ -1,7 +1,6 @@
 """Authoritative HTTP epochs, browser ownership and restart retention."""
 from preset_fixture import save_preset
 
-import asyncio
 from pathlib import Path
 import tempfile
 import unittest
@@ -37,54 +36,10 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
                 self.assertEqual(resumed['elapsed_s'],before['elapsed_s'])
                 self.assertEqual(resumed['command_events'],[])
 
-    async def test_evicted_response_identity_never_becomes_another_button_request(self):
-        app = Application(clock=ManualClock())
-        app.action('simulator_start')
-        client = TestClient(TestServer(create_app(app, result_limit=1)))
-        await client.start_server()
-        try:
-            session = await (await client.get('/api/session')).json()
-            headers={'Origin':str(client.make_url('/')).rstrip('/'),'X-EucWatch-Key':session['credential']}
-            async def post(name, identity):
-                return await client.post('/api/action',headers=headers,json={
-                    'controller':session['controller'],'id':identity,'action':name,'epoch':app.session})
-            await post('button_down','press')
-            await post('button_up','release')
-            count=len(app.view()['command_events'])
-            response=await post('button_down','press')
-            self.assertEqual(response.status,409)
-            self.assertEqual(len(app.view()['command_events']),count)
-            self.assertFalse(app.view()['button']['down'])
-        finally:
-            await client.close()
-
-    async def test_stale_epoch_cannot_press_after_mode_change_and_duplicate_retries_are_inert(self):
-        app = Application(clock=ManualClock())
-        client = TestClient(TestServer(create_app(app)))
-        await client.start_server()
-        try:
-            session = await (await client.get('/api/session')).json()
-            headers = {'Origin':str(client.make_url('/')).rstrip('/'), 'X-EucWatch-Key':session['credential']}
-            async def post(name, identity, epoch):
-                return await client.post('/api/action', headers=headers, json={
-                    'controller':session['controller'], 'id':identity, 'action':name, 'epoch':epoch})
-            old = app.session
-            response = await post('simulator_start', 'start', old)
-            self.assertEqual(response.status, 200)
-            started = await response.json()
-            response = await post('simulator_start', 'start', old)
-            self.assertEqual(await response.json(), started)
-            self.assertEqual(app.session, started['session'])
-            response = await post('button_down', 'old-press', old)
-            self.assertEqual(response.status, 409)
-            self.assertFalse(app.view()['button']['down'])
-            self.assertEqual(app.view()['command_events'], [])
-        finally:
-            await client.close()
-
     async def test_closed_controller_expires_without_stopping_behavior_and_old_owner_is_rejected(self):
         app = Application(clock=ManualClock())
-        client = TestClient(TestServer(create_app(app, controller_timeout=.05)))
+        lease_clock = ManualClock()
+        client = TestClient(TestServer(create_app(app, clock=lease_clock)))
         await client.start_server()
         try:
             first = await (await client.get('/api/session')).json()
@@ -92,7 +47,7 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
             self.assertIsNone(second['controller'])
             app.action('simulator_start')
             app.action('button_down')
-            await asyncio.sleep(.09)
+            lease_clock.advance(10.5)
             replacement = await (await client.get('/api/session')).json()
             self.assertIsNotNone(replacement['controller'])
             self.assertNotEqual(first['controller'], replacement['controller'])

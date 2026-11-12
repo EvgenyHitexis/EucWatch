@@ -40,7 +40,7 @@ npm run typecheck --prefix frontend
 
 The `tests/browser_*.py` and `tests/launch_smoke.py` files are scripts, not unittest modules. Run them directly the way `check.sh` does.
 
-Many suites rewrite tracked evidence files (`watch/evidence/**`, `docs/acceptance/evidence/**`) on every run. Check `git status` after running tests. Commit regenerated evidence only when your change is meant to update it.
+The watch suites write their tracked evidence (`watch/evidence/**`) only when `EUCWATCH_WRITE_EVIDENCE=1` is set (`EUCWATCH_WRITE_EVIDENCE=1 node watch/tests/<suite>.cjs`); a plain run or a plain `./scripts/check.sh` writes none. The browser flows still rewrite `docs/acceptance/evidence/**` on every run, so check `git status` after `EUCWATCH_BROWSER_CHECKS=1`. Commit regenerated evidence only when your change is meant to update it.
 
 ## Architecture
 
@@ -49,7 +49,7 @@ The same riding application exists twice, and the two copies must behave the sam
 - **Laptop** (`laptop/eucwatch/`): a staging prototype. `application.Application` holds all behavior and changes only through explicit actions, raw wheel notifications and an injected `Clock`. `server.py` (aiohttp) serves `/api/state`, `/api/session`, `/api/action` and `/api/recording`. `frontend/` (Vite + TS) draws the 240×240 watch on a Canvas plus a scenario/editor panel. It renders server state and posts actions; it holds no behavior of its own. `live.py`/`live_control.py` are the only Bleak (BLE) code. Launching is idle until the user explicitly starts discovery.
 - **Watch** (`watch/`): ES5 modules for a P22 watch running Espruino 2v14. `boot.js` is the `.bootrst` recovery startup. It reads `sw-active.json` and starts the selected versioned `main`. Modules call each other as `require('sw-<name>')`, which maps to `watch/<name>.js`. `scripts/watch-bundle.py` (logic in `laptop/eucwatch/installation.py`) rewrites these to `sw-<version>-<name>`, and every Storage name must fit in 28 bytes.
 
-The watch tests load the real production modules into a Node `vm` context with fake pins, NRF radio, Storage, Graphics and timers (see `watch/tests/runtime.cjs`). `compare-alerts.cjs` replays one serialized action/clock/raw-frame script through both Applications. A behavior change usually needs both implementations and both test suites. Espruino quirks the fakes enforce: `clearTimeout(undefined)` clears every timer, and graphics are a 1-bpp 240×240 buffer.
+The watch tests load the real production modules into a Node `vm` context with fake pins, NRF radio, Storage, Graphics and timers. `watch/tests/harness.cjs` owns that fake device, the module loader (cached per environment, as Espruino's `require` is), the fixture rows, the frame builder, the SVG writer, shared replay helpers and the evidence recorder. It is not a suite; suites import it and keep only scenarios and assertions, and no suite imports another. `compare-alerts.cjs` replays one serialized action/clock/raw-frame script through both Applications. A behavior change usually needs both implementations and both test suites. Espruino quirks the fakes enforce: `clearTimeout(undefined)` clears every timer, and graphics are a 1-bpp 240×240 buffer.
 
 Telemetry decoding starts from the sanitized fixture `experiments/laptop-feasibility/evidence/fixture-recording.jsonl` (Sherman L frames with CRC32). Tests build synthetic frames from it. The protocol notes are in `docs/research/sherman-l-protocol.md`.
 

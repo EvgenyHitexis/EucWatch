@@ -35,6 +35,7 @@ class LiveHTTPTests(unittest.IsolatedAsyncioTestCase):
             requests.append(asyncio.create_task(client.post('/api/action',headers=headers,json=payload)))
             await asyncio.wait_for(entered.wait(),1)
             requests.append(asyncio.create_task(client.post('/api/action',headers=headers,json=payload)))
+            # Real time, not lease time: lets the second request reach the intent lock over the socket.
             await asyncio.sleep(.03)
             self.assertEqual(len(clients.created),1)
             release.set()

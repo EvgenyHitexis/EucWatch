@@ -19,6 +19,8 @@ async def run():
         save_preset(app, slot=1, name='Retained',pedal_sensitivity=31,dynamic_assist=26)
         recorder=Recorder(root/'capture.jsonl')
         app.event_sink=recorder.record
+        # Real Chrome polls on wall time, so the lease keeps the system clock with a short timeout;
+        # the frozen-tab sleep below waits out that lease. Lease rules under a ManualClock are in test_lease.py.
         server=await Server(app,recorder=recorder,controller_timeout=.7).start()
         try:
             async with chrome() as browser:

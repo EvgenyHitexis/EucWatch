@@ -39,14 +39,52 @@ class LocalApplication(unittest.IsolatedAsyncioTestCase):
         recovered = await (await self.client.get('/api/session', params={'controller': first['controller']})).json()
         self.assertEqual(recovered['controller'], first['controller'])
 
-    async def test_abandoned_browser_press_cannot_become_recovery_hold(self):
-        import asyncio
-        session = await (await self.client.get('/api/session')).json()
-        response = await self.client.post('/api/action',
-            headers={'Origin':self.origin, 'X-EucWatch-Key':session['credential']},
-            json={'controller':session['controller'], 'id':'down', 'action':'button_down','epoch':0})
-        self.assertTrue((await response.json())['button']['down'])
-        await asyncio.sleep(2.1)
-        state = await (await self.client.get('/api/state')).json()
-        self.assertFalse(state['button']['down'])
-        self.assertFalse(state['recovery'])
+    async def test_lease_refusals_keep_their_status_codes_bodies_and_headers(self):
+        response = await self.client.get('/api/session')
+        self.assertEqual(response.headers['Cache-Control'], 'no-store')
+        session = await response.json()
+        self.assertEqual(set(session), {'credential', 'controller'})
+        viewer = await (await self.client.get('/api/session')).json()
+        self.assertEqual(viewer, {'credential': session['credential'], 'controller': None})
+
+        response = await self.client.get('/api/state', params={'controller': 'expired'})
+        self.assertEqual(response.status, 403)
+        self.assertEqual(response.content_type, 'text/plain')
+        self.assertEqual(await response.text(), 'Controller expired; reacquire current state')
+
+        headers = {'Origin': self.origin, 'X-EucWatch-Key': session['credential']}
+        async def post(body):
+            response = await self.client.post('/api/action', headers=headers, json=body)
+            return response.status, response.content_type, await response.json()
+        request = {'controller': session['controller'], 'id': 'start', 'action': 'simulator_start', 'epoch': 0}
+        status, kind, started = await post(request)
+        self.assertEqual((status, kind, started['mode']), (200, 'application/json', 'simulator'))
+        self.assertEqual({'recording', 'live', 'scenario'} - set(started), set())
+        self.assertEqual(await post(request), (200, 'application/json', started))
+        self.assertEqual(await post({**request, 'id': 'stale'}), (409, 'application/json',
+            {'error': 'Application session changed; refresh before acting'}))
+        self.assertEqual(await post({**request, 'id': 'internal', 'action': 'horn_result'}), (400, 'application/json',
+            {'error': 'Transport callbacks are internal application inputs'}))
+        self.assertEqual(await post({'controller': session['controller'], 'action': 'stop'}), (400, 'application/json',
+            {'error': "'id'"}))
+        self.assertEqual(await post({**request, 'id': 'intruder', 'controller': 'intruder'}), (400, 'application/json',
+            {'error': 'Valid controller and request identity required'}))
+
+
+class EvictedResultHTTP(unittest.IsolatedAsyncioTestCase):
+    async def test_duplicate_with_evicted_result_is_a_conflict(self):
+        client = TestClient(TestServer(create_app(result_limit=1)))
+        await client.start_server()
+        try:
+            session = await (await client.get('/api/session')).json()
+            headers = {'Origin': str(client.make_url('/')).rstrip('/'), 'X-EucWatch-Key': session['credential']}
+            async def post(identity, epoch):
+                response = await client.post('/api/action', headers=headers, json={
+                    'controller': session['controller'], 'id': identity, 'action': 'interact', 'epoch': epoch})
+                return response.status, await response.json()
+            self.assertEqual((await post('first', 0))[0], 200)
+            self.assertEqual((await post('second', 0))[0], 200)
+            self.assertEqual(await post('first', 0), (409,
+                {'error': 'Duplicate action was already processed; its response expired'}))
+        finally:
+            await client.close()

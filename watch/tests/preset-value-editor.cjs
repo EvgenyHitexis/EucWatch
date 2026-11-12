@@ -1,9 +1,6 @@
 // Value-entry completion through production touch, Graphics and native Storage.
 const assert=require('node:assert/strict');
-const fs=require('node:fs'),crypto=require('node:crypto');
-const {environment}=require('./runtime.cjs');
-const {dispatchRecordedInput}=require('./preset-editor-runtime.cjs');
-const plain=value=>JSON.parse(JSON.stringify(value));
+const {environment,dispatchRecordedInput,evidence,plain,readJson,sha256}=require('./harness.cjs');
 const env=environment(),running=env.start();
 let now=200;env.advance(now);
 function tap(x,y){env.touch(5,x,y);env.advance(now+=200);return running.core.view();}
@@ -73,7 +70,7 @@ assert.ok(reason.y+reason.size<=value.y,'the reason and entered value do not ove
 wideApp.stop();
 // Replay the actual laptop pointer trace through CST816/main/Graphics/Storage.
 const tracePath='docs/acceptance/evidence/touch-layout/value-editor-laptop.json';
-const trace=JSON.parse(fs.readFileSync(tracePath));
+const trace=readJson(tracePath);
 const native=environment();let app=native.start(),time=200;native.advance(time);
 const renderings=[];
 for(const [index,event] of trace.timeline.entries()){
@@ -97,10 +94,9 @@ const saved=plain(app.core.view().config);
 assert.equal(saved.presets[2].name,'Commute');assert.equal(saved.presets[2].pedal_sensitivity,41);
 assert.equal(saved.revision,2);
 app.stop();app=native.start();assert.deepEqual(plain(app.core.view().config),saved);app.stop();
-fs.mkdirSync('watch/evidence/touch-layout',{recursive:true});
-fs.writeFileSync('watch/evidence/touch-layout/value-editor.json',JSON.stringify({
+evidence.json('watch/evidence/touch-layout/value-editor.json',{
   spec:trace.spec,provenance:'Actual laptop pointer trace through native CST816/main/Graphics/Storage; simulated hardware, clock, flash and BLE',
-  trace:tracePath,trace_sha256:crypto.createHash('sha256').update(fs.readFileSync(tracePath)).digest('hex'),
+  trace:tracePath,trace_sha256:sha256(tracePath),
   events:trace.timeline.length,renderings,saved,storage:native.storageEffects,packets:[],stale_actions:'rejected',outcome:'passed'
-},null,2)+'\n');
+});
 console.log('watch value completion, validation, stale actions, laptop parity and Storage retry/restart: passed');

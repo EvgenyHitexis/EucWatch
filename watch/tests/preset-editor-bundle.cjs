@@ -1,13 +1,11 @@
 // Complete bundle build/staging/activation rehearsal and versioned runtime.
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),child=require('node:child_process');
-const {environment,flush}=require('./runtime.cjs');
-const {frame}=require('./preset-editor.cjs');
-const repo=path.resolve(__dirname,'../..'),source=path.join(repo,'watch');
+const {environment,flush,evidence,readJson,repo,python}=require('./harness.cjs');
+const source=path.join(repo,'watch');
 const digest=crypto.createHash('sha256');for(const name of fs.readdirSync(source).filter(name=>name.endsWith('.js')).sort())digest.update(name).update(fs.readFileSync(path.join(source,name)));
 const version=digest.digest('hex').slice(0,8),directory=path.join(repo,'.test-output/watch-preset-editor',version);
 fs.mkdirSync(path.dirname(directory),{recursive:true});
-const python=process.env.EUCWATCH_TEST_PYTHON||path.join(repo,'experiments/laptop-feasibility/.venv/bin/python');
-function command(args){return JSON.parse(child.execFileSync(python,[path.join(repo,'scripts/watch-bundle.py'),...args],{cwd:repo,encoding:'utf8'}));}
+function command(args){return JSON.parse(child.execFileSync(python(),[path.join(repo,'scripts/watch-bundle.py'),...args],{cwd:repo,encoding:'utf8'}));}
 if(!fs.existsSync(directory))command(['build','--version',version,'--output',directory]);
 command(['verify',directory]);const rehearsal=command(['rehearse',directory]);
 assert.equal(rehearsal.outcome.status,'verified');assert.equal(rehearsal.writes.at(-1),'sw-active.json');
@@ -15,7 +13,7 @@ const manifest=JSON.parse(fs.readFileSync(path.join(directory,'manifest.json'),'
 assert.ok(manifest.files.some(row=>row.name==='sw-'+version+'-preset-editor'));
 function install(env){for(const row of manifest.files)env.context.storage[row.name]=fs.readFileSync(path.join(directory,row.name+'.bin'),'utf8');env.context.storage['sw-active.json']=JSON.stringify({schema:1,version,main:manifest.main});}
 (async()=>{
-  const fixture=JSON.parse(fs.readFileSync(path.join(repo,'docs/acceptance/scenarios/local-presets.json'))),configurations=[];
+  const fixture=readJson('docs/acceptance/scenarios/local-presets.json'),configurations=[];
   let imports=[];
   for(const test of [{name:'fresh',expected:fixture.fresh},...fixture.cases]){
     const env=environment();install(env);if(test.input)env.context.storage['sw-config.json']=JSON.stringify(test.input);
@@ -38,6 +36,6 @@ function install(env){for(const row of manifest.files)env.context.storage[row.na
   assert.equal(held.context.imports.filter(name=>name.startsWith('sw-')).length,0,'held-button recovery bypasses all application imports');
   const failed=environment();install(failed);delete failed.context.storage[manifest.main];failed.boot(manifest.recovery);
   assert.ok(failed.context.global.ShermanRecovery);assert.ok(failed.context.storage['sw-starting'],'failed startup retains independent recovery guard');
-  fs.writeFileSync(path.join(source,'evidence/local-presets/bundle.json'),JSON.stringify({issue:50,manifest,rehearsal,configurations,versioned_runtime:'fresh/migrated/custom local configuration and Save survive compatible startup; no draft, command or confirmation replay',native_imports:imports,recovery:'held button bypasses imports; absent main retains recovery guard',artifact:path.relative(repo,directory),hardware:'all hardware, flash capacity and authorization are simulated; display/input/vibration, memory fit, live controls and deployment pending'},null,2)+'\n');
+  evidence.json('watch/evidence/local-presets/bundle.json',{issue:50,manifest,rehearsal,configurations,versioned_runtime:'fresh/migrated/custom local configuration and Save survive compatible startup; no draft, command or confirmation replay',native_imports:imports,recovery:'held button bypasses imports; absent main retains recovery guard',artifact:path.relative(repo,directory),hardware:'all hardware, flash capacity and authorization are simulated; display/input/vibration, memory fit, live controls and deployment pending'});
   console.log('complete versioned watch bundle, synthetic staging/activation and independent recovery: passed ('+version+')');
 })().catch(error=>{console.error(error);process.exitCode=1;});

@@ -1,7 +1,6 @@
 // Exercise actual watch entry, touch, saved Storage and active-high output.
 const assert=require('node:assert/strict');
-const fs=require('node:fs'),path=require('node:path');
-const {environment}=require('./runtime.cjs');
+const {environment,evidence}=require('./harness.cjs');
 const env=environment(),running=env.start();env.advance(200);
 env.touch(0,120,10);env.touch(1,120,120);env.advance(400);
 env.touch(5,120,155);env.advance(600);
@@ -10,9 +9,7 @@ env.touch(5,195,72);env.advance(800); // Enable with no threshold: Save must rej
 env.touch(5,170,214);env.advance(1000);
 assert.equal(running.core.view().config.alerts.pwm.enabled,false);
 assert.match(running.core.view().validation_error,/threshold/i);
-const escape=value=>String(value).replaceAll('&','&amp;').replaceAll('<','&lt;');
-const svg=env.context.graphics.ops.map(op=>op.kind==='text'?`<text x="${op.x}" y="${op.y+op.size}" font-size="${op.size}" text-anchor="${op.align===-1?'start':op.align===1?'end':'middle'}">${escape(op.value)}</text>`:op.kind==='line'?`<line x1="${op.x1}" y1="${op.y1}" x2="${op.x2}" y2="${op.y2}" stroke="white"/>`:`<rect x="${op.x1}" y="${op.y1}" width="${op.x2-op.x1}" height="${op.y2-op.y1}" fill="${op.kind==='fill'?'white':'none'}" stroke="white"/>`).join('\n');
-fs.writeFileSync(path.resolve(__dirname,'../evidence/local-presets/regression-alerts-editor.svg'),`<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240"><rect width="240" height="240" fill="black"/><g fill="white" font-family="sans-serif">${svg}</g></svg>\n`);
+evidence.svg('watch/evidence/local-presets/regression-alerts-editor.svg',env.context.graphics.ops,'regression');
 running.core.action('alert_test',{alert:'lost'});
 assert.equal(env.context.D16.state,1,'actual hardware adapter drives the installed active level');
 env.advance(1150);assert.equal(env.context.D16.state,0,'weak lost pattern ends after 150ms');
