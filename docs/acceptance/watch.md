@@ -56,6 +56,7 @@ dashboard artifact.
 | Physical navigation paths | Left→riding slots, down from top→Settings, up→Settings hierarchy, right→dashboard from riding slots, Settings Sleep; whole wake button cycle consumed | Passed | Public actions and raw CST816 interrupt bytes with fake pins |
 | Initial idle versus established loss | Sleep after 30 idle seconds before connection; keep warning awake after connected loss | Passed | Controlled clock |
 | Direct connection and cleanup | Explicit discovery/selection, FFE0/FFE1 subscribe, bounded operations, no wheel writes; failed cleanup blocks replacement connection | Passed | Actual direct adapter with fake Promise-returning 2v14 GATT |
+| Wheel selection returns to the Riding dashboard (#64) | Selecting a discovered wheel on the connection screen shows the Riding dashboard; the transport calls the explicit `wheel_selected` core action, not a gesture | Passed | Actual main/transport with raw CST816 tap and fake GATT; fails before the fix |
 | Startup vibration and reconnect retry | D16 idle 0; first failed reconnect can recover on a later attempt; stop after three retries; initial selection failure stays terminal | Passed | Actual hardware/transport with fake pins and delayed wheel availability |
 | Independent recovery | Held startup button bypasses app imports; failed startup leaves console recovery/watchdog | Passed | Production boot code in fake runtime, no device boot attempted |
 | Alert defaults/editing | Lost enabled; measurement alerts disabled with null thresholds; independent switches, decimal keypad, explicit Save/Cancel, validation and back discard | Passed | Public core and raw touch through the actual entry |
@@ -68,7 +69,18 @@ dashboard artifact.
 `watch/main.js` composes narrow adapters; its public `start(options)` returns
 `core`, `transport` and `stop`. The core exposes `action(name, payload)`,
 `receive(session, rawBytes)`, `tick()` and `view()`. Raw notifications and
-replayed test input share its actual parser. `watch/THIRD_PARTY.md` records
+replayed test input share its actual parser.
+
+Watch behavior change (#64): from #49 until #64, selecting a wheel left the watch
+on the connection screen, because the transport sent a right swipe and #49 had
+limited swipe right to the riding Preset menu. The transport now calls
+`wheel_selected`, which returns from the connection screen to the Riding
+dashboard. Discovery, selection failure, disconnect and reconnect are unchanged.
+`watch/evidence/local-presets/regression-dashboard.svg`, which `runtime.cjs`
+captures after selection, showed SELECT WHEEL before #64. It now shows the
+connected Riding dashboard.
+
+`watch/THIRD_PARTY.md` records
 pinned driver provenance and the required MIT display notice.
 
 Battery samples occur on startup, every 30 seconds, and on a debounced charger
