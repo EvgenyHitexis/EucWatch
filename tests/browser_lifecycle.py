@@ -4,18 +4,12 @@ from preset_fixture import save_preset
 import asyncio
 import json
 from pathlib import Path
-import socket
-import subprocess
 import tempfile
-from contextlib import suppress
 
-from aiohttp import ClientSession, web
-
-from browser_flow import Browser
 from eucwatch import Application
 from eucwatch.persistence import FileStore
 from eucwatch.recording import Recorder
-from eucwatch.server import create_app
+from support import Server, chrome, main, write_evidence
 
 
 async def run():
@@ -25,110 +19,89 @@ async def run():
         save_preset(app, slot=1, name='Retained',pedal_sensitivity=31,dynamic_assist=26)
         recorder=Recorder(root/'capture.jsonl')
         app.event_sink=recorder.record
-        probe=socket.socket();probe.bind(('127.0.0.1',0));port=probe.getsockname()[1];probe.close()
         # Real Chrome polls on wall time, so the lease keeps the system clock with a short timeout;
         # the frozen-tab sleep below waits out that lease. Lease rules under a ManualClock are in test_lease.py.
-        runner=web.AppRunner(create_app(app,recorder=recorder,controller_timeout=.7))
-        await runner.setup();await web.TCPSite(runner,'127.0.0.1',port).start()
-        url=f'http://127.0.0.1:{port}'
-        browser=subprocess.Popen(['google-chrome','--headless','--no-first-run','--no-default-browser-check',
-            '--disable-sync','--disable-background-networking','--remote-debugging-port=0',
-            f'--user-data-dir={root / "profile"}','about:blank'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        server=await Server(app,recorder=recorder,controller_timeout=.7).start()
         try:
-            portfile=root/'profile'/'DevToolsActivePort'
-            async with asyncio.timeout(15):
-                while not portfile.exists(): await asyncio.sleep(.05)
-            chrome_port,path=portfile.read_text().splitlines()
-            async with ClientSession() as client:
-                async with client.ws_connect(f'http://127.0.0.1:{chrome_port}{path}') as ws:
-                    cdp=Browser(ws)
-                    async def tab():
-                        target=await cdp.call('Target.createTarget',{'url':url})
-                        attached=await cdp.call('Target.attachToTarget',{'targetId':target['targetId'],'flatten':True})
-                        return target['targetId'],attached['sessionId']
-                    target,owner=await tab()
-                    await cdp.wait("document.querySelector('#backend-status')?.textContent==='Application ready'",owner)
-                    await cdp.evaluate("document.querySelector('#controlled').checked=false;document.querySelector('#start').click()",owner)
-                    await cdp.wait("document.querySelector('#mode').textContent==='SIMULATOR'",owner)
-                    # Reload abandons a local editor operation, including active text.
-                    await cdp.pointer('#watch',(120,10),(120,110),owner)
-                    await cdp.wait("document.querySelector('canvas').dataset.screen==='settings'",owner)
-                    await cdp.pointer('#watch',(120,196),(120,196),owner)
-                    await cdp.wait("document.querySelector('canvas').dataset.screen==='preset_slots'",owner)
-                    await cdp.pointer('#watch',(80,55),(80,55),owner)
-                    await cdp.wait("document.querySelector('canvas').dataset.screen==='preset_editor'",owner)
-                    await cdp.pointer('#watch',(120,80),(120,80),owner)
-                    await cdp.wait("document.querySelector('canvas').getAttribute('aria-label').includes('keypad')",owner)
-                    saved_before_reload=app.view()['config']
-                    count=len(app.view()['command_events'])
-                    await cdp.call('Page.reload',session=owner)
-                    await cdp.wait("document.querySelector('#backend-status')?.textContent==='Application ready' && document.querySelector('#mode').textContent==='SIMULATOR'",owner)
-                    assert len(app.view()['command_events'])==count
-                    assert app.view()['preset_editor'] is None
-                    assert app.view()['config']==saved_before_reload
-                    await cdp.evaluate("window.originalFetch=window.fetch;window.fetch=(url,...args)=>window.originalFetch(url,...args).then(response=>String(url).includes('/api/state')&&!window.capturedOldState ? (window.capturedOldState=true,new Promise(resolve=>window.finishOldState=()=>resolve(response))) : response)",owner)
-                    await cdp.wait("typeof window.finishOldState==='function'",owner)
-                    await cdp.evaluate("document.querySelector('#stop').click()",owner)
-                    await cdp.wait("document.querySelector('#mode').textContent==='IDLE · NO WHEEL'",owner)
-                    await cdp.evaluate("window.finishOldState();window.fetch=window.originalFetch",owner)
-                    await asyncio.sleep(.3)
-                    assert await cdp.evaluate("document.querySelector('#mode').textContent==='IDLE · NO WHEEL'",owner)
-                    await cdp.wait("!document.querySelector('#start').disabled",owner)
-                    await cdp.evaluate("document.querySelector('#controlled').checked=false;document.querySelector('#start').click()",owner)
-                    await cdp.wait("document.querySelector('#mode').textContent==='SIMULATOR'",owner)
-                    other_target,other=await tab()
-                    await cdp.wait("document.querySelector('#backend-status')?.textContent.includes('Viewing only')",other)
-                    assert await cdp.evaluate("document.querySelector('#start').disabled",other)
-                    await cdp.call('Emulation.setFocusEmulationEnabled',{'enabled':True},other)
-                    before=app.view()['diagnostics']['valid_frames']
-                    await cdp.call('Page.setWebLifecycleState',{'state':'frozen'},owner)
-                    await asyncio.sleep(1)
-                    await cdp.wait("document.querySelector('#backend-status').textContent==='Application ready'",other)
-                    assert app.view()['diagnostics']['valid_frames']>before
-                    assert recorder.status()['written']>0
-                    await cdp.call('Page.setWebLifecycleState',{'state':'active'},owner)
-                    await cdp.call('Emulation.setFocusEmulationEnabled',{'enabled':True},owner)
-                    await cdp.wait("document.querySelector('#backend-status').textContent.includes('Viewing only')",owner)
-                    assert await cdp.evaluate("document.querySelector('#watch-button').disabled",owner)
-                    await cdp.call('Target.closeTarget',{'targetId':other_target})
-                    await cdp.wait("document.querySelector('#backend-status').textContent==='Application ready'",owner)
-                    # Press/reload is a released cycle, never a resubmitted request.
-                    box=await cdp.evaluate("(() => {const b=document.querySelector('#watch-button').getBoundingClientRect();return {x:b.x+10,y:b.y+20}})()",owner)
-                    await cdp.call('Input.dispatchMouseEvent',{'type':'mousePressed','x':box['x'],'y':box['y'],'button':'left','buttons':1,'clickCount':1},owner)
-                    await cdp.wait("document.querySelector('#watch-feedback').textContent==='Horn request sent'",owner)
-                    pressed_count=len(app.view()['command_events'])
-                    await cdp.call('Page.reload',session=owner)
-                    await cdp.wait("document.querySelector('#backend-status')?.textContent==='Application ready'",owner)
-                    async with asyncio.timeout(3):
-                        while app.view()['button']['down']: await asyncio.sleep(.01)
-                    assert len(app.view()['command_events'])==pressed_count
-                    before=app.view()['diagnostics']['valid_frames']
-                    await cdp.call('Target.closeTarget',{'targetId':target})
-                    await asyncio.sleep(.5)
-                    assert app.view()['diagnostics']['valid_frames']>before
-                    target,owner=await tab()
-                    await cdp.wait("document.querySelector('#backend-status')?.textContent==='Application ready'",owner)
-                    await runner.cleanup()
-                    await cdp.wait("document.querySelector('#backend-status').textContent.includes('unavailable')",owner)
-                    assert await cdp.evaluate("document.querySelector('#watch-button').disabled && document.querySelector('#start').disabled",owner)
-                    restarted=Application(store=FileStore(root/'configuration.json'))
-                    runner=web.AppRunner(create_app(restarted,controller_timeout=.7))
-                    await runner.setup();await web.TCPSite(runner,'127.0.0.1',port).start()
-                    await cdp.wait("document.querySelector('#backend-status').textContent==='Application ready' && document.querySelector('#mode').textContent==='IDLE · NO WHEEL'",owner)
-                    assert restarted.view()['config']['presets'][0]['name']=='Retained'
-                    assert restarted.view()['preset_attempt'] is None and restarted.view()['command_events']==[]
-                    evidence={'issue':30,'provenance':'actual built Chrome UI / aiohttp / background recorder / local durable store; accelerated0.7s test lease (production10s)',
-                        'expected':'reload noresubmit; delayedoldpoll discarded; competition readonly; freeze backendcontinues; lease takeover oldownerreadonly; closure backendcontinues; backendloss controlsdisabled; offline relaunchsavedonly',
-                        'observed':'passed','physical_suspend':'explicitly omitted by owner; synthetic resume covered in test_lifecycle.py'}
-                    Path('.test-output/lifecycle.json').write_text(json.dumps(evidence,indent=2)+'\n')
-                    print(json.dumps(evidence,indent=2))
+            async with chrome() as browser:
+                owner=await browser.open(server.url)
+                await owner.wait("document.querySelector('#backend-status')?.textContent==='Application ready'")
+                await owner.evaluate("document.querySelector('#controlled').checked=false;document.querySelector('#start').click()")
+                await owner.wait("document.querySelector('#mode').textContent==='SIMULATOR'")
+                # Reload abandons a local editor operation, including active text.
+                await owner.pointer((120,10),(120,110))
+                await owner.screen('settings')
+                await owner.tap(120,196)
+                await owner.screen('preset_slots')
+                await owner.tap(80,55)
+                await owner.screen('preset_editor')
+                await owner.tap(120,80)
+                await owner.label('keypad')
+                saved_before_reload=app.view()['config']
+                count=len(app.view()['command_events'])
+                await owner.call('Page.reload')
+                await owner.wait("document.querySelector('#backend-status')?.textContent==='Application ready' && document.querySelector('#mode').textContent==='SIMULATOR'")
+                assert len(app.view()['command_events'])==count
+                assert app.view()['preset_editor'] is None
+                assert app.view()['config']==saved_before_reload
+                await owner.evaluate("window.originalFetch=window.fetch;window.fetch=(url,...args)=>window.originalFetch(url,...args).then(response=>String(url).includes('/api/state')&&!window.capturedOldState ? (window.capturedOldState=true,new Promise(resolve=>window.finishOldState=()=>resolve(response))) : response)")
+                await owner.wait("typeof window.finishOldState==='function'")
+                await owner.evaluate("document.querySelector('#stop').click()")
+                await owner.wait("document.querySelector('#mode').textContent==='IDLE · NO WHEEL'")
+                await owner.evaluate("window.finishOldState();window.fetch=window.originalFetch")
+                await asyncio.sleep(.3)
+                assert await owner.evaluate("document.querySelector('#mode').textContent==='IDLE · NO WHEEL'")
+                await owner.wait("!document.querySelector('#start').disabled")
+                await owner.evaluate("document.querySelector('#controlled').checked=false;document.querySelector('#start').click()")
+                await owner.wait("document.querySelector('#mode').textContent==='SIMULATOR'")
+                other=await browser.open(server.url)
+                await other.wait("document.querySelector('#backend-status')?.textContent.includes('Viewing only')")
+                assert await other.evaluate("document.querySelector('#start').disabled")
+                await other.call('Emulation.setFocusEmulationEnabled',{'enabled':True})
+                before=app.view()['diagnostics']['valid_frames']
+                await owner.call('Page.setWebLifecycleState',{'state':'frozen'})
+                await asyncio.sleep(1)
+                await other.wait("document.querySelector('#backend-status').textContent==='Application ready'")
+                assert app.view()['diagnostics']['valid_frames']>before
+                assert recorder.status()['written']>0
+                await owner.call('Page.setWebLifecycleState',{'state':'active'})
+                await owner.call('Emulation.setFocusEmulationEnabled',{'enabled':True})
+                await owner.wait("document.querySelector('#backend-status').textContent.includes('Viewing only')")
+                assert await owner.evaluate("document.querySelector('#watch-button').disabled")
+                await other.close()
+                await owner.wait("document.querySelector('#backend-status').textContent==='Application ready'")
+                # Press/reload is a released cycle, never a resubmitted request.
+                box=await owner.evaluate("(() => {const b=document.querySelector('#watch-button').getBoundingClientRect();return {x:b.x+10,y:b.y+20}})()")
+                await owner.call('Input.dispatchMouseEvent',{'type':'mousePressed','x':box['x'],'y':box['y'],'button':'left','buttons':1,'clickCount':1})
+                await owner.wait("document.querySelector('#watch-feedback').textContent==='Horn request sent'")
+                pressed_count=len(app.view()['command_events'])
+                await owner.call('Page.reload')
+                await owner.wait("document.querySelector('#backend-status')?.textContent==='Application ready'")
+                async with asyncio.timeout(3):
+                    while app.view()['button']['down']: await asyncio.sleep(.01)
+                assert len(app.view()['command_events'])==pressed_count
+                before=app.view()['diagnostics']['valid_frames']
+                await owner.close()
+                await asyncio.sleep(.5)
+                assert app.view()['diagnostics']['valid_frames']>before
+                owner=await browser.open(server.url)
+                await owner.wait("document.querySelector('#backend-status')?.textContent==='Application ready'")
+                await server.stop()
+                await owner.wait("document.querySelector('#backend-status').textContent.includes('unavailable')")
+                assert await owner.evaluate("document.querySelector('#watch-button').disabled && document.querySelector('#start').disabled")
+                restarted=Application(store=FileStore(root/'configuration.json'))
+                server=await Server(restarted,controller_timeout=.7).start(server.port)
+                await owner.wait("document.querySelector('#backend-status').textContent==='Application ready' && document.querySelector('#mode').textContent==='IDLE · NO WHEEL'")
+                assert restarted.view()['config']['presets'][0]['name']=='Retained'
+                assert restarted.view()['preset_attempt'] is None and restarted.view()['command_events']==[]
+                evidence={'issue':30,'provenance':'actual built Chrome UI / aiohttp / background recorder / local durable store; accelerated0.7s test lease (production10s)',
+                    'expected':'reload noresubmit; delayedoldpoll discarded; competition readonly; freeze backendcontinues; lease takeover oldownerreadonly; closure backendcontinues; backendloss controlsdisabled; offline relaunchsavedonly',
+                    'observed':'passed','physical_suspend':'explicitly omitted by owner; synthetic resume covered in test_lifecycle.py'}
+                write_evidence('.test-output/lifecycle.json',evidence)
+                print(json.dumps(evidence,indent=2))
         finally:
-            browser.terminate()
-            try: await asyncio.to_thread(browser.wait,timeout=5)
-            except subprocess.TimeoutExpired:
-                browser.kill();await asyncio.to_thread(browser.wait)
-            await runner.cleanup()
+            await server.stop()
 
 
 if __name__=='__main__':
-    asyncio.run(run())
+    main(run)

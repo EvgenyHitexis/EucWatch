@@ -9,22 +9,7 @@ from bleak.exc import BleakError
 from eucwatch import Application, ManualClock
 from eucwatch.live import LiveSession
 from eucwatch.live_control import LiveControl
-from test_control import settings_frame
-from test_live import ADDRESS, CHARACTERISTIC, SOURCE_FRAME, Client, Scanner
-
-
-class WritingClient(Client):
-    def __init__(self, *args, **options):
-        super().__init__(*args, **options)
-        self.characteristic.properties = ["notify", "write-without-response"]
-        self.characteristic.max_write_without_response_size = 20
-        self.writes = []
-        self.behavior = None
-
-    async def write_gatt_char(self, characteristic, data, *, response):
-        self.writes.append((characteristic.uuid, bytes(data), response))
-        if self.behavior:
-            await self.behavior(bytes(data))
+from support import ADDRESS, CHARACTERISTIC, SOURCE_FRAME, Scanner, WritingClient, edit, settings_frame
 
 
 class LiveControlTests(unittest.IsolatedAsyncioTestCase):
@@ -323,7 +308,6 @@ class LiveControlTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(self.client.writes), 3)
 
     async def test_local_editor_ignores_selected_client_readings_and_reconnect(self):
-        from test_preset_editor import edit
         await self.prepared()
         self.client.emit(settings_frame(sensitivity=44, assist=55, dip=66))
         self.app.action("preset_begin", slot=4)

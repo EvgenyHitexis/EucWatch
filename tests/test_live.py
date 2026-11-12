@@ -9,89 +9,12 @@ import tempfile
 import unittest
 import zlib
 from pathlib import Path
-from types import SimpleNamespace
 
 from eucwatch import Application, ManualClock
 from eucwatch.live import LiveSession
 from eucwatch.recording import Recorder, Replay
 
-ADDRESS = "00:11:22:33:44:55"
-SERVICE = "0000ffe0-0000-1000-8000-00805f9b34fb"
-CHARACTERISTIC = "0000ffe1-0000-1000-8000-00805f9b34fb"
-SOURCE_FRAME = bytes.fromhex(
-    "".join(
-        json.loads(line)["raw_hex"]
-        for line in (
-            Path(__file__).resolve().parents[1]
-            / "experiments/laptop-feasibility/evidence/fixture-recording.jsonl"
-        )
-        .read_text()
-        .splitlines()[:5]
-    )
-)
-
-
-class Scanner:
-    def __init__(self):
-        self.device = SimpleNamespace(address=ADDRESS, name="Selected wheel")
-        self.calls = []
-
-    async def discover(self, **options):
-        self.calls.append(options)
-        advertisement = SimpleNamespace(
-            local_name="Selected wheel", rssi=-76, service_uuids=[SERVICE]
-        )
-        return {ADDRESS: (self.device, advertisement)}
-
-
-class Client:
-    def __init__(self, device, *, disconnected_callback, **options):
-        self.device = device
-        self.disconnected_callback = disconnected_callback
-        self.is_connected = False
-        self.calls = []
-        self.notification = None
-        self.characteristic = SimpleNamespace(
-            uuid=CHARACTERISTIC, service_uuid=SERVICE, properties=["notify", "write"]
-        )
-        self.services = SimpleNamespace(
-            get_service=lambda uuid: (
-                SimpleNamespace(uuid=SERVICE) if uuid == SERVICE else None
-            ),
-            get_characteristic=lambda uuid: (
-                self.characteristic if uuid == CHARACTERISTIC else None
-            ),
-        )
-
-    async def connect(self):
-        self.calls.append("connect")
-        self.is_connected = True
-
-    async def start_notify(self, characteristic, callback, **options):
-        self.calls.append(("subscribe", characteristic.uuid, options))
-        self.notification = callback
-
-    async def disconnect(self):
-        self.calls.append("disconnect")
-        self.is_connected = False
-        self.disconnected_callback(self)
-
-    def emit(self, raw):
-        self.notification(self.characteristic, bytearray(raw))
-
-    def lose_link(self):
-        self.is_connected = False
-        self.disconnected_callback(self)
-
-
-class Clients:
-    def __init__(self):
-        self.created = []
-
-    def __call__(self, device, **options):
-        client = Client(device, **options)
-        self.created.append(client)
-        return client
+from support import ADDRESS, CHARACTERISTIC, SOURCE_FRAME, Clients, Scanner
 
 
 class LiveTests(unittest.IsolatedAsyncioTestCase):
@@ -100,7 +23,9 @@ class LiveTests(unittest.IsolatedAsyncioTestCase):
         # this public lifecycle flow in a bounded subprocess to detect that fault.
         script = """
 import asyncio, json
-from test_live import Application, ManualClock, Clients, Scanner, LiveSession, ADDRESS
+from eucwatch import Application, ManualClock
+from eucwatch.live import LiveSession
+from support import Clients, Scanner, ADDRESS
 
 async def run():
     clients = Clients()

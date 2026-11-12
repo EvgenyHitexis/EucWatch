@@ -8,9 +8,7 @@ from aiohttp.test_utils import TestClient, TestServer
 from eucwatch import Application, ManualClock
 from eucwatch.live import LiveSession
 from eucwatch.server import create_app
-from test_control import settings_frame
-from test_live import Scanner, ADDRESS, SOURCE_FRAME
-from test_live_control import WritingClient
+from support import Scanner, WritingClient, ADDRESS, SOURCE_FRAME, settings_frame
 
 
 class ControlHTTPTests(unittest.IsolatedAsyncioTestCase):

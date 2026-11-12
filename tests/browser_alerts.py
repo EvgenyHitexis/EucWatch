@@ -1,24 +1,20 @@
 """Watch-sized alert acceptance through pointer input and the actual backend."""
 import json
-import base64
 import asyncio
 from pathlib import Path
 
 from eucwatch import Application
+from support import main, served_laptop, write_evidence
 
 
-async def exercise(cdp, session, app, clock):
+async def exercise(page, app, clock):
     inputs = []
 
-    async def label(text):
-        await cdp.wait(
-            f"document.querySelector('#watch').getAttribute('aria-label').includes({json.dumps(text)})",
-            session,
-        )
+    label = page.label
 
     async def pointer(start, end):
         inputs.append({'start': start, 'end': end})
-        await cdp.pointer('#watch', start, end, session)
+        await page.pointer(start, end)
 
     async def tap(x, y):
         await pointer((x, y), (x, y))
@@ -26,8 +22,7 @@ async def exercise(cdp, session, app, clock):
     async def snapshot(name):
         output = Path('docs/acceptance/evidence/touch-layout')
         output.mkdir(parents=True, exist_ok=True)
-        data = await cdp.evaluate("document.querySelector('#watch').toDataURL().split(',')[1]", session)
-        (output / (name + '.png')).write_bytes(base64.b64decode(data))
+        await page.snapshot(output / (name + '.png'))
 
     initial = app.view()['config']
     await pointer((120, 10), (120, 110))
@@ -90,10 +85,10 @@ async def exercise(cdp, session, app, clock):
         await label(f'Alert editor {index + 1} of 4')
         before = len(app.view()['vibration']['events'])
         await tap(120, 178)
-        await cdp.wait("document.querySelector('#vibration-status').textContent.includes(' test')", session)
+        await page.wait("document.querySelector('#vibration-status').textContent.includes(' test')")
         clock.advance(1)
         inputs.append({'advance_seconds': 1})
-        await cdp.wait("document.querySelector('#vibration-status').textContent.includes('idle')", session)
+        await page.wait("document.querySelector('#vibration-status').textContent.includes('idle')")
         events = app.view()['vibration']['events'][before:]
         assert all(row['alert'] == name and row['test'] for row in events)
         assert [row['duration_s'] for row in events if row['phase'] == 'start'] == durations
@@ -113,8 +108,19 @@ async def exercise(cdp, session, app, clock):
     assert app.view()['alerts_draft'] is None
     assert app.view()['command_events'] == []
     await pointer((120, 215), (120, 20))
-    await cdp.wait("document.querySelector('#watch').dataset.screen === 'dashboard'", session)
+    await page.screen('dashboard')
     return {'issue': 31, 'provenance': 'actual Canvas pointers / aiohttp / FileStore / controlled time; simulated vibration',
             'expected': 'watch-only validation, keypad entry/Cancel, whole Save/Cancel, restart persistence, four Test patterns, zero wheel commands',
             'observed': 'passed', 'inputs': inputs, 'patterns': patterns, 'saved': expected,
             'wheel_commands': [], 'physical_vibration': 'pending #38'}
+
+
+async def run():
+    async with served_laptop() as laptop:
+        result = await exercise(laptop.page, laptop.app, laptop.clock)
+    write_evidence(laptop.output / 'alerts.json', result)
+    print('alerts: passed')
+
+
+if __name__ == '__main__':
+    main(run)

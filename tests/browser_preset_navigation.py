@@ -1,35 +1,35 @@
 """Literal gesture expectations through real pointer events and production backend."""
 import asyncio
-import base64
 from unittest.mock import patch
 from eucwatch import Application
+from support import main, record_flow
 
-async def exercise(cdp,session,app,output):
+async def exercise(page,app,output):
     timeline=[];states=[];now=0
-    async def event(start,end,screen,page=None,text=None):
+    async def event(start,end,screen,preset_page=None,text=None):
         row={'input':'tap' if start==end else 'swipe','start':start,'end':end,'expected':{'screen':screen}}
-        if page is not None:row['expected']['page']=page
+        if preset_page is not None:row['expected']['page']=preset_page
         if text is not None:row['expected']['input']=text
         timeline.append(row)
-        await cdp.pointer('#watch',start,end,session)
+        await page.pointer(start,end)
         await asyncio.sleep(.13)
         state=app.view()
         assert state['screen']==screen,(row,state['screen'])
-        if page is not None:assert state['preset_page']==page,(row,state['preset_page'])
+        if preset_page is not None:assert state['preset_page']==preset_page,(row,state['preset_page'])
         if text is not None:assert state['preset_input']['text']==text,(row,state['preset_input'])
         assert state['command_events']==[]
         states.append({'screen':state['screen'],'page':state['preset_page'],'input':state['preset_input'],'draft':state['preset_draft'],'saved':state['config']})
-    async def tap(x,y,screen,page=None,text=None):await event((x,y),(x,y),screen,page,text)
-    async def swipe(direction,screen,page=None,text=None):
+    async def tap(x,y,screen,preset_page=None,text=None):await event((x,y),(x,y),screen,preset_page,text)
+    async def swipe(direction,screen,preset_page=None,text=None):
         positions={'down':((120,10),(120,110)),'up':((120,220),(120,40)),'left':((215,220),(20,220)),'right':((20,220),(215,220))}
-        await event(*positions[direction],screen,page,text)
-    await cdp.wait("document.querySelector('#backend-status')?.textContent==='Application ready'",session)
+        await event(*positions[direction],screen,preset_page,text)
+    await page.wait("document.querySelector('#backend-status')?.textContent==='Application ready'")
     initial=app.view()['config']
     for slot in range(1,5):
         await swipe('down','settings');await swipe('right','settings')
         await tap(120,196,'preset_slots');await swipe('right','preset_slots')
         await tap(200,55+(slot-1)*44,'preset_editor',0) # former Clear area opens slot now.
-        for direction,page in [('right',3),('left',0),('left',1),('left',2),('left',3),('left',0),('right',3),('right',2),('right',1),('right',0)]:await swipe(direction,'preset_editor',page)
+        for direction,index in [('right',3),('left',0),('left',1),('left',2),('left',3),('left',0),('right',3),('right',2),('right',1),('right',0)]:await swipe(direction,'preset_editor',index)
         await tap(120,80,'preset_editor',0,initial['presets'][slot-1]['name']);await tap(120,174,'preset_editor',0,'');await tap(49,73,'preset_editor',0,'A')
         await swipe('right','preset_editor',0,'A');await swipe('left','preset_editor',0,'A')
         await swipe('up','preset_editor',0);assert app.view()['preset_input'] is None
@@ -55,10 +55,11 @@ async def exercise(cdp,session,app,output):
     await swipe('up','preset_slots');assert app.view()['config']==saved
     await swipe('up','settings');await swipe('up','dashboard')
     assert Application(store=app.store).view()['config']==saved
-    image=await cdp.evaluate("document.querySelector('canvas').toDataURL().split(',')[1]",session)
-    (output/'navigation-dashboard.png').write_bytes(base64.b64decode(image))
+    await page.snapshot(output/'navigation-dashboard.png')
     return {'spec':'docs/design/preset-value-editor.md','timeline':timeline,'states':states,'saved':saved,'packets':[],'outcome':'passed','expected':'up hierarchy, both wraps, every slot, active keypads, empty text, validation, failed save, gesture crossing old targets, local Save and restart'}
 
+async def navigation_laptop():
+    await record_flow(exercise,'navigation-laptop','touch-layout')
+
 if __name__=='__main__':
-    from browser_local_presets import run
-    asyncio.run(run(exercise,'navigation-laptop','touch-layout'))
+    main(navigation_laptop)

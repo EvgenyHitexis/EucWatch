@@ -5,7 +5,7 @@ from aiohttp.test_utils import TestClient, TestServer
 from eucwatch import Application, ManualClock
 from eucwatch.live import LiveSession
 from eucwatch.server import create_app
-from test_live import Scanner, Clients, ADDRESS, SOURCE_FRAME
+from support import Scanner, Clients, ADDRESS, SOURCE_FRAME
 
 
 class LiveHTTPTests(unittest.IsolatedAsyncioTestCase):
