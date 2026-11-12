@@ -42,7 +42,7 @@ npm run typecheck --prefix frontend
 
 The `tests/browser_*.py` and `tests/launch_smoke.py` files are scripts, not unittest modules. Run them directly the way `check.sh` does.
 
-The watch suites write their tracked evidence (`watch/evidence/**`) only when `EUCWATCH_WRITE_EVIDENCE=1` is set (`EUCWATCH_WRITE_EVIDENCE=1 node watch/tests/<suite>.cjs`); a plain run or a plain `./scripts/check.sh` writes none. The browser flows still rewrite `docs/acceptance/evidence/**` on every run, so check `git status` after `EUCWATCH_BROWSER_CHECKS=1`. Commit regenerated evidence only when your change is meant to update it.
+One flag gates all tracked evidence: the watch suites write `watch/evidence/**` and the browser flows write `docs/acceptance/evidence/**` only when `EUCWATCH_WRITE_EVIDENCE=1` is set (`EUCWATCH_WRITE_EVIDENCE=1 node watch/tests/<suite>.cjs`, `EUCWATCH_WRITE_EVIDENCE=1 EUCWATCH_BROWSER_CHECKS=1 ./scripts/check.sh`). Without it a run leaves `git status` unchanged, and the browser flows write the same files to `.test-output/evidence/` instead. Commit regenerated evidence only when your change is meant to update it.
 
 ## Architecture
 

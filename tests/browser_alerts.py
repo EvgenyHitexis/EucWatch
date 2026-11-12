@@ -1,10 +1,9 @@
 """Watch-sized alert acceptance through pointer input and the actual backend."""
 import json
 import asyncio
-from pathlib import Path
 
 from eucwatch import Application
-from support import main, served_laptop, write_evidence
+from support import evidence_directory, main, served_laptop, write_evidence
 
 
 async def exercise(page, app, clock):
@@ -20,7 +19,7 @@ async def exercise(page, app, clock):
         await pointer((x, y), (x, y))
 
     async def snapshot(name):
-        output = Path('docs/acceptance/evidence/touch-layout')
+        output = evidence_directory('touch-layout')
         output.mkdir(parents=True, exist_ok=True)
         await page.snapshot(output / (name + '.png'))
 

@@ -3,13 +3,15 @@
 It owns the protocol frame builders, the fake Bleak transports, the Preset
 editor action helper, the saved Preset fixture, and, for the browser flows, the served laptop
 application plus Chrome page bootstrap, the CDP driver and the watch pointer
-and screenshot helpers. Nothing here opens Bluetooth or touches a wheel.
+and screenshot helpers, and the gate on tracked evidence. Nothing here opens
+Bluetooth or touches a wheel.
 """
 import asyncio
 import base64
 import hashlib
 import inspect
 import json
+import os
 import socket
 import subprocess
 import sys
@@ -362,6 +364,19 @@ async def served_laptop():
                               output=output, run_id=run_id)
 
 
+def evidence_directory(directory):
+    """Where a flow writes the evidence for docs/acceptance/evidence/<directory>.
+
+    Tracked evidence is rewritten only on request, as in the watch suites: with
+    EUCWATCH_WRITE_EVIDENCE=1 this is the tracked directory, otherwise the same
+    files go to .test-output/evidence/<directory>, so a plain run leaves git
+    status unchanged.
+    """
+    if os.environ.get('EUCWATCH_WRITE_EVIDENCE') == '1':
+        return Path('docs/acceptance/evidence') / directory
+    return Path('.test-output/evidence') / directory
+
+
 def write_evidence(path, value):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -370,8 +385,8 @@ def write_evidence(path, value):
 
 async def record_flow(exercise, name, directory):
     """Run exercise(page, app, output) on a fresh FileStore application and
-    record its result in docs/acceptance/evidence/<directory>/<name>.json."""
-    output = Path('docs/acceptance/evidence') / directory
+    record its result as <name>.json in evidence_directory(directory)."""
+    output = evidence_directory(directory)
     output.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='eucwatch-local-', ignore_cleanup_errors=True) as temporary:
         app = Application(clock=ManualClock(), store=FileStore(Path(temporary) / 'config.json'))
