@@ -27,6 +27,7 @@ The only Python project is `experiments/laptop-feasibility/` (Python 3.12, aioht
 ./scripts/check.sh        # ES5 parse of the watch modules, every Python unit test, frontend typecheck/build, every watch suite
 EUCWATCH_BROWSER_CHECKS=1 ./scripts/check.sh   # adds launch smoke + Chrome CDP flows (Chrome required)
 ./scripts/launch.sh       # backend on 127.0.0.1:8765 + browser; EUCWATCH_NO_BROWSER=1, EUCWATCH_PORT=...
+uv run --offline --no-sync --project experiments/laptop-feasibility python scripts/evidence-compare.py <base-ref> [--browser]   # did behavior change since <base-ref>?
 
 # One Python test module or test (tests/ has no __init__.py, so put it on PYTHONPATH)
 env PYTHONPATH=laptop:tests uv run --offline --no-sync --project experiments/laptop-feasibility python -m unittest test_presets
@@ -43,6 +44,8 @@ npm run typecheck --prefix frontend
 The `tests/browser_*.py` and `tests/launch_smoke.py` files are scripts, not unittest modules. Run them directly the way `check.sh` does.
 
 One flag gates all tracked evidence: the watch suites write `watch/evidence/**` and the browser flows write `docs/acceptance/evidence/**` only when `EUCWATCH_WRITE_EVIDENCE=1` is set (`EUCWATCH_WRITE_EVIDENCE=1 node watch/tests/<suite>.cjs`, `EUCWATCH_WRITE_EVIDENCE=1 EUCWATCH_BROWSER_CHECKS=1 ./scripts/check.sh`). Without it a run leaves `git status` unchanged, and the browser flows write the same files to `.test-output/evidence/` instead. Commit regenerated evidence only when your change is meant to update it.
+
+Check a "behavior unchanged" criterion with `scripts/evidence-compare.py <base-ref>`, adding `--browser` (Chrome) when laptop behavior is in scope. It regenerates the watch evidence, and with `--browser` the browser-flow evidence, at the base and at the working tree in temporary copies outside the repository, then prints every difference except provenance (source hashes and `bundle.json`'s version-derived names, sizes and checksums; `--help` lists the fields). Exit 0 meets the criterion, exit 1 lists the differing files and fields, exit 2 means the run itself failed.
 
 ## Architecture
 
