@@ -1,34 +1,30 @@
 // Actual watch App input/raw-parser/output seam. All radio/time/storage controlled.
-const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),zlib=require('node:zlib');
-const root=path.resolve(__dirname,'..');
+const assert=require('node:assert/strict');
 const child=require('node:child_process');
-const evidence={issue:34,provenance:'Original production ES5 watch modules in Node VM; controlled clock/store/NRF, synthetic settings and movement derived from the sanitized WheelLog fixture; no physical operations',fixture:'experiments/laptop-feasibility/evidence/fixture-recording.jsonl',hardware_acceptance:'Pending owner-authorized actual-device controls, BLE writes, audible horn and recovery coexistence; #9/#31 remain open'};
-function load(name){const module={exports:{}};vm.runInNewContext(fs.readFileSync(path.join(root,name.replace(/^sw-/,'')+'.js'),'utf8'),{module,exports:module.exports,require:load,Uint8Array,Uint16Array,ArrayBuffer,Math,JSON,isFinite});return module.exports;}
-function draw(state){const drawn=[],graphics={};for(const name of ['setColor','setFont','setFontAlign','drawRect','fillRect','drawLine','setPixel','clear','flip'])graphics[name]=()=>graphics;graphics.setFont=(name,size)=>{graphics.font=size;return graphics;};graphics.stringWidth=value=>String(value).length*graphics.font*.55;graphics.drawString=(text,x,y)=>{drawn.push({text,x,y});return graphics;};load('sw-render').draw(graphics,state);return drawn;}
-const fixture=fs.readFileSync(path.resolve(root,'../experiments/laptop-feasibility/evidence/fixture-recording.jsonl'),'utf8').trim().split('\n').map(JSON.parse);
-const source=Buffer.concat(fixture.slice(0,5).map(row=>Buffer.from(row.raw_hex,'hex')));
-function frame(settings={pedal_sensitivity:31,dynamic_assist:26,pedal_dip_compensation:10},speed=25){
- const bytes=Buffer.from(source);bytes.writeInt16BE(Math.round(speed*10),6);bytes[46]=8;
- for(const [name,index]of [['pedal_sensitivity',50],['dynamic_assist',66],['pedal_dip_compensation',68]])bytes[index]=settings[name]===null?128:settings[name];
- bytes.writeUInt32BE(zlib.crc32(bytes.subarray(0,-4)),bytes.length-4);return bytes;
-}
-function scenario(extra={}){
- let time=0;const writes=[];let config=load('sw-configuration').defaults();
+const {environment,flush,frame,evidence,repo,repoPath,python}=require('./harness.cjs');
+const record={issue:34,provenance:'Original production ES5 watch modules in Node VM; controlled clock/store/NRF, synthetic settings and movement derived from the sanitized WheelLog fixture; no physical operations',fixture:'experiments/laptop-feasibility/evidence/fixture-recording.jsonl',hardware_acceptance:'Pending owner-authorized actual-device controls, BLE writes, audible horn and recovery coexistence; #9/#31 remain open'};
+// The renderer's text, drawn on a fresh Graphics buffer of the scenario's device.
+function drawnText(env,state){const g=env.context.Graphics.createArrayBuffer(240,240,1);env.require('sw-render').draw(g,state);return g.ops.filter(op=>op.kind==='text').map(op=>op.value);}
+// Moving at 25 km/h and reporting the Road preset's settings, unless a step reports others.
+const road={speed:25,settings:{pedal_sensitivity:31,dynamic_assist:26,pedal_dip_compensation:10}};
+const reporting=settings=>settings?{...road,settings}:road;
+function scenario(extra={},env=environment()){
+ let time=0;const writes=[];let config=env.require('sw-configuration').defaults();
  config.presets[0]={id:1,name:'Road',configured:true,pedal_sensitivity:31,dynamic_assist:26,pedal_dip_compensation:0,dip_included:false};
  const store={load:()=>JSON.parse(JSON.stringify(config)),save:value=>{config=JSON.parse(JSON.stringify(value));}};
- const app=load('sw-app').create({clock:{now:()=>time},battery:()=>({percent:50,charging:false}),store,command_output:row=>writes.push(JSON.parse(JSON.stringify(row))),...extra});
- const token=app.action('session_start').session;app.action('connected',{session:token});app.receive(token,frame({pedal_sensitivity:30,dynamic_assist:25,pedal_dip_compensation:10}));
- return{app,writes,store,at:value=>{time=value;app.tick();},receive:settings=>app.receive(app.view().session,frame(settings)),result:(row,success=true,error='')=>app.action('command_result',{attempt:row.attempt,session:row.session,index:row.index,success,error})};
+ const app=env.require('sw-app').create({clock:{now:()=>time},battery:()=>({percent:50,charging:false}),store,command_output:row=>writes.push(JSON.parse(JSON.stringify(row))),...extra});
+ const token=app.action('session_start').session;app.action('connected',{session:token});app.receive(token,frame(reporting({pedal_sensitivity:30,dynamic_assist:25,pedal_dip_compensation:10})));
+ return{env,app,writes,store,at:value=>{time=value;app.tick();},receive:settings=>app.receive(app.view().session,frame(reporting(settings))),result:(row,success=true,error='')=>app.action('command_result',{attempt:row.attempt,session:row.session,index:row.index,success,error})};
 }
 function testMoving(){const moving=scenario();moving.app.action('swipe',{direction:'left'});
 assert.equal(moving.app.view().presets.length,4);
-const controls=load('sw-controls');assert.equal(controls.targets(moving.app.view()).length,4);
+const controls=moving.env.require('sw-controls');assert.equal(controls.targets(moving.app.view()).length,4);
 assert.equal(controls.hit(moving.app.view(),175,79).action,'preset_apply','configured default is available');
 const tap=controls.hit(moving.app.view(),61,79);assert.equal(tap.action,'preset_apply');
 let state=moving.app.action(tap.action,tap.payload);
 assert.equal(state.screen,'dashboard');assert.equal(state.preset_attempt.pending,true);assert.match(state.feedback,/Road.*Applying/);
-const drawn=draw(state);
-assert.ok(drawn.some(row=>/Road.*Applying/.test(row.text)),'actual renderer presents immediate Applying');
+const drawn=drawnText(moving.env,state);
+assert.ok(drawn.some(text=>/Road.*Applying/.test(text)),'actual renderer presents immediate Applying');
 assert.equal(moving.writes.length,1);assert.equal(moving.writes[0].packet_hex,'4c6441700f01028080801ff753d033');
 moving.app.action('preset_apply',{slot:1});assert.equal(moving.writes.length,1,'extra taps never queue');
 moving.result(moving.writes[0]);assert.equal(moving.writes.length,2);assert.equal(moving.writes[1].packet_hex.length,62);
@@ -67,7 +63,7 @@ function testFailureTraces(){
  let state=test.app.view();assert.equal(state.preset_attempt.status,'Partially applied');
  assert.equal(state.preset_attempt.fields.pedal_sensitivity.state,'confirmed');
  assert.equal(state.preset_attempt.fields.dynamic_assist.state,'unknown');assert.equal(test.writes.length,2);
- test.app.action('swipe',{direction:'left'});const partial=draw(test.app.view());assert.ok(partial.some(row=>/Sensitivity.*31\/31.*confirmed/.test(row.text)));assert.ok(partial.some(row=>/Assist.*26\/26.*unknown/.test(row.text)));
+ test.app.action('swipe',{direction:'left'});const partial=drawnText(test.env,test.app.view());assert.ok(partial.some(text=>/Sensitivity.*31\/31.*confirmed/.test(text)));assert.ok(partial.some(text=>/Assist.*26\/26.*unknown/.test(text)));
  test.at(.5);test.receive();test.at(.6);test.receive();assert.equal(test.app.view().preset_attempt.status,'Partially applied');assert.equal(test.app.view().confirmed_preset,null);
  test.app.action('preset_apply',{slot:1});assert.equal(test.writes.length,3,'fresh explicit retry only');
  const noMerge=scenario();noMerge.app.action('preset_apply',{slot:1});noMerge.result(noMerge.writes[0]);noMerge.result(noMerge.writes[1]);
@@ -96,9 +92,9 @@ function testFailureTraces(){
 }
 function testLaptopParity(){
  const traces=[
-  [{at:0,action:'preset_apply',slot:1},{at:.1,result:0},{at:.2,result:1},{at:.3,raw:frame().toString('hex')},{at:.4,raw:frame().toString('hex')}],
-  [{at:0,action:'preset_apply',slot:1},{at:.1,result:0},{at:.2,raw:frame().toString('hex')},{at:.3,raw:frame().toString('hex')},{at:.4,result:1,success:false},{at:.5,raw:frame().toString('hex')}],
-  [{at:0,action:'preset_apply',slot:1},{at:1.1,raw:frame().toString('hex')},{at:1.2,result:0}],
+  [{at:0,action:'preset_apply',slot:1},{at:.1,result:0},{at:.2,result:1},{at:.3,raw:frame(road).toString('hex')},{at:.4,raw:frame(road).toString('hex')}],
+  [{at:0,action:'preset_apply',slot:1},{at:.1,result:0},{at:.2,raw:frame(road).toString('hex')},{at:.3,raw:frame(road).toString('hex')},{at:.4,result:1,success:false},{at:.5,raw:frame(road).toString('hex')}],
+  [{at:0,action:'preset_apply',slot:1},{at:1.1,raw:frame(road).toString('hex')},{at:1.2,result:0}],
  ];
  function normalized(state){const a=state.preset_attempt;return{speed:state.dashboard.speed,status:a?a.status:null,pending:a?a.pending:false,fields:a?a.fields:null,confirmed:state.confirmed_preset?state.confirmed_preset.name:null};}
  const observed=traces.map(steps=>{const test=scenario();return steps.map(step=>{test.at(step.at);if(step.raw)test.app.receive(test.app.view().session,Buffer.from(step.raw,'hex'));else if(step.result!==undefined)test.result(test.writes[step.result],step.success!==false,'Controlled rejection');else test.app.action(step.action,{slot:step.slot});return normalized(test.app.view());});});
@@ -122,40 +118,32 @@ for steps in data['traces']:
  observed.append(output)
 print(json.dumps(observed))
 `;
- const python=path.resolve(root,'../experiments/laptop-feasibility/.venv/bin/python');
- const result=child.execFileSync(python,['-c',script],{cwd:path.resolve(root,'..'),env:{...process.env,PYTHONPATH:path.resolve(root,'../laptop')},input:JSON.stringify({traces,initial:frame({pedal_sensitivity:30,dynamic_assist:25,pedal_dip_compensation:10}).toString('hex')}),encoding:'utf8'});
- const expected=JSON.parse(result);assert.deepEqual(observed,expected);evidence.parity={traces,expected_laptop:expected,observed_watch:observed};console.log('watch/laptop identical actual raw/action traces: success, partial rejection and stale/late callbacks passed');
+ const result=child.execFileSync(python(),['-c',script],{cwd:repo,env:{...process.env,PYTHONPATH:repoPath('laptop')},input:JSON.stringify({traces,initial:frame(reporting({pedal_sensitivity:30,dynamic_assist:25,pedal_dip_compensation:10})).toString('hex')}),encoding:'utf8'});
+ const expected=JSON.parse(result);assert.deepEqual(observed,expected);record.parity={traces,expected_laptop:expected,observed_watch:observed};console.log('watch/laptop identical actual raw/action traces: success, partial rejection and stale/late callbacks passed');
 }
 async function testWriter(){
- let now=0,id=0,rejectAt=-1,hang=false,notify,disconnected,resolveWrite;
- const tasks=new Map(),written=[];let adapter;
- const clock={now:()=>now},timers={setTimeout:(fn,delay)=>{const token=++id;tasks.set(token,{fn,due:now+delay/1000});return token;},clearTimeout:token=>tasks.delete(token)};
- const characteristic={properties:{notify:true,writeWithoutResponse:true},on:(name,callback)=>{notify=callback;},startNotifications:()=>Promise.resolve(),writeValue:bytes=>{
-   written.push(Buffer.from(bytes));if(written.length===rejectAt)return Promise.reject(Error('Controlled partial write failure'));
-   return hang?new Promise(resolve=>resolveWrite=resolve):Promise.resolve();
- }};
- const server={connected:true,device:{connected:true,on:(name,callback)=>disconnected=callback},getPrimaryService:()=>Promise.resolve({getCharacteristic:()=>Promise.resolve(characteristic)}),disconnect:()=>{server.connected=false;server.device.connected=false;return Promise.resolve();}};
- const radio={findDevices:callback=>callback([{id:'synthetic wheel',name:'Sherman L'}]),connect:()=>Promise.resolve(server)};
- const test=scenario({clock,command_output:row=>adapter.submit(row)});adapter=load('sw-transport').create({app:test.app,radio,timers});
- const flush=async()=>{for(let i=0;i<20;i++)await Promise.resolve();};
- adapter.discover();adapter.select('synthetic wheel');await flush();
- function emit(settings){const bytes=frame(settings);notify({target:{value:new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength)}});}
- emit();test.app.action('preset_apply',{slot:1});await flush();
- assert.deepEqual(written.map(bytes=>bytes.length),[15,20,11]);assert.equal(test.app.view().preset_attempt.status,'confirming');
- now=.1;emit();now=.2;emit();assert.equal(test.app.view().confirmed_preset.name,'Road');
- test.app.action('button_down');await flush();test.app.action('button_up');assert.equal(written.at(-1).toString('hex'),'4c6b41700e0080808001ca87e66f');assert.equal(test.app.view().horn_feedback.message,'Horn request sent');
- characteristic.properties.writeWithoutResponse=false;test.app.action('button_down');await flush();test.app.action('button_up');assert.match(test.app.view().horn_feedback.message,/write-without-response/);assert.equal(written.length,4);
- characteristic.properties.writeWithoutResponse=true;const config=test.app.view().config;config.presets[0].pedal_dip_compensation=11;config.presets[0].dip_included=true;test.store.save(config);test.app.action('configuration_reload');rejectAt=7;test.app.action('preset_apply',{slot:1});await flush();
- assert.equal(written.length,7);assert.equal(test.app.view().preset_attempt.pending,false);assert.match(test.app.view().preset_attempt.reason,/Controlled partial write failure/);assert.ok(!written.some(bytes=>bytes[4]===33),'native chunk rejection prevents the unsent dip command');
- hang=true;test.app.action('preset_apply',{slot:1});await flush();assert.equal(written.length,8);
- for(let step=3;step<=32;step++){now=step/10;emit();test.app.tick();adapter.tick();for(const [token,task]of [...tasks])if(task.due<=now){tasks.delete(token);task.fn();}await flush();}
+ const env=environment();let adapter;
+ const test=scenario({clock:{now:env.context.getTime},command_output:row=>adapter.submit(row)},env);adapter=env.require('sw-transport').create({app:test.app,radio:env.context.NRF,timers:env.timers});
+ const settle=()=>flush(20),written=()=>env.bleWrites.map(hex=>Buffer.from(hex,'hex'));
+ adapter.discover();adapter.select('11:22:33:44:55:66 public');await settle();
+ const server=env.server(),characteristic=env.characteristic();
+ function emit(settings){env.notification(frame(reporting(settings)));}
+ emit();test.app.action('preset_apply',{slot:1});await settle();
+ assert.deepEqual(written().map(bytes=>bytes.length),[15,20,11]);assert.equal(test.app.view().preset_attempt.status,'confirming');
+ env.setTime(100);emit();env.setTime(200);emit();assert.equal(test.app.view().confirmed_preset.name,'Road');
+ test.app.action('button_down');await settle();test.app.action('button_up');assert.equal(env.bleWrites.at(-1),'4c6b41700e0080808001ca87e66f');assert.equal(test.app.view().horn_feedback.message,'Horn request sent');
+ characteristic.properties.writeWithoutResponse=false;test.app.action('button_down');await settle();test.app.action('button_up');assert.match(test.app.view().horn_feedback.message,/write-without-response/);assert.equal(env.bleWrites.length,4);
+ characteristic.properties.writeWithoutResponse=true;const config=test.app.view().config;config.presets[0].pedal_dip_compensation=11;config.presets[0].dip_included=true;test.store.save(config);test.app.action('configuration_reload');env.writeFailure(7);test.app.action('preset_apply',{slot:1});await settle();
+ assert.equal(env.bleWrites.length,7);assert.equal(test.app.view().preset_attempt.pending,false);assert.match(test.app.view().preset_attempt.reason,/Controlled partial write failure/);assert.ok(!written().some(bytes=>bytes[4]===33),'native chunk rejection prevents the unsent dip command');
+ env.writeHang(true);test.app.action('preset_apply',{slot:1});await settle();assert.equal(env.bleWrites.length,8);
+ for(let step=3;step<=32;step++){env.setTime(step*100);emit();test.app.tick();adapter.tick();env.advance(step*100);await settle();}
  assert.match(test.app.view().preset_attempt.reason,/submission timeout/);
  const timeoutResult=test.app.view().preset_attempt;
- assert.equal(test.app.view().preset_attempt.pending,false);test.app.action('preset_apply',{slot:1});await flush();assert.equal(written.length,8,'native hung writer retains ownership; new request cannot queue');
- hang=false;resolveWrite();await flush();assert.equal(written.length,8,'late completion never sends remaining packet chunks/settings');
- server.connected=false;server.device.connected=false;disconnected();await flush();assert.equal(test.app.view().fresh,false);
- evidence.writer={chunk_hex:written.map(bytes=>bytes.toString('hex')),timeout_result:timeoutResult,expected:'serialized <=20-byte writes, unsent dip stopped on rejection; fresh-telemetry timeout; no queued retry or remaining late chunks',observed:'assertions passed',native_writer_released_after_settlement:true};
- if(!process.env.EUCWATCH_CONTROL_CASE)fs.writeFileSync(path.join(root,'evidence/local-presets/regression-control.json'),JSON.stringify(evidence,null,2)+'\n');
+ assert.equal(test.app.view().preset_attempt.pending,false);test.app.action('preset_apply',{slot:1});await settle();assert.equal(env.bleWrites.length,8,'native hung writer retains ownership; new request cannot queue');
+ env.writeHang(false);env.settleWrite();await settle();assert.equal(env.bleWrites.length,8,'late completion never sends remaining packet chunks/settings');
+ server.connected=false;server.device.connected=false;env.loss();await settle();assert.equal(test.app.view().fresh,false);
+ record.writer={chunk_hex:[...env.bleWrites],timeout_result:timeoutResult,expected:'serialized <=20-byte writes, unsent dip stopped on rejection; fresh-telemetry timeout; no queued retry or remaining late chunks',observed:'assertions passed',native_writer_released_after_settlement:true};
+ if(!process.env.EUCWATCH_CONTROL_CASE)evidence.json('watch/evidence/local-presets/regression-control.json',record);
  console.log('watch same-session 2v14 property-selected 20-byte writer, horn request, bounded hang and late rejection: passed');
 }
 if(process.env.EUCWATCH_CONTROL_CASE==='horn')testHorn();else if(process.env.EUCWATCH_CONTROL_CASE==='writer')testWriter().catch(error=>{console.error(error);process.exitCode=1;});else{testMoving();testHorn();testFailureTraces();testLaptopParity();testWriter().catch(error=>{console.error(error);process.exitCode=1;});}
