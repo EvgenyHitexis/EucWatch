@@ -12,7 +12,7 @@ exports.create = function (options) {
   var paintDuration=0,maxPaintDuration=0,visibleReceipt=null,maxReceiptToPaint=0;
   var core, devices=[], recoveryCalled=false;
   var config=configuration.defaults(),draft=null,persistenceError=null,validationError=null,alertPage=0,thresholdInput=null;
-  var presetEditor=require('sw-preset-editor'),editor=presetEditor.create();
+  var presetEditor=require('sw-preset-editor'),editor=presetEditor.create({get:function(){return validationError;},set:function(value){validationError=value||null;}});
   if(options.store){try{var saved=options.store.load();if(saved!==null&&saved!==undefined)config=configuration.validate(saved);persistenceError=options.store.warning||null;}catch(error){persistenceError='Saved configuration requires review: '+String(error);}}
   var alerts=require('sw-alerts').create({output:options.vibration_output,settings:config.alerts});
   var commandEvents=[],controlFeedback='',control=require('sw-preset-control').create({send:submit});
@@ -42,7 +42,7 @@ exports.create = function (options) {
     catch(error){persistenceError='Configuration save failed: '+String(error);return false;}
     config=proposed;control.invalidate(clock.now(),'Saved configuration changed');persistenceError=null;return true;
   }
-  function leaveEditor(){editor.close();validationError=null;}
+  function leaveEditor(){editor.close();}
   function percent(voltage) {
     return voltage <= 119.02 ? 0 : voltage >= 148.05 ? 100 : Math.max(0, Math.min(100, Math.round((voltage - 119.02) / 0.2903)));
   }
@@ -57,9 +57,10 @@ exports.create = function (options) {
       vibration:vibration,
       preset_attempt:controlState.attempt,confirmed_preset:controlState.confirmed&&controlState.confirmed.kind==='preset'?controlState.confirmed:null,actual_settings:controlState.actual,
       horn_feedback:horn.view(),command_events:configuration.copy(commandEvents),
-      config:configuration.copy(config),alerts_draft:draft?configuration.copy(draft):null,alert_page:alertPage,persistence_error:persistenceError,validation_error:editing.request?editing.request.reason||null:validationError,
+      config:configuration.copy(config),alerts_draft:draft?configuration.copy(draft):null,alert_page:alertPage,persistence_error:persistenceError,validation_error:validationError,
       threshold_input:thresholdInput?configuration.copy(thresholdInput):null,
       preset_editor:editing.request,preset_draft:editing.draft,preset_page:editing.page,preset_input:editing.input,
+      preset_keys:editing.keys,preset_previous_page:editing.previous_page,preset_next_page:editing.next_page,
       devices:devices,transport:options.transportStatus?options.transportStatus():null,
       diagnostics: { valid_frames: validFrames, rejected_frames: rejectedFrames,
         retained_bytes: parser.status().retained_bytes, display_frames: paintCount,
@@ -134,7 +135,7 @@ exports.create = function (options) {
         leaveEditor();draft=null;screen='preset_slots';
       }else if(name==='preset_begin'){
         if(!awake||recovery)throw new Error('Preset editing unavailable');
-        editor.open(config,payload.slot);validationError=null;screen='preset_editor';
+        editor.open(config,payload.slot);screen='preset_editor';
       }else if(presetEditor.actions.indexOf(name)>=0){
         var edited=editor.action(name,payload,awake&&!recovery,config);
         if(edited&&edited.invalid)return view();

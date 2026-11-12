@@ -1,6 +1,4 @@
 """Configuration backup through explicit application actions and real storage."""
-from preset_fixture import save_preset
-
 
 import json
 import tempfile
@@ -11,6 +9,7 @@ from pathlib import Path
 from eucwatch import Application, ManualClock
 from eucwatch.persistence import FileStore, MemoryStore
 from eucwatch.recording import Replay
+from support import save_preset
 
 
 class BackupTests(unittest.TestCase):

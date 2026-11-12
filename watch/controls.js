@@ -10,10 +10,10 @@ exports.targets=function(state){
   if(state.screen==='preset_editor'){
     if(!state.preset_draft)return [];
     var page=state.preset_page,field=require('sw-preset-editor').fields[page];
-    var rows=state.preset_input?[]:[target([8,4,56,44],'<','preset_page',{page:(page+3)%4}),target([184,4,232,44],'>','preset_page',{page:(page+1)%4})];
+    var rows=state.preset_input?[]:[target([8,4,56,44],'<','preset_page',{page:state.preset_previous_page}),target([184,4,232,44],'>','preset_page',{page:state.preset_next_page})];
     if(state.preset_input){
       var input=state.preset_input,isNameEntry=input.field==='name';
-      rows=rows.concat(require('sw-preset-editor').keys(input).map(function(key,index){var x=12+index%(isNameEntry?4:3)*(isNameEntry?56:74),y=(isNameEntry?44:52)+Math.floor(index/(isNameEntry?4:3))*(isNameEntry?38:35);return target([x,y,x+(isNameEntry?48:68),y+32],key,'preset_input_key',{key:key});}));
+      rows=rows.concat(state.preset_keys.map(function(key,index){var x=12+index%(isNameEntry?4:3)*(isNameEntry?56:74),y=(isNameEntry?44:52)+Math.floor(index/(isNameEntry?4:3))*(isNameEntry?38:35);return target([x,y,x+(isNameEntry?48:68),y+32],key,'preset_input_key',{key:key});}));
       if(isNameEntry)rows=rows.concat([
         target([12,158,52,190],'a/A','preset_input_key',{key:'a/A'}),target([56,158,96,190],'Space','preset_input_key',{key:' '}),
         target([100,158,140,190],'Clear','preset_input_key',{key:'Clear'}),target([144,158,184,190],'<','preset_input_key',{key:'<'}),

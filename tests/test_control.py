@@ -1,11 +1,10 @@
 """Preset control lifecycle through application actions and protocol input."""
-from preset_fixture import save_preset
 
 import unittest
 
 from eucwatch import Application, ManualClock
 from eucwatch.recording import Replay
-from support import edit, settings_frame
+from support import edit, save_preset, settings_frame
 
 
 class ControlTests(unittest.TestCase):

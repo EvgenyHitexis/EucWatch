@@ -54,7 +54,7 @@ assert.match(recovered.core.view().persistence_error,/Recovered previous good/);
 recovered.stop();env.context.BTN1.state=1;env.boot();
 assert.equal(env.context.consoleEnabled,true,'independent recovery retains BLE console');
 assert.equal(services.at(-1).uart,true,'independent recovery retains UART communication');
-const sources=['watch/main.js','watch/app.js','watch/controls.js','watch/render.js','watch/store.js','watch/boot.js','watch/tests/local-configuration.cjs','watch/tests/runtime.cjs'];
+const sources=['watch/main.js','watch/app.js','watch/controls.js','watch/render.js','watch/store.js','watch/boot.js','watch/tests/local-configuration.cjs','watch/tests/harness.cjs'];
 evidence.json('watch/evidence/local-presets/regression-local-configuration.json',{
   issue:40,
   provenance:'Node VM executes production watch main/app/hardware/Storage/boot; fake pins/radio/native drivers/clock; preexisting schema-2 watch configuration',

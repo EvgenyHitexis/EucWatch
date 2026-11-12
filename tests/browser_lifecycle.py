@@ -1,5 +1,4 @@
 """Real Chrome lifecycle failures against the built UI and authoritative host."""
-from preset_fixture import save_preset
 
 import asyncio
 import json
@@ -9,7 +8,7 @@ import tempfile
 from eucwatch import Application
 from eucwatch.persistence import FileStore
 from eucwatch.recording import Recorder
-from support import Server, chrome, main, write_evidence
+from support import Server, chrome, main, save_preset, write_evidence
 
 
 async def run():

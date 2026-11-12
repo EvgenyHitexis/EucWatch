@@ -13,14 +13,14 @@
     "independent_recovery_uart": "available"
   },
   "source_sha256": {
-    "watch/main.js": "280e3317826fef5ec86b89a6a001cd39ca10ece286b3d6faa15bd99ff92ab1de",
-    "watch/app.js": "24a260c5f241bc4d4e46f35c353a9a1c9eff22f41462f74a0055a6add05bfefc",
-    "watch/controls.js": "511fce3d9f4ee7657c13c55048285adcb1ba0a9ceec08685f9b15353039a9a64",
-    "watch/render.js": "de894687c07e3638ed0791e4fb908c2fd02c416a7840289624f6174a4a6a85b9",
+    "watch/main.js": "0021912be33047112f13f01842bd0d4fad5d1ba8bf16ea1a69013a1710390c09",
+    "watch/app.js": "ea96ec48d15f11164b935982110c7df1c071639c8d2ee87745d9241d96674ab1",
+    "watch/controls.js": "fd23a87b4b6124cf6c4291053ef46ab5b5f81c4728d1683c6b1b7f3461a6b60e",
+    "watch/render.js": "fd8781a8c8134aa9268264a4a691f8f22a1b29b59184dbad8a8c0a4080af6b82",
     "watch/store.js": "6bec86fdaa17ccc97f711ef91485929dbfc267c8f255ae250d1c5aae6aa1d32b",
     "watch/boot.js": "17bcadbe43c2c2a7b2935f1453f5a05ecb191da171f1cbbb07e6b3d7cc3b2cb7",
-    "watch/tests/local-configuration.cjs": "917d934f346ee3a4db4dac40bab342f6ae0c996640c0c771fd048e1dfa318197",
-    "watch/tests/runtime.cjs": "56bbc5ac4be4181e1ded1a08bee4f4258af91d1f584e3721152d48162e9311c6"
+    "watch/tests/local-configuration.cjs": "f6a8a85205966141c442d0970179706d972478b546e88a38cdfb2e0e181ee562",
+    "watch/tests/harness.cjs": "59dcc0cfec49a0b9c6e7ca42200dbddfe1a56d91ff40b20608a5270b991da0da"
   },
   "physical_operation": "none; physical flash atomicity, radio and update deployment acceptance remain separate"
 }

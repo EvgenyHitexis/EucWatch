@@ -1,7 +1,12 @@
+import asyncio
 import unittest
+from unittest.mock import patch
 
 from aiohttp.test_utils import TestClient, TestServer
 
+from eucwatch import Application, ManualClock
+from eucwatch.lease import ControllerLease
+from eucwatch.live import LiveSession
 from eucwatch.server import create_app
 
 
@@ -69,6 +74,63 @@ class LocalApplication(unittest.IsolatedAsyncioTestCase):
             {'error': "'id'"}))
         self.assertEqual(await post({**request, 'id': 'intruder', 'controller': 'intruder'}), (400, 'application/json',
             {'error': 'Valid controller and request identity required'}))
+
+
+class GatedLive(LiveSession):
+    """A live session whose disconnect waits for the test, holding the action lock meanwhile."""
+    def __init__(self, application):
+        super().__init__(application)
+        self.entered, self.gate = asyncio.Event(), asyncio.Event()
+
+    async def disconnect(self):
+        self.entered.set()
+        await self.gate.wait()
+        await super().disconnect()
+
+
+class WaitingRequestHTTP(unittest.IsolatedAsyncioTestCase):
+    async def test_action_waiting_while_the_lease_expires_is_forbidden(self):
+        clock, waiting = ManualClock(), []
+
+        class ObservedLease(ControllerLease):
+            async def act(self, payload):
+                # Nothing awaits between here and the action lock, so once the test sees the id the request waits there.
+                waiting.append(payload.get('id'))
+                return await super().act(payload)
+
+        application = Application(clock=ManualClock())
+        live = GatedLive(application)
+        with patch('eucwatch.server.ControllerLease', ObservedLease):
+            client = TestClient(TestServer(create_app(application, live=live, clock=clock)))
+        await client.start_server()
+        try:
+            session = await (await client.get('/api/session')).json()
+            headers = {'Origin': str(client.make_url('/')).rstrip('/'), 'X-EucWatch-Key': session['credential']}
+            def post(identity, action):
+                return asyncio.create_task(client.post('/api/action', headers=headers, json={
+                    'controller': session['controller'], 'id': identity, 'action': action, 'epoch': 0}))
+            first = post('start', 'simulator_start')  # disconnects the live session first, inside the lock
+            await asyncio.wait_for(live.entered.wait(), 5)
+            press = post('press', 'button_down')
+            # Bounded only so a regression fails instead of hanging; no real time passes for the lease.
+            await asyncio.wait_for(self.until(lambda: 'press' in waiting), 5)
+            clock.advance(10.5)
+            replacement = await (await client.get('/api/session')).json()
+            self.assertNotIn(replacement['controller'], (None, session['controller']))
+            live.gate.set()
+            self.assertEqual((await first).status, 200)
+            response = await press
+            self.assertEqual((response.status, response.content_type, await response.text()),
+                (403, 'text/plain', 'Controller expired while action was waiting'))
+            self.assertFalse((await (await client.get('/api/state')).json())['button']['down'])
+        finally:
+            live.gate.set()
+            await client.close()
+
+    @staticmethod
+    async def until(condition):
+        while not condition():
+            await asyncio.sleep(0)
 
 
 class EvictedResultHTTP(unittest.IsolatedAsyncioTestCase):

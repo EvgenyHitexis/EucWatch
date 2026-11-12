@@ -1,7 +1,7 @@
 """Shared test support. Test files import from here, never from one another.
 
 It owns the protocol frame builders, the fake Bleak transports, the Preset
-editor action helper, and, for the browser flows, the served laptop
+editor action helper, the saved Preset fixture, and, for the browser flows, the served laptop
 application plus Chrome page bootstrap, the CDP driver and the watch pointer
 and screenshot helpers. Nothing here opens Bluetooth or touches a wheel.
 """
@@ -28,7 +28,6 @@ from eucwatch.persistence import FileStore
 from eucwatch.recording import Recorder
 from eucwatch.scenarios import FileScenarioStore
 from eucwatch.server import create_app
-from preset_fixture import save_preset
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -143,7 +142,19 @@ class Clients:
         return client
 
 
-# Preset editor actions
+# Preset editor actions and saved Preset fixture
+
+def save_preset(app, slot=1, **changes):
+    """Seed a saved Preset definition through local restore; never pretend fixture setup is editing."""
+    config = app.view()["config"]
+    config["presets"][slot - 1].update(changes)
+    if any(field in changes for field in ("pedal_sensitivity", "dynamic_assist")):
+        config["presets"][slot - 1]["configured"] = True
+    if "pedal_dip_compensation" in changes:
+        config["presets"][slot - 1]["dip_included"] = True
+    app.action("configuration_import_prepare", content=json.dumps(config))
+    return app.action("configuration_import_commit")
+
 
 def edit(app, action, **payload):
     """Send a Preset editor action with the current editor and entry identities."""

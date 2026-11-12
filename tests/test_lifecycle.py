@@ -1,5 +1,4 @@
 """Authoritative HTTP epochs, browser ownership and restart retention."""
-from preset_fixture import save_preset
 
 from pathlib import Path
 import tempfile
@@ -10,6 +9,7 @@ from aiohttp.test_utils import TestClient, TestServer
 from eucwatch import Application, ManualClock
 from eucwatch.persistence import FileStore
 from eucwatch.server import create_app
+from support import save_preset
 
 
 class LifecycleTests(unittest.IsolatedAsyncioTestCase):

@@ -27,13 +27,39 @@ const newId=test.app.view().preset_editor.id;test.app.action('configuration_relo
 for(const name of ['preset_clear','preset_clear_begin','preset_clear_done','preset_input_done'])assert.throws(()=>test.app.action(name),/Unknown/);
 assert.equal(test.writes.length,0);assert.equal(test.create().view().config.presets[3].name,'Local');
 console.log('watch local drafts, retry, stale completion/reload and retired actions: passed');
+{
+  // The Preset editor and the alert editor share one validation error: the last one set or cleared shows in both views.
+  const shared=scenario();open(shared,1);
+  const editorId={editor_id:shared.app.view().preset_editor.id},entryId=()=>({...editorId,entry_id:shared.app.view().preset_input.id});
+  const reasons=()=>{const state=shared.app.view();return [state.validation_error,state.preset_editor.reason];};
+  const percentage='Error: Pedal sensitivity: enter a whole percentage 0-100',threshold='Threshold outside supported range';
+  shared.app.action('preset_update',{...editorId,pedal_sensitivity:101});shared.app.action('preset_save',editorId);
+  assert.deepEqual(reasons(),[percentage,percentage]);
+  // Leave the Preset editor open behind other screens and use the alert editor.
+  shared.app.action('open_connection');shared.app.action('swipe',{direction:'up'});shared.app.action('swipe',{direction:'down',from_top:true});
+  shared.app.action('alerts_begin');
+  assert.equal(shared.app.view().preset_editor.id,editorId.editor_id);
+  assert.deepEqual(reasons(),[null,''],'an alert action clears the Preset editor reason');
+  shared.app.action('threshold_begin',{alert:'pwm'});for(const key of '111')shared.app.action('threshold_key',{key});
+  assert.throws(()=>shared.app.action('threshold_done'),/Threshold outside supported range/);
+  assert.deepEqual(reasons(),[threshold,threshold],'an alert error is the Preset editor reason too');
+  shared.app.action('preset_page',{...editorId,page:1});
+  assert.deepEqual(reasons(),[null,''],'a Preset editor action clears the alert error');
+  shared.app.action('preset_input_begin',editorId);shared.app.action('preset_input_key',{...entryId(),key:'Clear'});shared.app.action('preset_input_accept',entryId());
+  assert.deepEqual(reasons(),[percentage,percentage]);
+  shared.app.action('threshold_cancel');
+  assert.deepEqual(reasons(),[null,''],'an alert action clears the Preset editor error');
+  shared.app.action('preset_slots');
+  assert.deepEqual([shared.app.view().validation_error,shared.app.view().preset_editor],[null,null]);
+  console.log('watch shared validation error across the Preset and alert editors: passed');
+}
 // The Preset editor module alone: no clock, battery, wheel session or store.
 function editing(slot=1){
   const env=environment(),saved=env.require('sw-configuration').defaults(),editor=env.require('sw-preset-editor').create();editor.open(saved,slot);
   const ids=()=>({editor_id:editor.view().request.id,entry_id:editor.view().input?.id});
   const act=(name,payload={},editable=true)=>plain(editor.action(name,{...ids(),...payload},editable,saved));
   const type=text=>{for(const key of text)act('preset_input_key',{key});};
-  return {env,saved,editor,ids,act,type,keys:()=>plain(env.require('sw-preset-editor').keys(editor.view().input)),view:()=>plain(editor.view())};
+  return {env,saved,editor,ids,act,type,keys:()=>plain(editor.view().keys),view:()=>plain(editor.view())};
 }
 {
   const {saved,act,type,view}=editing(1);
@@ -58,7 +84,8 @@ function editing(slot=1){
 {
   // Key rules: a name takes 24 characters from three 12-key pages, a percentage 3 digits.
   const {act,type,keys,view}=editing(1);
-  act('preset_input_begin');act('preset_input_key',{key:'Clear'});
+  assert.deepEqual(keys(),[],'no key set without an open entry');
+  act('preset_input_begin');assert.deepEqual(keys(),'ABCDEFGHIJKL'.split(''));act('preset_input_key',{key:'Clear'});
   act('preset_input_page',{delta:1});act('preset_input_key',{key:'a/A'});
   assert.deepEqual(keys(),['m','n','o','p','q','r','s','t','u','v','w','x']);
   type('mno p');act('preset_input_key',{key:'<'});
@@ -71,6 +98,7 @@ function editing(slot=1){
   assert.throws(()=>act('preset_input_page',{delta:2}),/Invalid name keypad page/);
   act('preset_input_accept');act('preset_page',{page:1});act('preset_input_begin');
   assert.deepEqual(view().input,{id:2,field:'pedal_sensitivity',text:'0',letters:0,lowercase:false});
+  assert.deepEqual(keys(),['1','2','3','4','5','6','7','8','9','Clear','0','<']);
   type('1234');assert.equal(view().input.text,'012');
   assert.throws(()=>act('preset_input_key',{key:' '}),/Invalid preset input key/,'a percentage has no space');
   assert.throws(()=>act('preset_input_page',{delta:1}),/Invalid name keypad page/);
@@ -90,7 +118,8 @@ function editing(slot=1){
   for(const name of ['preset_input_key','preset_input_accept','preset_save','preset_update'])
     assert.throws(()=>editor.action(name,{...first,key:'Clear',name:'X'},true,saved),/Preset value entry changed/);
   assert.throws(()=>editor.swipe({...first,direction:'up'}),/Preset value entry changed/);
-  assert.throws(()=>editor.action('preset_input_accept',{editor_id:first.editor_id},true,saved),/Preset value entry changed/,'an entry action needs the entry id');
+  for(const name of ['preset_input_key','preset_input_page','preset_input_accept','preset_input_cancel'])
+    assert.throws(()=>editor.action(name,{editor_id:first.editor_id,key:'Clear',delta:1},true,saved),/Preset value entry changed/,name+' needs the entry id');
   assert.throws(()=>editor.action('preset_input_cancel',{...ids(),editor_id:first.editor_id+1},false,saved),/Preset editor changed/);
   assert.throws(()=>act('preset_input_cancel',{},false),/Preset editing unavailable/);
   assert.equal(view().input.id,2);
@@ -98,14 +127,16 @@ function editing(slot=1){
   assert.equal(view().request.id,2);assert.equal(view().input,null);assert.equal(view().page,0);
   assert.throws(()=>editor.action('preset_page',{...first,entry_id:undefined,page:1},true,saved),/Preset editor changed/);
   editor.close();
-  assert.deepEqual(view(),{request:null,draft:null,page:0,input:null});
+  assert.deepEqual(view(),{request:null,draft:null,page:0,input:null,keys:[],previous_page:3,next_page:1});
   assert.throws(()=>editor.swipe({editor_id:2,direction:'left'}),/Preset editor changed/);
 }
 {
   // In-editor swipes: left/right turn the field page unless an entry is open; up closes the entry, then the editor.
   const {editor,act,ids,view}=editing(3);
   const swipe=direction=>editor.swipe({editor_id:ids().editor_id,entry_id:ids().entry_id,direction});
+  assert.deepEqual([view().previous_page,view().next_page],[3,1]);
   assert.equal(plain(swipe('right')),null);assert.equal(view().page,3);
+  assert.deepEqual([view().previous_page,view().next_page],[2,0],'the page controls wrap as the swipes do');
   swipe('left');swipe('left');assert.equal(view().page,1);
   swipe('down');assert.equal(view().page,1);
   // An empty percentage is refused, so its entry stays open beside a reason.
@@ -146,7 +177,9 @@ function editing(slot=1){
   assert.equal(view().request.reason,'Error: Pedal sensitivity: enter a whole percentage 0-100');
   assert.deepEqual(act('preset_cancel'),{leave:true});
   assert.equal(view().request.reason,'');
-  assert.throws(()=>act('preset_apply'),/Unknown action/);
+  // Actions that do not act on an entry need no entry id.
+  act('preset_page',{page:1});act('preset_input_begin');
+  assert.equal(view().input.field,'pedal_sensitivity');
 }
 {
   // ADR 0002: the editor loads no wheel command module and takes no writer.

@@ -1,6 +1,4 @@
 """Modeled button requests at the public Application boundary; no audio claims."""
-from preset_fixture import save_preset
-
 
 import unittest
 import zlib
@@ -8,6 +6,7 @@ from pathlib import Path
 
 from eucwatch import Application, ManualClock
 from eucwatch.recording import Replay
+from support import save_preset
 
 
 class HornTests(unittest.TestCase):

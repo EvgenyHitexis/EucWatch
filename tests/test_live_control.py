@@ -1,6 +1,4 @@
 """Actual application commands through the real session and a fake BLE boundary."""
-from preset_fixture import save_preset
-
 
 import asyncio
 import unittest
@@ -9,7 +7,7 @@ from bleak.exc import BleakError
 from eucwatch import Application, ManualClock
 from eucwatch.live import LiveSession
 from eucwatch.live_control import LiveControl
-from support import ADDRESS, CHARACTERISTIC, SOURCE_FRAME, Scanner, WritingClient, edit, settings_frame
+from support import ADDRESS, CHARACTERISTIC, SOURCE_FRAME, Scanner, WritingClient, edit, save_preset, settings_frame
 
 
 class LiveControlTests(unittest.IsolatedAsyncioTestCase):
