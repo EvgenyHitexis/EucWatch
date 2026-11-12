@@ -12,7 +12,7 @@ exports.create = function (options) {
   var paintDuration=0,maxPaintDuration=0,visibleReceipt=null,maxReceiptToPaint=0;
   var core, devices=[], recoveryCalled=false;
   var config=configuration.defaults(),draft=null,persistenceError=null,validationError=null,alertPage=0,thresholdInput=null;
-  var editor=require('sw-preset-editor').create(),presetPage=0,presetInput=null,nextEntryId=1,clearSlot=null;
+  var presetEditor=require('sw-preset-editor'),editor=presetEditor.create();
   if(options.store){try{var saved=options.store.load();if(saved!==null&&saved!==undefined)config=configuration.validate(saved);persistenceError=options.store.warning||null;}catch(error){persistenceError='Saved configuration requires review: '+String(error);}}
   var alerts=require('sw-alerts').create({output:options.vibration_output,settings:config.alerts});
   var commandEvents=[],controlFeedback='',control=require('sw-preset-control').create({send:submit});
@@ -42,10 +42,7 @@ exports.create = function (options) {
     catch(error){persistenceError='Configuration save failed: '+String(error);return false;}
     config=proposed;control.invalidate(clock.now(),'Saved configuration changed');persistenceError=null;return true;
   }
-  function leaveEditor(){
-    editor.close();presetPage=0;presetInput=null;clearSlot=null;validationError=null;
-  }
-  function requireInput(id){if(!presetInput||typeof id!=='number'||id!==presetInput.id)throw new Error('Preset value entry changed; open a fresh entry');}
+  function leaveEditor(){editor.close();validationError=null;}
   function percent(voltage) {
     return voltage <= 119.02 ? 0 : voltage >= 148.05 ? 100 : Math.max(0, Math.min(100, Math.round((voltage - 119.02) / 0.2903)));
   }
@@ -53,7 +50,6 @@ exports.create = function (options) {
   function view() {
     var live = fresh(), values = telemetry,vibration=alerts.view(),controlState=control.view(),editing=editor.view();
     vibration.output=options.vibration_status?options.vibration_status():null;
-    if(editing.request)editing.request.reason=validationError||'';
     return { mode: 'watch',session: session, elapsed_s: clock.now(), connected: connected,
       fresh: live, awake: awake, screen: screen, recovery: recovery,
       established_connection: established, button: { down: buttonDown, wake_cycle: wakeCycle }, feedback: feedback,
@@ -61,9 +57,9 @@ exports.create = function (options) {
       vibration:vibration,
       preset_attempt:controlState.attempt,confirmed_preset:controlState.confirmed&&controlState.confirmed.kind==='preset'?controlState.confirmed:null,actual_settings:controlState.actual,
       horn_feedback:horn.view(),command_events:configuration.copy(commandEvents),
-      config:configuration.copy(config),alerts_draft:draft?configuration.copy(draft):null,alert_page:alertPage,persistence_error:persistenceError,validation_error:validationError,
+      config:configuration.copy(config),alerts_draft:draft?configuration.copy(draft):null,alert_page:alertPage,persistence_error:persistenceError,validation_error:editing.request?editing.request.reason||null:validationError,
       threshold_input:thresholdInput?configuration.copy(thresholdInput):null,
-      preset_editor:editing.request,preset_draft:editing.draft,preset_page:presetPage,preset_input:configuration.copy(presetInput),preset_clear_slot:clearSlot,
+      preset_editor:editing.request,preset_draft:editing.draft,preset_page:editing.page,preset_input:editing.input,
       devices:devices,transport:options.transportStatus?options.transportStatus():null,
       diagnostics: { valid_frames: validFrames, rejected_frames: rejectedFrames,
         retained_bytes: parser.status().retained_bytes, display_frames: paintCount,
@@ -115,15 +111,8 @@ exports.create = function (options) {
       else if (name === 'connected' && payload.session === session) { connected = true; established = true; awake = true; }
       else if (name === 'disconnect' && payload.session === session) resetSession();
       else if (name === 'swipe' && awake && !recovery) {
-        if(screen==='preset_editor'){
-          editor.require(payload.editor_id);
-          if(presetInput||payload.entry_id!=null)requireInput(payload.entry_id);
-          if(payload.direction==='left'||payload.direction==='right'){
-            if(!presetInput)core.action('preset_page',{editor_id:payload.editor_id,page:(presetPage+(payload.direction==='left'?1:3))%4});
-          }else if(payload.direction==='up'){
-            if(presetInput){presetInput=null;validationError=null;}else{leaveEditor();screen='preset_slots';}
-          }
-        }else if(payload.direction==='left'&&screen==='dashboard')screen='presets';
+        if(screen==='preset_editor'){if(editor.swipe(payload)){leaveEditor();screen='preset_slots';}}
+        else if(payload.direction==='left'&&screen==='dashboard')screen='presets';
         else if(payload.direction==='down'&&payload.from_top&&screen==='dashboard')screen='settings';
         else if(payload.direction==='up'){
           if(screen==='preset_slots')screen='settings';
@@ -145,50 +134,11 @@ exports.create = function (options) {
         leaveEditor();draft=null;screen='preset_slots';
       }else if(name==='preset_begin'){
         if(!awake||recovery)throw new Error('Preset editing unavailable');
-        editor.open(config,payload.slot);presetPage=0;presetInput=null;validationError=null;screen='preset_editor';
-      }else if(['preset_update','preset_cancel','preset_save','preset_include_dip','preset_page','preset_input_begin','preset_input_key','preset_input_page','preset_input_accept','preset_input_cancel'].indexOf(name)>=0){
-        editor.require(payload.editor_id);
-        if(payload.entry_id!=null||['preset_input_key','preset_input_page','preset_input_accept','preset_input_cancel'].indexOf(name)>=0)requireInput(payload.entry_id);
-        if(!awake||recovery)throw new Error('Preset editing unavailable');
-        validationError=null;
-        if(name==='preset_update'){
-          if(presetInput)throw new Error('Finish the current preset value entry first');
-          var changes=configuration.copy(payload);delete changes.source;delete changes.editor_id;delete changes.entry_id;editor.update(changes);
-        }else if(name==='preset_cancel'){leaveEditor();screen='preset_slots';}
-        else if(name==='preset_save'){
-          var proposedEditor;
-          try{if(presetInput)throw new Error('Finish the current preset value entry first');proposedEditor=editor.validate(config);}catch(error){validationError=String(error);return view();}
-          if(saveEditor(proposedEditor)){leaveEditor();screen='preset_slots';}
-        }else if(name==='preset_include_dip'){
-          if(typeof payload.included!=='boolean')throw new Error('Choose explicit dip inclusion');
-          editor.update({dip_included:payload.included});
-        }else if(name==='preset_page'){
-          if(typeof payload.page!=='number'||Math.floor(payload.page)!==payload.page||payload.page<0||payload.page>3)throw new Error('Invalid preset page');
-          if(!presetInput)presetPage=payload.page;
-        }else if(name==='preset_input_begin'){
-          if(!presetInput){
-            var inputField=require('sw-preset-editor').fields[presetPage];
-            presetInput={id:nextEntryId++,field:inputField,text:String(editor.view().draft[inputField]),letters:0,lowercase:false};
-          }
-        }else if(name==='preset_input_key'){
-          if(!presetInput)throw new Error('No preset input is open');
-          var key=payload.key;
-          if(key==='Clear')presetInput.text='';
-          else if(key==='<')presetInput.text=presetInput.text.slice(0,-1);
-          else if(key==='a/A'&&presetInput.field==='name')presetInput.lowercase=!presetInput.lowercase;
-          else if(typeof key==='string'&&(require('sw-preset-editor').keys(presetInput).indexOf(key)>=0||(key===' '&&presetInput.field==='name'))){if(presetInput.text.length<(presetInput.field==='name'?24:3))presetInput.text+=key;}
-          else throw new Error('Invalid preset input key');
-        }else if(name==='preset_input_page'){
-          if(!presetInput||presetInput.field!=='name'||(payload.delta!==1&&payload.delta!==-1))throw new Error('Invalid name keypad page');
-          presetInput.letters=(presetInput.letters+payload.delta+3)%3;
-        }else if(name==='preset_input_accept'){
-          try{
-            var accepted={};accepted[presetInput.field]=require('sw-preset-editor').validateValue(presetInput.field,presetInput.text);
-            editor.update(accepted);presetInput=null;
-          }catch(error){validationError=String(error);}
-        }else if(name==='preset_input_cancel'){
-          presetInput=null;
-        }
+        editor.open(config,payload.slot);validationError=null;screen='preset_editor';
+      }else if(presetEditor.actions.indexOf(name)>=0){
+        var edited=editor.action(name,payload,awake&&!recovery,config);
+        if(edited&&edited.invalid)return view();
+        if(edited&&(edited.leave||saveEditor(edited.save))){leaveEditor();screen='preset_slots';}
       }
       else if(name==='preset_apply'){
         if(control.pending()){feedback='Preset already applying';return view();}
@@ -259,14 +209,13 @@ exports.create = function (options) {
     tick: function () {
       var now = clock.now(), state, signature;
       updateControl();
-      if(!editor.view().draft)presetInput=null;
       updateAlerts();
       if (now - lastBattery >= 30) { watchBattery = battery(); lastBattery = now; }
       if (buttonDown && buttonStarted !== null && now - buttonStarted >= 30) { recovery = true; awake = true; feedback = 'Recovery mode'; if (options.recover&&!recoveryCalled) {recoveryCalled=true;options.recover();} }
       if (!established && !buttonDown && !recovery && !draft && !editor.view().request && now - lastInteraction >= 30) awake = false;
       if (options.present && now - lastPaint >= 0.2 - 0.000000001) {
         state = view();
-        signature = JSON.stringify([state.awake,state.screen,state.recovery,state.dashboard,state.feedback,state.devices,state.transport,state.alerts_draft,state.alert_page,state.threshold_input,state.validation_error,state.persistence_error,state.presets,state.preset_attempt,state.confirmed_preset,state.actual_settings,state.horn_feedback,state.preset_editor,state.preset_draft,state.preset_page,state.preset_input,state.preset_clear_slot]);
+        signature = JSON.stringify([state.awake,state.screen,state.recovery,state.dashboard,state.feedback,state.devices,state.transport,state.alerts_draft,state.alert_page,state.threshold_input,state.validation_error,state.persistence_error,state.presets,state.preset_attempt,state.confirmed_preset,state.actual_settings,state.horn_feedback,state.preset_editor,state.preset_draft,state.preset_page,state.preset_input]);
         if (signature !== lastView) {
           lastPaint = now; lastView = signature; paintCount++;
           options.present(state);paintDuration=Math.max(0,clock.now()-now);maxPaintDuration=Math.max(maxPaintDuration,paintDuration);
