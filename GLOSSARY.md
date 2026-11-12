@@ -94,6 +94,10 @@ _Avoid_: Treating a sent command or cached setting as confirmation, or confusing
 The saved riding presets and alert settings available to the watch independently of a laptop or phone.
 _Avoid_: Including live wheel readings, pending wheel commands or wheel confirmation in this term.
 
+**Controller lease**:
+The laptop application's grant letting one browser at a time act on it. It lapses after a period without that browser's activity, which cancels the preset draft and releases the side button; other browsers view only.
+_Avoid_: Treating a viewing browser, or a request carrying an earlier session or a repeated request identity, as a new action.
+
 **Wheel simulator**:
 A controllable stand-in for the Sherman L used to exercise riding information, control responses, and failure scenarios without the physical wheel.
 
