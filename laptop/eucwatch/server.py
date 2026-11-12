@@ -3,17 +3,18 @@
 import argparse
 import asyncio
 import secrets
-import time
 from contextlib import suppress
 from pathlib import Path
 
 from aiohttp import web
 
 from eucwatch import Application
+from eucwatch.clock import SystemClock
+from eucwatch.lease import Conflict, ControllerExpired, ControllerLease
 from eucwatch.live import LiveSession
 from eucwatch.live_control import LiveControl
 from eucwatch.persistence import FileStore
-from eucwatch.recording import Recorder, Replay
+from eucwatch.recording import Recorder
 from eucwatch.scenarios import FileScenarioStore, ScenarioLibrary
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -28,41 +29,24 @@ def create_app(
     controller_timeout=10.0,
     result_limit=2048,
     scenario_store=None,
+    clock=None,
 ):
     behavior = application or Application(
         store=store, event_sink=None if recorder is None else recorder.record
     )
     live = live or LiveSession(behavior)
-    scenarios = ScenarioLibrary(scenario_store)
     control = LiveControl(live, behavior)
     behavior.live_command_output = control.submit
     credential = secrets.token_urlsafe(32)
-    controllers = set()
-    controller_documents: dict[str, str] = {}
-    results = {}
-    seen = set()
-    intent_lock = asyncio.Lock()
-    last_ui_seen = time.monotonic()
-
-    def expire_controller():
-        if controllers and time.monotonic() - last_ui_seen > controller_timeout:
-            editor = behavior.view()["preset_editor"]
-            if editor is not None:
-                behavior.action("preset_cancel", editor_id=editor["id"])
-            controllers.clear()
-            controller_documents.clear()
-            results.clear()
-            seen.clear()
-            if behavior.view()["button"]["down"]:
-                behavior.action("button_up")
-
-    def snapshot():
-        return {
-            **behavior.view(),
-            "recording": None if recorder is None else recorder.status(),
-            "live": live.status(),
-            "scenario": scenarios.view(),
-        }
+    lease = ControllerLease(
+        behavior,
+        live,
+        ScenarioLibrary(scenario_store),
+        clock or SystemClock(),
+        recorder=recorder,
+        timeout=controller_timeout,
+        result_limit=result_limit,
+    )
 
     def local(request):
         expected = f"{request.scheme}://{request.host}"
@@ -76,46 +60,24 @@ def create_app(
             raise web.HTTPForbidden(text="Loopback host required")
 
     async def state(request):
-        nonlocal last_ui_seen
         local(request)
-        expire_controller()
-        if (
-            request.query.get("controller")
-            and request.query["controller"] not in controllers
-        ):
-            raise web.HTTPForbidden(text="Controller expired; reacquire current state")
-        if request.query.get("controller") in controllers:
-            last_ui_seen = time.monotonic()
-        return web.json_response(snapshot())
+        try:
+            lease.observe(request.query.get("controller"))
+        except ControllerExpired as exc:
+            raise web.HTTPForbidden(text=str(exc)) from None
+        return web.json_response(lease.snapshot())
 
     async def session(request):
-        nonlocal last_ui_seen
         local(request)
-        expire_controller()
-        controller = request.query.get("controller")
-        if controller not in controllers:
-            if controllers:
-                controller = None
-            else:
-                controller = secrets.token_urlsafe(16)
-                controllers.add(controller)
-        if controller is not None:
-            document = request.query.get("document")
-            if document and len(document) <= 100:
-                previous = controller_documents.get(controller)
-                if previous is not None and previous != document:
-                    editor = behavior.view()["preset_editor"]
-                    if editor is not None:
-                        behavior.action("preset_cancel", editor_id=editor["id"])
-                controller_documents[controller] = document
-            last_ui_seen = time.monotonic()
+        controller = lease.acquire(
+            request.query.get("controller"), request.query.get("document")
+        )
         return web.json_response(
             {"credential": credential, "controller": controller},
             headers={"Cache-Control": "no-store"},
         )
 
     async def action(request):
-        nonlocal last_ui_seen
         local(request)
         if request.headers.get("Origin") != f"{request.scheme}://{request.host}":
             raise web.HTTPForbidden(text="Same-origin control required")
@@ -125,98 +87,11 @@ def create_app(
             raise web.HTTPForbidden(text="Launch credential required")
         try:
             payload = await request.json()
-            expire_controller()
-            controller, identity = payload.pop("controller"), payload.pop("id")
-            name = payload.pop("action")
-            if not isinstance(name, str) or len(name) > 64:
-                raise ValueError("Application action name required")
-            if name in (
-                "live_start",
-                "live_connected",
-                "live_disconnected",
-                "command_result",
-                "horn_result",
-            ):
-                raise ValueError("Transport callbacks are internal application inputs")
-            if (
-                controller not in controllers
-                or not isinstance(identity, str)
-                or not identity
-                or len(identity) > 128
-            ):
-                raise ValueError("Valid controller and request identity required")
-            last_ui_seen = time.monotonic()
-            key = (controller, identity)
-            async with intent_lock:
-                if controller not in controllers:
-                    raise web.HTTPForbidden(
-                        text="Controller expired while action was waiting"
-                    )
-                if key in results:
-                    return web.json_response(results[key])
-                if key in seen:
-                    return web.json_response(
-                        {
-                            "error": "Duplicate action was already processed; its response expired"
-                        },
-                        status=409,
-                    )
-                epoch = payload.pop("epoch", None)
-                if type(epoch) is not int or epoch != behavior.session:
-                    return web.json_response(
-                        {"error": "Application session changed; refresh before acting"},
-                        status=409,
-                    )
-                if name.startswith("scenario_"):
-                    if name == "scenario_save":
-                        scenarios.save_current(
-                            behavior.simulator.values,
-                            payload.get("name"),
-                            payload.get("steps"),
-                        )
-                    elif name == "scenario_review":
-                        scenarios.review(payload.get("content"))
-                    elif name == "scenario_export":
-                        scenarios.export()
-                    elif name == "scenario_start":
-                        scenarios.export()  # Validate a complete definition before disconnecting.
-                        await live.disconnect()
-                        scenarios.start(behavior)
-                    elif name == "scenario_step":
-                        scenarios.step(behavior)
-                    else:
-                        raise ValueError("Unknown scenario action")
-                    result = snapshot()
-                elif name == "live_discover":
-                    await live.discover()
-                    result = snapshot()
-                elif name == "live_select":
-                    await live.connect(payload["address"])
-                    result = snapshot()
-                elif name == "live_disconnect":
-                    await live.disconnect()
-                    result = snapshot()
-                else:
-                    if name in (
-                        "simulator_start",
-                        "connect",
-                        "stop",
-                        "disconnect",
-                        "replay_start",
-                    ):
-                        await live.disconnect()
-                    if name == "replay_start":
-                        payload["recording"] = Replay.from_text(
-                            payload["recording"],
-                            name=payload.pop("name", "Imported recording"),
-                        )
-                    behavior.action(name, **payload)
-                    result = snapshot()
-                results[key] = result
-                seen.add(key)
-                if len(results) > result_limit:
-                    del results[next(iter(results))]
-                return web.json_response(result)
+            return web.json_response(await lease.act(payload))
+        except ControllerExpired as exc:
+            raise web.HTTPForbidden(text=str(exc)) from None
+        except Conflict as exc:
+            return web.json_response({"error": str(exc)}, status=409)
         except (KeyError, TypeError, ValueError, OSError) as exc:
             return web.json_response({"error": str(exc)}, status=400)
 
@@ -252,12 +127,7 @@ def create_app(
     async def lifetime(app):
         async def run():
             while True:
-                expire_controller()
-                if (
-                    time.monotonic() - last_ui_seen > 2
-                    and behavior.view()["button"]["down"]
-                ):
-                    behavior.action("button_up")
+                lease.tick()
                 behavior.tick()
                 live.tick()
                 control.tick()

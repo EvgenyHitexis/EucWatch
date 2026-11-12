@@ -26,6 +26,8 @@ async def run():
         recorder=Recorder(root/'capture.jsonl')
         app.event_sink=recorder.record
         probe=socket.socket();probe.bind(('127.0.0.1',0));port=probe.getsockname()[1];probe.close()
+        # Real Chrome polls on wall time, so the lease keeps the system clock with a short timeout;
+        # the frozen-tab sleep below waits out that lease. Lease rules under a ManualClock are in test_lease.py.
         runner=web.AppRunner(create_app(app,recorder=recorder,controller_timeout=.7))
         await runner.setup();await web.TCPSite(runner,'127.0.0.1',port).start()
         url=f'http://127.0.0.1:{port}'
