@@ -9,7 +9,7 @@ export interface Preset {
   pedal_dip_compensation?: number;
 }
 export interface PresetOperation {
-  kind: 'preset' | 'editor';
+  kind: 'preset';
   slot: number;
   name: string;
   status: string;

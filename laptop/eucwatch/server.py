@@ -249,18 +249,6 @@ def create_app(
             },
         )
 
-    async def websocket(request):
-        local(request)
-        ws = web.WebSocketResponse(heartbeat=20)
-        await ws.prepare(request)
-        try:
-            while not ws.closed:
-                await ws.send_json(snapshot())
-                await asyncio.sleep(0.2)
-        finally:
-            await ws.close()
-        return ws
-
     async def lifetime(app):
         async def run():
             while True:
@@ -304,7 +292,6 @@ def create_app(
             web.get("/api/state", state),
             web.get("/api/session", session),
             web.post("/api/action", action),
-            web.get("/api/ws", websocket),
             web.get("/api/recording", recording),
             web.get("/", index),
         ]

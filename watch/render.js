@@ -86,7 +86,7 @@ exports.draw = function (g, state) {
     if (d.charging) text('+',173,7,13,1);
     text(d.speed,120,33,69); text('km/h',120,110,12);
     if(state.horn_feedback)text(state.horn_feedback.message,120,121,10);
-    else if(state.preset_attempt){var attempt=state.preset_attempt,current=attempt.kind==='editor'?state.confirmed_setting:state.confirmed_preset;text(require('sw-preset-editor').attemptName(attempt)+' · '+(attempt.pending?'Applying':attempt.status==='Confirmed'&&!current?'Unconfirmed':attempt.status),120,121,10);}
+    else if(state.preset_attempt){var attempt=state.preset_attempt,current=state.confirmed_preset;text(attempt.name+' · '+(attempt.pending?'Applying':attempt.status==='Confirmed'&&!current?'Unconfirmed':attempt.status),120,121,10);}
     text('PWM',13,145,13,-1); text(d.pwm+'%',228,132,33,1);
     g.setColor(1); g.drawLine(12,176,228,176);
     text(d.wheel_battery_percent+'% est.',12,182,18,-1);

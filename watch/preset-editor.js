@@ -10,7 +10,6 @@ exports.validateValue=function(field,value){
   }
   return value;
 };
-exports.attemptName=function(attempt){return attempt.kind==='editor'?exports.labels[exports.fields.indexOf(Object.keys(attempt.fields)[0])]:attempt.name;};
 exports.keys=function(input){if(input.field!=='name')return ['1','2','3','4','5','6','7','8','9','Clear','0','<'];var text='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.slice(input.letters*12,input.letters*12+12);return (input.lowercase?text.toLowerCase():text).split('');};
 exports.slot=function(slot){if(typeof slot!=='number'||Math.floor(slot)!==slot||slot<1||slot>4)throw new Error('Choose one of the four fixed preset slots');return slot;};
 exports.replacement=function(config,draft){var proposed=configuration.copy(config);proposed.presets[exports.slot(draft.id)-1]=configuration.copy(draft);proposed.revision++;return configuration.validate(proposed);};

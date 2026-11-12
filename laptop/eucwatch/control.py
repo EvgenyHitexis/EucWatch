@@ -37,13 +37,13 @@ class PresetControl:
     def pending(self) -> bool:
         return self.attempt is not None and self.attempt["pending"]
 
-    def start(self, preset: dict[str, Any], revision: int, session: int, now: float, *, kind: str = "preset") -> None:
+    def start(self, preset: dict[str, Any], revision: int, session: int, now: float) -> None:
         self.confirmed = None
         fields = {name: {"requested": preset[name], "actual": None, "state": "unknown",
                          "submitted_s": None, "matches": 0}
                   for name in FIELDS if name in preset and
-                  (name != "pedal_dip_compensation" or preset.get("dip_included", kind == "editor"))}
-        self.attempt = {"kind": kind, "id": self.next_id, "slot": preset["id"], "name": preset["name"],
+                  (name != "pedal_dip_compensation" or preset.get("dip_included", False))}
+        self.attempt = {"kind": "preset", "id": self.next_id, "slot": preset["id"], "name": preset["name"],
                         "revision": revision, "session": session, "status": "submitting",
                         "pending": True, "requested_s": now, "submitted_s": None,
                         "finished_s": None, "reason": "", "fields": fields,

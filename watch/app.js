@@ -25,7 +25,7 @@ exports.create = function (options) {
   function updateControl(){
     control.tick(clock.now(),{fresh:fresh(),session:session,revision:config.revision,recovery:recovery});
     var result=control.view(),attempt=result.attempt,key=attempt?attempt.id+':'+attempt.status+':'+!!result.confirmed:'';
-    if(attempt&&key!==controlFeedback){controlFeedback=key;feedback=require('sw-preset-editor').attemptName(attempt)+' · '+(attempt.pending?'Applying':attempt.status==='Confirmed'&&!result.confirmed?'Unconfirmed':attempt.status);}
+    if(attempt&&key!==controlFeedback){controlFeedback=key;feedback=attempt.name+' · '+(attempt.pending?'Applying':attempt.status==='Confirmed'&&!result.confirmed?'Unconfirmed':attempt.status);}
     var previous=horn.view();horn.tick(clock.now(),session);
     if(previous&&!horn.view()&&feedback===previous.message)feedback='';
     if(horn.view())feedback=horn.view().message;
@@ -60,7 +60,6 @@ exports.create = function (options) {
       telemetry: values, watch_battery: watchBattery,
       vibration:vibration,
       preset_attempt:controlState.attempt,confirmed_preset:controlState.confirmed&&controlState.confirmed.kind==='preset'?controlState.confirmed:null,actual_settings:controlState.actual,
-      confirmed_setting:controlState.confirmed&&controlState.confirmed.kind==='editor'?controlState.confirmed:null,
       horn_feedback:horn.view(),command_events:configuration.copy(commandEvents),
       config:configuration.copy(config),alerts_draft:draft?configuration.copy(draft):null,alert_page:alertPage,persistence_error:persistenceError,validation_error:validationError,
       threshold_input:thresholdInput?configuration.copy(thresholdInput):null,
@@ -266,7 +265,7 @@ exports.create = function (options) {
       if (!established && !buttonDown && !recovery && !draft && !editor.view().request && now - lastInteraction >= 30) awake = false;
       if (options.present && now - lastPaint >= 0.2 - 0.000000001) {
         state = view();
-        signature = JSON.stringify([state.awake,state.screen,state.recovery,state.dashboard,state.feedback,state.devices,state.transport,state.alerts_draft,state.alert_page,state.threshold_input,state.validation_error,state.persistence_error,state.presets,state.preset_attempt,state.confirmed_preset,state.confirmed_setting,state.actual_settings,state.horn_feedback,state.preset_editor,state.preset_draft,state.preset_page,state.preset_input,state.preset_clear_slot]);
+        signature = JSON.stringify([state.awake,state.screen,state.recovery,state.dashboard,state.feedback,state.devices,state.transport,state.alerts_draft,state.alert_page,state.threshold_input,state.validation_error,state.persistence_error,state.presets,state.preset_attempt,state.confirmed_preset,state.actual_settings,state.horn_feedback,state.preset_editor,state.preset_draft,state.preset_page,state.preset_input,state.preset_clear_slot]);
         if (signature !== lastView) {
           lastPaint = now; lastView = signature; paintCount++;
           options.present(state);paintDuration=Math.max(0,clock.now()-now);maxPaintDuration=Math.max(maxPaintDuration,paintDuration);

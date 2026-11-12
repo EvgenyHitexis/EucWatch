@@ -465,8 +465,8 @@ async def run():
                         assert after_resume['session']>before_resume['session']
                         assert after_resume['elapsed_s']==before_resume['elapsed_s']
                         assert len(after_resume['command_events'])>=len(before_resume['command_events'])
-                        submitted_before=[row for row in before_resume['command_events'] if row['event'] in ('command_submission','horn_submission')]
-                        submitted_after=[row for row in after_resume['command_events'] if row['event'] in ('command_submission','horn_submission')]
+                        submitted_before=[row for row in before_resume['command_events'] if row['event']=='submission']
+                        submitted_after=[row for row in after_resume['command_events'] if row['event']=='submission']
                         assert submitted_after==submitted_before
                         behavior.receive(before_resume['session'],b''.join(behavior.simulator.notifications(now=after_resume['elapsed_s'])))
                         assert not behavior.view()['fresh']
