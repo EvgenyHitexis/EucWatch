@@ -157,7 +157,7 @@ exports.create=function(options){
       if(busy||gatt)throw new Error('Disconnect the selected wheel first');
       var allowed=devices.some(function(device){return device.id===id;});
       if(!allowed)throw new Error('Select a device from explicit discovery');
-      selected=id;desired=true;recovering=false;attempts=0;app.action('swipe',{direction:'right'});connect();
+      selected=id;desired=true;recovering=false;attempts=0;app.action('wheel_selected');connect();
     },
     disconnect:function(){
       cancelWrite('Wheel disconnect requested; no retry');

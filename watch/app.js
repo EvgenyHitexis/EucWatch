@@ -139,6 +139,7 @@ exports.create = function (options) {
       } else if (name === 'button_up') { buttonDown = false; wakeCycle = false; buttonStarted = null; }
       else if (name === 'battery_refresh') { watchBattery = battery(); lastBattery = clock.now(); }
       else if(name==='open_connection'){if(awake)screen='connection';}
+      else if(name==='wheel_selected'){if(screen==='connection')screen='dashboard';}
       else if(name==='devices'){devices=(payload.devices||[]).slice(0,4);}
       else if(name==='preset_slots'){
         if(!awake||recovery)throw new Error('Preset editing unavailable');

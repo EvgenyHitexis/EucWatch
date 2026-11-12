@@ -108,6 +108,7 @@ if(require.main===module)(async()=>{
   env.button(true);env.button(false);env.advance(30900);
   env.touch(5,120,40);assert.equal(running.core.view().screen,'connection');
   env.advance(31200);env.touch(5,120,55);await flush();
+  assert.equal(running.core.view().screen,'dashboard','selecting a wheel returns to the Riding dashboard');
   assert.equal(running.transport.status().link,'subscribed');assert.equal(running.core.view().fresh,false);
   const rows=fs.readFileSync(path.resolve(root,'../experiments/laptop-feasibility/evidence/fixture-recording.jsonl'),'utf8').trim().split('\n').map(JSON.parse);
   for(const row of rows.slice(0,5))env.notification(Buffer.from(row.raw_hex,'hex'));

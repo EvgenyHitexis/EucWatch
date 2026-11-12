@@ -34,7 +34,7 @@ const results=[];
   }
   for(const [slot,dip,packet] of [[1,0,'4c64417021010280808080808080808080808080808080808080808000f0fc0bd4'],[2,11,'4c6441702101028080808080808080808080808080808080808080800b672ed25c']]){
     const env=environment();env.context.storage['sw-config.json']=JSON.stringify(fixture.cases[0].input);const running=env.start();
-    running.transport.discover();running.transport.select('11:22:33:44:55:66 public');await flush();env.advance(200);env.notification(frame(44,55,83));env.touch(2,120,20);env.touch(3,20,120);env.touch(5,slot===1?66:174,80);await flush();
+    running.transport.discover();running.transport.select('11:22:33:44:55:66 public');await flush();env.advance(200);env.notification(frame(44,55,83));env.touch(3,20,120);env.touch(5,slot===1?66:174,80);await flush();
     assert.deepEqual(env.bleWrites.slice(-2),[packet.slice(0,40),packet.slice(40)]);
     assert.equal(running.core.view().preset_attempt.fields.pedal_dip_compensation.requested,dip);
     results.push({included_dip:dip,expected_packet:packet,observed_chunks:env.bleWrites});running.stop();
@@ -46,7 +46,7 @@ const results=[];
     results.push({mode:'native-json-precision-refusal',warning:running.core.view().persistence_error,storage:env.storageEffects});running.stop();
   }
   const env=environment(),running=env.start();running.transport.discover();running.transport.select('11:22:33:44:55:66 public');await flush();
-  let now=200;env.advance(now);env.notification(frame(44,55,83));env.touch(2,120,20);
+  let now=200;env.advance(now);env.notification(frame(44,55,83));
   env.touch(0,120,10);env.touch(1,120,110);env.touch(5,120,196);env.advance(now+=200);
   assert.equal(running.core.view().screen,'preset_slots');assert.ok(fixture.fresh.presets.every(slot=>env.context.graphics.ops.some(op=>op.kind==='text'&&String(op.value).includes(slot.name))));
   for(let i=0;i<4;i++){
