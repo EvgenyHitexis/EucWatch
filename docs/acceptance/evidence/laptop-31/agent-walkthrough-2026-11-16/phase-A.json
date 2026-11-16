@@ -1,0 +1,309 @@
+[
+ {
+  "row": "visual",
+  "snapshots": [
+   "01-dashboard.png",
+   "02-settings.png",
+   "03-preset-slots.png",
+   "04-preset-name-field.png",
+   "05-name-keypad.png",
+   "06-preset-sensitivity-field.png",
+   "07-numeric-keypad.png",
+   "08-alerts.png",
+   "09-alert-keypad.png",
+   "10-riding-presets.png"
+  ],
+  "drafts": [
+   null,
+   null
+  ],
+  "command_events": 0
+ },
+ {
+  "row": "R4.1 enable PWM without threshold, Save",
+  "observed": "Alert editor 1 of 4. High PWM; enabled; threshold not configured %. Previous and next alert; toggle enabled; decrease or increase threshold or tap value for keypad; Test vibration pattern; Cancel; Save. Unsaved draft. Error: A threshold is required to enable pwm",
+  "snapshot": "11-r4-missing-threshold.png",
+  "saved_unchanged": true,
+  "passed": true
+ },
+ {
+  "row": "R4.2 enter 70, Set value, Save",
+  "saved": {
+   "enabled": true,
+   "threshold": 70
+  },
+  "snapshot": "12-r4-saved.png",
+  "passed": true
+ },
+ {
+  "row": "R4.3 toggle off, Cancel",
+  "saved": {
+   "enabled": true,
+   "threshold": 70
+  },
+  "draft": null,
+  "passed": true
+ },
+ {
+  "row": "R4.4 Test vibration: pwm",
+  "durations_s": [
+   0.15,
+   0.15,
+   0.15
+  ],
+  "gaps_s": [
+   0.15,
+   0.15
+  ],
+  "snapshot": "13-r4-test-pwm.png",
+  "all_test": true,
+  "passed": true
+ },
+ {
+  "row": "R4.4 Test vibration: speed",
+  "durations_s": [
+   0.15,
+   0.15
+  ],
+  "gaps_s": [
+   0.15
+  ],
+  "snapshot": "14-r4-test-speed.png",
+  "all_test": true,
+  "passed": true
+ },
+ {
+  "row": "R4.4 Test vibration: battery",
+  "durations_s": [
+   0.5
+  ],
+  "gaps_s": [],
+  "snapshot": "15-r4-test-battery.png",
+  "all_test": true,
+  "passed": true
+ },
+ {
+  "row": "R4.4 Test vibration: lost",
+  "durations_s": [
+   0.15
+  ],
+  "gaps_s": [],
+  "snapshot": "16-r4-test-lost.png",
+  "all_test": true,
+  "passed": true
+ },
+ {
+  "row": "R4.5 Cancel to Settings, up to dashboard",
+  "reopened_shows": "Alert editor 1 of 4. High PWM; enabled; threshold 70 %. Previous and next alert; toggle enabled; decrease or increase threshold or tap value for keypad; Test vi",
+  "screen": "dashboard",
+  "saved": {
+   "enabled": true,
+   "threshold": 70
+  },
+  "wheel_commands": 0,
+  "passed": true
+ },
+ {
+  "row": "R5.1 tap Road, two 0.2 s advances",
+  "on_tap": "Speed 25 km/h; PWM 45 percent; estimated wheel battery 100 percent; average cell voltage 4.11 volts; simulated watch bat",
+  "attempt": {
+   "kind": "preset",
+   "id": 1,
+   "slot": 3,
+   "name": "Road",
+   "revision": 2,
+   "session": 1,
+   "status": "Confirmed",
+   "pending": false,
+   "requested_s": 3.6,
+   "submitted_s": 3.6,
+   "finished_s": 4.0,
+   "reason": "",
+   "fields": {
+    "pedal_sensitivity": {
+     "requested": 40,
+     "actual": 40,
+     "state": "confirmed",
+     "submitted_s": 3.6,
+     "matches": 2
+    },
+    "dynamic_assist": {
+     "requested": 25,
+     "actual": 25,
+     "state": "confirmed",
+     "submitted_s": 3.6,
+     "matches": 2
+    }
+   },
+   "readbacks": [
+    3.8000000000000003,
+    4.0
+   ],
+   "matching_frames": 2,
+   "next_index": 2,
+   "awaiting": null
+  },
+  "snapshots": [
+   "17-r5-applying.png",
+   "18-r5-confirmed.png"
+  ],
+  "passed": true
+ },
+ {
+  "row": "R5.2 side button while awake, then a 1 s hold",
+  "feedback": "Horn request sent",
+  "horn_requests_added": 2,
+  "passed": true
+ },
+ {
+  "row": "R5.3 Missing readback, Road, 0.2 s advances",
+  "advances": 50,
+  "elapsed_s": 10.0,
+  "attempt": {
+   "kind": "preset",
+   "id": 2,
+   "slot": 3,
+   "name": "Road",
+   "revision": 2,
+   "session": 1,
+   "status": "Not confirmed",
+   "pending": false,
+   "requested_s": 5.000000000000001,
+   "submitted_s": 5.000000000000001,
+   "finished_s": 14.999999999999979,
+   "reason": "Confirmation timeout",
+   "fields": {
+    "pedal_sensitivity": {
+     "requested": 40,
+     "actual": null,
+     "state": "unknown",
+     "submitted_s": 5.000000000000001,
+     "matches": 0
+    },
+    "dynamic_assist": {
+     "requested": 25,
+     "actual": null,
+     "state": "unknown",
+     "submitted_s": 5.000000000000001,
+     "matches": 0
+    }
+   },
+   "readbacks": [],
+   "matching_frames": 0,
+   "next_index": 2,
+   "awaiting": null
+  },
+  "outcome": "Road \u00b7 Not confirmed \u00b7 Confirmation timeout \u00b7 Some settings may have changed; the previous preset is not assured.",
+  "watch": "Speed 25 km/h; PWM 45 percent; estimated wheel battery 100 percent; average cell voltage 4.11 volts; simulated watch battery 80 percent; Con",
+  "snapshot": "19-r5-not-confirmed.png",
+  "passed": true
+ },
+ {
+  "row": "R5.4 Matching restored, explicit retry",
+  "attempt": {
+   "kind": "preset",
+   "id": 3,
+   "slot": 3,
+   "name": "Road",
+   "revision": 2,
+   "session": 1,
+   "status": "Confirmed",
+   "pending": false,
+   "requested_s": 14.999999999999979,
+   "submitted_s": 14.999999999999979,
+   "finished_s": 15.399999999999977,
+   "reason": "",
+   "fields": {
+    "pedal_sensitivity": {
+     "requested": 40,
+     "actual": 40,
+     "state": "confirmed",
+     "submitted_s": 14.999999999999979,
+     "matches": 2
+    },
+    "dynamic_assist": {
+     "requested": 25,
+     "actual": 25,
+     "state": "confirmed",
+     "submitted_s": 14.999999999999979,
+     "matches": 2
+    }
+   },
+   "readbacks": [
+    15.199999999999978,
+    15.399999999999977
+   ],
+   "matching_frames": 2,
+   "next_index": 2,
+   "awaiting": null
+  },
+  "snapshot": "20-r5-retry-confirmed.png",
+  "passed": true
+ },
+ {
+  "row": "R6.1 replay 13 events",
+  "watch": "Speed 0 km/h; PWM 2 percent; estimated wheel battery 97 percent; average cell voltage 4.09 volts; simulated watch battery 80 percent; Connected; Road \u00b7 Unconfirmed",
+  "progress": "Replay finished \u00b7 13 / 13 events \u00b7 elapsed 2.10 s",
+  "snapshot": "21-r6-replay-finished.png",
+  "passed": true
+ },
+ {
+  "row": "R6.2 riding controls in replay",
+  "screen_after_swipe": "presets",
+  "watch": "Preset menu. Four fixed slots: slot 1: Jump, configured; slot 2: Forest, configured; slot 3: Road, configured; slot 4: Drag, configured. Application unavailable",
+  "snapshot": "22-r6-replay-presets.png",
+  "new_commands": 0,
+  "attempt": {
+   "kind": "preset",
+   "id": 3,
+   "slot": 3,
+   "name": "Road",
+   "revision": 2,
+   "session": 1,
+   "status": "Confirmed",
+   "pending": false,
+   "requested_s": 14.999999999999979,
+   "submitted_s": 14.999999999999979,
+   "finished_s": 15.399999999999977,
+   "reason": "",
+   "fields": {
+    "pedal_sensitivity": {
+     "requested": 40,
+     "actual": 40,
+     "state": "confirmed",
+     "submitted_s": 14.999999999999979,
+     "matches": 2
+    },
+    "dynamic_assist": {
+     "requested": 25,
+     "actual": 25,
+     "state": "confirmed",
+     "submitted_s": 14.999999999999979,
+     "matches": 2
+    }
+   },
+   "readbacks": [
+    15.199999999999978,
+    15.399999999999977
+   ],
+   "matching_frames": 2,
+   "next_index": 2,
+   "awaiting": null
+  },
+  "passed": true
+ },
+ {
+  "row": "R6.3 local editing in replay",
+  "editor_opened": true,
+  "snapshot": "23-r6-replay-local-editing.png",
+  "screen_after": "dashboard",
+  "passed": true
+ },
+ {
+  "row": "R6.4 browser reload",
+  "commands_before": 16,
+  "commands_after": 16,
+  "mode": "replay",
+  "passed": true
+ }
+]

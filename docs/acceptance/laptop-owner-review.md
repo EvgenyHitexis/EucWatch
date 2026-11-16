@@ -22,6 +22,18 @@ inclusion and upward return. Road sensitivity is saved at 40; all other saved
 content is unchanged and editing emitted no wheel commands. R4–R6 and overall
 owner acceptance remain pending.
 
+**Agent walkthrough, 2026-11-16 (not owner acceptance).** At the owner's request
+an agent ran the revised-layout screens and R4–R6 in headless Chrome against
+this review session, following the table below. [Its record](evidence/laptop-31/agent-walkthrough-2026-11-16/phase-A.json),
+[relaunch check](evidence/laptop-31/agent-walkthrough-2026-11-16/phase-B.json),
+24 Canvas snapshots and [driver](evidence/laptop-31/agent-walkthrough-2026-11-16/driver.py)
+show every R4–R6 expectation met, with zero wheel commands. One step differs: R4
+advanced 0.9 s, not 1 s (see the note after the table). The first attempt with
+1 s advances stopped on a real lost-telemetry alert. The agent also found that
+the missing-threshold error names the alert by its internal key (“enable pwm”)
+and replaces the alert title while shown. This run does not replace the owner's
+visual review of the revised layout or the owner's R4–R6 acceptance.
+
 ## Review session
 
 Use a separate profile so review edits preserve the owner's normal saved presets.
@@ -54,11 +66,14 @@ for this walkthrough; no live wheel connection is part of it.
 | R1 — dashboard and freshness | Under Reproducible scenarios, choose `docs/acceptance/scenarios/freshness.json`, Review file, then Start reviewed or saved scenario. Run all seven Next scenario step actions. | Start shows 25 km/h, PWM 45%, estimated battery 100% and average cell 4.11 V. Step 2 shows dashes and dimmed retained wheel battery. Step 4 restores readings; step 5 disconnects; step 6 alone has no fresh readings; step 7 restores them. Watch battery stays independent. |
 | R2 — navigation and sleep | Swipe down from the dashboard's top. Open Sleep screen, then press and release the side button. Swipe up to return to the dashboard. | Settings buttons are consistent and readable. The button cycle only wakes the screen. Settings returns upward; riding presets return by swiping right. |
 | R3 — local presets | Down → Presets. Open each of the four slots and check its name and fields. On Road, change sensitivity from 30 to 40 and press keypad OK. Reopen it, enter 42 and Cancel. Save from the field display. Reopen Road and check 40. Make another draft change and cancel the whole draft. From preset selection, swipe up to Settings, then up to the dashboard. | OK returns to the field without saving. Entry Cancel restores the latest accepted value (40). Save persists the whole preset. Whole-draft Cancel preserves the saved definition. Horizontal swipes wrap fields only after the keypad closes; upward swipes cancel one level at a time. Dip inclusion and remembered value remain separate. Editing never applies a preset to the wheel. |
-| R4 — alerts | Down → Vibration alerts. Enable PWM with no threshold and try Save. Enter 70 through the threshold keypad, Set value, then Save. Reopen Vibration alerts, toggle it off and Cancel. Reopen Vibration alerts again. Use Test vibration on each of the four alert pages, advancing simulator time by 1 second after each test. Cancel back to Settings, then swipe up to the dashboard. | Invalid Save explains the missing threshold. Saved PWM stays enabled at 70 after Cancel. The trace shows PWM: three 150 ms pulses; speed: two 150 ms pulses; battery: one 500 ms pulse; lost telemetry: one 150 ms pulse. Multi-pulse gaps are 150 ms. These are simulated traces, not physical vibration. |
+| R4 — alerts | Down → Vibration alerts. Enable PWM with no threshold and try Save. Enter 70 through the threshold keypad, Set value, then Save. Reopen Vibration alerts, toggle it off and Cancel. Reopen Vibration alerts again. Use Test vibration on each of the four alert pages, advancing simulator time by 0.9 seconds after each test. Cancel back to Settings, then swipe up to the dashboard. | Invalid Save explains the missing threshold. Saved PWM stays enabled at 70 after Cancel. The trace shows PWM: three 150 ms pulses; speed: two 150 ms pulses; battery: one 500 ms pulse; lost telemetry: one 150 ms pulse. Multi-pulse gaps are 150 ms. These are simulated traces, not physical vibration. |
 | R5 — riding controls and feedback | With fresh simulator readings, swipe left from dashboard and tap Road. Advance time by 0.2 seconds twice. Press/release the side button while awake. For a failure, set Settings readback to Missing, Send simulator readings, select Road again, then advance by 0.2 seconds repeatedly until confirmation expires after 10 seconds. Restore Matching, Send simulator readings and select Road again for an explicit retry. | A single tap returns immediately to the dashboard with Applying, then Confirmed after fresh matching readings. Missing readback cannot confirm; timeout is visible. A new explicit selection can succeed. The awake button reports a simulated horn request; holding it does not repeat. There is no audible-horn claim. |
 | R6 — replay and retention | End the simulator session. Load `experiments/laptop-feasibility/evidence/fixture-recording.jsonl` under Read-only replay and step its 13 events. Reload the browser; stop/relaunch when convenient. | Replay finishes at speed 0, PWM 2%, estimated battery 97%, average cell 4.09 V. Riding controls are unavailable in replay; local editing remains possible. Browser reload does not repeat commands. Relaunch is idle with saved preset/alert values, without drafts or a confirmed preset. |
 
-For R3, keypad Clear removes characters; it does not delete a preset. For R5,
+For R4, stay under 1 second per advance: telemetry is fresh for less than
+1.0 s and an advance emits no frames, so a 1-second advance raises a real
+lost-telemetry alert between the test patterns. For R3, keypad Clear removes
+characters; it does not delete a preset. For R5,
 advancing once by 10 seconds would also make telemetry stale: use short advances
 so the missing-settings timeout can be reviewed with fresh telemetry. The
 non-default Missing setting is a labelled higher-level simulator injection.

@@ -1,0 +1,51 @@
+[
+ {
+  "row": "R6.5 stop/relaunch",
+  "mode": "idle",
+  "alerts": {
+   "battery": {
+    "enabled": false,
+    "threshold": null
+   },
+   "lost": {
+    "enabled": true
+   },
+   "pwm": {
+    "enabled": true,
+    "threshold": 70
+   },
+   "speed": {
+    "enabled": false,
+    "threshold": null
+   }
+  },
+  "presets": [
+   [
+    "Jump",
+    0,
+    0
+   ],
+   [
+    "Forest",
+    70,
+    0
+   ],
+   [
+    "Road",
+    40,
+    25
+   ],
+   [
+    "Drag",
+    20,
+    70
+   ]
+  ],
+  "alerts_draft": null,
+  "preset_editor": null,
+  "preset_attempt": null,
+  "confirmed_preset": null,
+  "snapshot": "41-r6-after-relaunch.png",
+  "passed": true
+ }
+]
