@@ -34,6 +34,13 @@ the missing-threshold error names the alert by its internal key (“enable pwm�
 and replaces the alert title while shown. This run does not replace the owner's
 visual review of the revised layout or the owner's R4–R6 acceptance.
 
+**Owner acceptance, 2026-11-16.** After reading the agent walkthrough above, the
+owner accepted the revised touch layout and R4–R6 (“yes. i accept”). The owner
+did not operate the simulator for R4–R6. The acceptance rests on that run's
+record and snapshots. With R1–R3, every simulator review row is now accepted.
+#69 (missing-threshold error wording) remains open, and so does the remaining
+live evidence below.
+
 ## Review session
 
 Use a separate profile so review edits preserve the owner's normal saved presets.

@@ -26,15 +26,20 @@ Road sensitivity is saved at 40 after value and whole-preset Save/Cancel checks;
 field loops and dip inclusion preserve the other saved content, with no wheel
 commands. R4–R6, overall owner acceptance and required live evidence remain pending.
 
+On 2026-11-16 the owner accepted the revised touch layout and R4–R6 on the
+evidence of an [agent-run walkthrough](laptop-owner-review.md). Every simulator
+review row (R1–R6) is now accepted. The live evidence rows below remain
+incomplete.
+
 | #31 requirement | Current outcome | Evidence / next action |
 | --- | --- | --- |
 | Launch, shutdown, offline relaunch, XDG scenarios | Software pass | `tests/launch_smoke.py` starts the real launcher twice with isolated XDG directories; saved preset, alerts and complete scenario survive, without autostart or transient state. [Launch result](evidence/laptop-31/launch.json); [scenario format/import/export](scenarios.md). |
-| Complete actual watch-sized flows | Automated pass; owner behavior review pending | Six built Chrome flows cover dashboard, gestures/sleep, local presets, controls, horn model and lifecycle. Alert validation, keypad, Save/Cancel and all four Test patterns now use Canvas pointers. [Alert result](evidence/laptop-31/alerts.json); walkthrough R1–R6. |
+| Complete actual watch-sized flows | Automated pass; owner accepted R1–R6 | Six built Chrome flows cover dashboard, gestures/sleep, local presets, controls, horn model and lifecycle. Alert validation, keypad, Save/Cancel and all four Test patterns now use Canvas pointers. [Alert result](evidence/laptop-31/alerts.json); walkthrough R1–R6. |
 | Simulator, read-only replay, browser/session/storage failures | Software pass | Current [validation manifest](evidence/laptop-31/validation.json) indexes scenario, replay, control, lifecycle and storage evidence. Seed 0 is fixed input with controlled time. Control failure/readback injections are labelled; they are not measured hardware behavior. |
 | Live application telemetry, ranges, confirmation, persistence, multi-setting/partial/disconnect and riding behavior | Incomplete | Controlled BLE tests verify software only. Existing research observations below are reused within scope; application/live rows remain in the walkthrough's live-evidence list. |
 | Outstanding #9, including audible horn and assist/dip persistence | Incomplete | Horn remains deferred. Changed assist/dip persistence, unverified ranges and owner app versions, complete application presets and riding evidence remain outstanding. |
 | Reproducible, versioned, sanitized evidence | Software pass | [Run commands, source/artifact hashes and provenance](evidence/laptop-31/validation.json). New artifacts are under `evidence/laptop-31/`; original historical evidence is preserved. No private recordings or backups are committed. |
-| Explicit owner review and all required passes | Partial: appearance approved; R1–R3 observed pass; R4–R6 agent-run pass on 2026-11-16, not owner acceptance ([owner review](laptop-owner-review.md)) | Owner review of the revised layout, owner R4–R6 behavior, overall owner acceptance and physical rows remain pending. Unknown or failed checks remain incomplete. |
+| Explicit owner review and all required passes | Partial: appearance approved; R1–R3 observed pass; revised layout and R4–R6 accepted by the owner on 2026-11-16 from an agent-run walkthrough ([owner review](laptop-owner-review.md)) | Physical rows remain pending, and with them overall acceptance. Unknown or failed checks remain incomplete. |
 | Separate hardware authorization and deployment gate | Retained | No live scan/connection, physical command or watch deployment in this pass. #37 still follows full #31 acceptance and separate deployment authorization; #38 follows installation. |
 
 Reproduce after setup:

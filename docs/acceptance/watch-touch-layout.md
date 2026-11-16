@@ -59,6 +59,10 @@ and appearance; they do not approve this layout revision. R4 stopped after the
 missing-threshold Save check, and R4–R6 plus overall owner acceptance remain
 incomplete. No watch installation or physical wheel operation was performed.
 
+**Update, 2026-11-16:** the owner accepted this layout revision and R4–R6, on
+the evidence of an [agent-run walkthrough](laptop-owner-review.md). Physical
+finger comfort on the watch is still unreviewed.
+
 ## Standards
 
 No documented-rule or ADR violations. The reviewer suggested sharing riding-menu
