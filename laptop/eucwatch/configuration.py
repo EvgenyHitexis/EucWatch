@@ -8,6 +8,9 @@ VERSION = 2
 DEFAULT_PRESETS = (("Jump", 0, 0, 0), ("Forest", 70, 0, 0),
                    ("Road", 30, 25, 10), ("Drag", 20, 70, 5))
 ALERTS = ("pwm", "speed", "battery", "lost")
+# Each alert's display name: the alert editor's title and the name its messages use.
+ALERT_LABELS = {"pwm": "High PWM", "speed": "High speed", "battery": "Low wheel battery",
+                "lost": "Lost telemetry"}
 # Highest saved threshold per measurement alert; zero is the lowest.
 THRESHOLD_LIMITS = {"pwm": 100, "speed": 3276.7, "battery": 100}
 # A preset riding value (Pedal sensitivity, Dynamic assist, Pedal dip compensation).
@@ -52,13 +55,13 @@ def validate_alerts(alerts: Any) -> dict[str, Any]:
             or set(setting) != required
             or type(setting["enabled"]) is not bool
         ):
-            raise ValueError(f"Invalid {name} alert setting")
+            raise ValueError(f"Invalid {ALERT_LABELS[name]} alert setting")
         if name == "lost":
             continue
         threshold = setting["threshold"]
         if threshold is None:
             if setting["enabled"]:
-                raise ValueError(f"A threshold is required to enable {name}")
+                raise ValueError(f"A threshold is required to enable {ALERT_LABELS[name]}")
         elif (
             isinstance(threshold, bool)
             or not isinstance(threshold, (int, float))
@@ -66,7 +69,7 @@ def validate_alerts(alerts: Any) -> dict[str, Any]:
             or not 0 <= threshold <= THRESHOLD_LIMITS[name]
         ):
             raise ValueError(
-                f"Invalid {name} threshold (0–{'3276.7 km/h' if name == 'speed' else '100%'})"
+                f"Invalid {ALERT_LABELS[name]} threshold (0–{'3276.7 km/h' if name == 'speed' else '100%'})"
             )
     return deepcopy(alerts)
 

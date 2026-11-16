@@ -42,4 +42,17 @@ recovered.stop();delete env.context.storage['sw-config.json'];const absent=env.s
 const decimal=environment(),decimalApp=decimal.start();decimal.advance(200);begin(decimalApp);decimal.touch(5,120,120);
 decimal.touch(5,40,177);decimal.touch(5,120,103);decimal.touch(5,170,220);decimal.touch(5,195,72);decimal.touch(5,170,220);
 assert.equal(decimalApp.core.view().config.alerts.pwm.threshold,.5);assert.equal(decimalApp.core.view().config.alerts.pwm.enabled,true);decimalApp.stop();
+// A refused Save keeps the alert's title above its explanation, all above the Enabled control (y 52); the laptop
+// Canvas draws the same lines (frontend/src/main.ts).
+for(const [page,lines] of [[0,['High PWM','A threshold is required','to enable High PWM']],[1,['High speed','A threshold is required','to enable High speed']],
+  [2,['Low wheel battery','A threshold is required','to enable Low wheel','battery']]]){
+  const screen=environment(),app=screen.start();screen.advance(200);begin(app);
+  for(let next=0;next<page;next++)screen.touch(5,208,22);
+  screen.touch(5,195,72);screen.touch(5,170,214);screen.advance(400);
+  assert.match(app.core.view().validation_error,/threshold is required/);
+  const heading=screen.context.graphics.ops.filter(op=>op.kind==='text'&&op.x===120&&op.y<52);
+  assert.deepEqual(heading.map(op=>op.value),lines,`alert page ${page}`);
+  heading.forEach((op,index)=>{assert.ok(op.y+op.size<=52&&op.width<=128,`${op.value} fits between the arrows`);if(index)assert.ok(op.y>=heading[index-1].y+heading[index-1].size,`${op.value} below the line before`);});
+  app.stop();
+}
 console.log('watch physical editor and actual active-high motor adapter: passed');

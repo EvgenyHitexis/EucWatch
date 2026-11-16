@@ -23,6 +23,16 @@ const message=value=>value&&String(value).replace(/^Error: /,'');
   console.log(`watch alert editor shared key-sequence trace: ${trace.steps.length} steps matched`);
 }
 {
+  // A missing threshold names the alert as the editor's title does; tests/test_alert_editor.py pins the same messages.
+  for(const [page,alert,message] of [[0,'pwm','A threshold is required to enable High PWM'],
+    [1,'speed','A threshold is required to enable High speed'],[2,'battery','A threshold is required to enable Low wheel battery']]){
+    const {act,view}=editing();act('alerts_page',{page});act('alerts_update',{alert,enabled:true});
+    assert.throws(()=>act('alerts_save'),error=>error.message===message,alert);
+    assert.equal(view().reason,'Error: '+message,alert);
+  }
+  console.log('watch alert editor missing-threshold message per alert: passed');
+}
+{
   // Watch rules the laptop does not share, kept from the core: Set value refuses an out-of-range or digitless entry and
   // says so in the reason the core shares with the Preset editor; Cancel needs no open entry.
   let shared=null;const reason={get:()=>shared,set:value=>{shared=value||null;}};

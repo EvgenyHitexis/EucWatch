@@ -4,10 +4,8 @@ from copy import deepcopy
 from decimal import Decimal
 from typing import Any
 
-from .configuration import ALERTS, THRESHOLD_LIMITS, validate_alerts, validate_configuration
+from .configuration import ALERT_LABELS, ALERTS, THRESHOLD_LIMITS, validate_alerts, validate_configuration
 
-LABELS = {"pwm": "High PWM", "speed": "High speed", "battery": "Low wheel battery",
-          "lost": "Lost telemetry"}
 UNITS = {"pwm": "%", "speed": "km/h", "battery": "%", "lost": ""}
 # alerts_begin is Application's: it copies the saved alerts into a new draft.
 ACTIONS = ("alerts_update", "alerts_page", "alerts_adjust", "alerts_save", "alerts_cancel",
@@ -169,7 +167,7 @@ class AlertEditor:
         if self.entry is None:
             return None
         alert = self.entry["alert"]
-        return {"alert": alert, "label": LABELS[alert], "unit": UNITS[alert],
+        return {"alert": alert, "label": ALERT_LABELS[alert], "unit": UNITS[alert],
                 "text": self.entry["text"],
                 "display": f"{self.entry['text'] or '—'} {UNITS[alert]}"}
 
@@ -185,7 +183,7 @@ class AlertEditor:
             "previous_page": (self.page + 3) % 4,
             "next_page": (self.page + 1) % 4,
             "alert": alert,
-            "label": LABELS[alert],
+            "label": ALERT_LABELS[alert],
             "unit": UNITS[alert],
             "enabled": setting["enabled"],
             "toggle_label": "Enabled" if setting["enabled"] else "Disabled",

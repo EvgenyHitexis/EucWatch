@@ -1,4 +1,6 @@
-/* Original 240x240, 1-bpp presentation; Canvas layout carried to Espruino Graphics. */
+/* Original 240x240, 1-bpp presentation; Canvas layout carried to Espruino Graphics.
+   The alert editor keeps its title above a message, wrapped at spaces into up to three 23-character lines, as the
+   laptop Canvas does (frontend/src/main.ts). */
 exports.draw = function (g, state) {
   var d = state.dashboard, i, x, y;
   function text(value, x, y, size, align) {
@@ -9,6 +11,14 @@ exports.draw = function (g, state) {
     g.setFont('Vector',size);
     while(size>1&&g.stringWidth(String(value))>width){size--;g.setFont('Vector',size);}
     return size;
+  }
+  function wrap(value,width,count){
+    var lines=[],cut;
+    while(value&&lines.length<count){
+      cut=value.length<=width?value.length:value.lastIndexOf(' ',width);if(cut<=0)cut=width;
+      lines.push(value.slice(0,cut));value=value.slice(cut).replace(/^ +/,'');
+    }
+    return lines;
   }
   function controls(){require('sw-controls').targets(state).forEach(function(target){
     var r=target.rect,width=r[2]-r[0],size=target.action==='preset_input_begin'?22:width<=48?12:16;
@@ -61,14 +71,14 @@ exports.draw = function (g, state) {
     var message=state.horn_feedback?state.horn_feedback.message:state.validation_error|| (state.persistence_error?'Configuration needs review':'');
     text(message||'SETTINGS',120,10,message?10:15);controls();
   }else if(state.screen==='alerts'){
-    var name=['pwm','speed','battery','lost'][state.alert_page];
+    var name=['pwm','speed','battery','lost'][state.alert_page],alertLabels=require('sw-configuration').labels;
     controls();
     var message=state.validation_error||state.persistence_error||(state.vibration.output_error?'Vibration output unavailable':'')||(state.horn_feedback?state.horn_feedback.message:'');
-    if(message){message=message.replace(/^Error: /,'');text(message.slice(0,23),120,7,10);text(message.slice(23,46),120,22,10);}
-    else {text({pwm:'High PWM',speed:'High speed',battery:'Low wheel battery',lost:'Lost telemetry'}[name],120,6,12);text((state.alert_page+1)+'/4',120,24,12);}
+    if(message){text(alertLabels[name],120,2,12);wrap(message.replace(/^Error: /,''),23,3).forEach(function(line,index){text(line,120,16+index*11,10);});}
+    else {text(alertLabels[name],120,6,12);text((state.alert_page+1)+'/4',120,24,12);}
     if(name==='lost')text('1 short pulse',120,111,14);
   }else if(state.screen==='threshold'){
-    text(state.validation_error?'Invalid threshold':{pwm:'High PWM',speed:'High speed',battery:'Low wheel battery'}[state.threshold_input.alert],120,2,12);
+    text(state.validation_error?'Invalid threshold':require('sw-configuration').labels[state.threshold_input.alert],120,2,12);
     text((state.threshold_input.text||'-')+(state.threshold_input.alert==='speed'?' km/h':' %'),120,20,20);controls();
   } else if(state.screen==='connection'){
     text('SELECT WHEEL',120,10,15);

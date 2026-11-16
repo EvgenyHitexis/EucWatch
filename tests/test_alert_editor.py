@@ -181,11 +181,11 @@ class AlertEditorTests(unittest.TestCase):
         app.action("alerts_update", alert="pwm", enabled=True)
 
         def fail():
-            with self.assertRaisesRegex(ValueError, "threshold is required to enable pwm"):
+            with self.assertRaisesRegex(ValueError, "threshold is required to enable High PWM"):
                 app.action("alerts_save")
             state = app.view()
             self.assertEqual(state["config"], saved)
-            self.assertEqual(state["alert_editor"]["reason"], "A threshold is required to enable pwm")
+            self.assertEqual(state["alert_editor"]["reason"], "A threshold is required to enable High PWM")
             return state
 
         fail()
@@ -214,6 +214,24 @@ class AlertEditorTests(unittest.TestCase):
         self.assertEqual(state["screen"], "settings")
         self.assertEqual(state["command_events"], [])
 
+    def test_a_missing_threshold_names_the_alert_the_editor_shows(self):
+        # The same messages are pinned on the watch in watch/tests/alert-editor.cjs.
+        for page, alert, title, message in (
+            (0, "pwm", "High PWM", "A threshold is required to enable High PWM"),
+            (1, "speed", "High speed", "A threshold is required to enable High speed"),
+            (2, "battery", "Low wheel battery", "A threshold is required to enable Low wheel battery"),
+        ):
+            with self.subTest(alert=alert):
+                app = settings()
+                app.action("alerts_begin")
+                app.action("alerts_page", page=page)
+                app.action("alerts_update", alert=alert, enabled=True)
+                with self.assertRaises(ValueError) as refused:
+                    app.action("alerts_save")
+                self.assertEqual(str(refused.exception), message)
+                editor = app.view()["alert_editor"]
+                self.assertEqual((editor["label"], editor["reason"]), (title, message))
+
     def test_out_of_range_entry_is_refused_at_save(self):
         app = settings()
         app.action("alerts_begin")
@@ -223,9 +241,9 @@ class AlertEditorTests(unittest.TestCase):
             app.action("threshold_key", key=key)
         state = app.action("threshold_done")
         self.assertEqual(state["alert_editor"]["threshold_label"], "101 %")
-        with self.assertRaisesRegex(ValueError, "Invalid battery threshold"):
+        with self.assertRaisesRegex(ValueError, "Invalid Low wheel battery threshold"):
             app.action("alerts_save")
-        self.assertEqual(app.view()["alert_editor"]["reason"], "Invalid battery threshold (0–100%)")
+        self.assertEqual(app.view()["alert_editor"]["reason"], "Invalid Low wheel battery threshold (0–100%)")
         self.assertEqual(app.view()["config"]["revision"], 0)
 
     def test_cancel_discards_the_draft_and_keeps_the_saved_alerts(self):
@@ -328,9 +346,9 @@ class AlertEditorTests(unittest.TestCase):
         entry = app.action("threshold_begin", alert="speed")["alert_editor"]["entry"]
         self.assertEqual(entry["text"], "NaN")
         app.action("threshold_cancel")
-        with self.assertRaisesRegex(ValueError, "Invalid speed threshold"):
+        with self.assertRaisesRegex(ValueError, "Invalid High speed threshold"):
             app.action("alerts_save")
-        self.assertEqual(app.view()["alert_editor"]["reason"], "Invalid speed threshold (0–3276.7 km/h)")
+        self.assertEqual(app.view()["alert_editor"]["reason"], "Invalid High speed threshold (0–3276.7 km/h)")
 
     def test_no_editor_view_without_an_alert_draft(self):
         app = settings()

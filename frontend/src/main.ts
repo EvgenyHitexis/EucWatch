@@ -519,6 +519,17 @@ function watchButton(rect: Rect, label: string, size = 16): void {
 // An action refused before it reached the alert editor (transport, lease) has no
 // reason in the view, so the Canvas shows the browser's own message for it.
 function alertEditorAction(actionName: string): boolean { return actionName.startsWith('alerts_') || actionName.startsWith('threshold_'); }
+// The alert title stays above a message, wrapped at spaces into lines of at most width characters, as watch/render.js does.
+function wrapLines(value: string, width: number, count: number): string[] {
+  const lines: string[] = [];
+  while (value && lines.length < count) {
+    let cut = value.length <= width ? value.length : value.lastIndexOf(' ', width);
+    if (cut <= 0) cut = width;
+    lines.push(value.slice(0, cut));
+    value = value.slice(cut).replace(/^ +/, '');
+  }
+  return lines;
+}
 function renderWatchAlerts(editor: AlertEditorView): void {
   const error = watchError || editor.reason || current?.persistence_error || '';
   const entry = editor.entry;
@@ -533,8 +544,8 @@ function renderWatchAlerts(editor: AlertEditorView): void {
   }
   watchButton(alertRects.previous, '‹', 24); watchButton(alertRects.next, '›', 24);
   if (error) {
-    text(error.slice(0, 23), 120, 17, 10, '#ffffff', 'center');
-    text(error.slice(23, 46), 120, 32, 10, '#ffffff', 'center');
+    text(editor.label, 120, 14, 12, '#ffffff', 'center');
+    wrapLines(error, 23, 3).forEach((line, index) => text(line, 120, 26 + index * 11, 10, '#ffffff', 'center'));
   } else {
     text(editor.label, 120, 18, 12, '#ffffff', 'center');
     text(`${editor.page + 1}/4`, 120, 36, 12, '#ffffff', 'center');
