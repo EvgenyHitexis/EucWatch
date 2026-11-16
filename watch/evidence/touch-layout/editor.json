@@ -3,7 +3,7 @@
   "provenance": "production main/CST816/Graphics/parser/GATT/native Storage; simulated physical inputs, time, BLE and flash; no hardware operations",
   "trace": {
     "trace": "docs/acceptance/evidence/touch-layout/editor-laptop.json",
-    "trace_sha256": "90f63e91e2ce110ecf403bd53fba6213f68fadcff4fb01fbbcd67829c4236a11",
+    "trace_sha256": "e83ba1234cbd2440c6f6fe1974b6a26dfaaecaed056be49c19d28de99e6cf280",
     "states": [
       {
         "input": {
@@ -22597,21 +22597,22 @@
     }
   ],
   "source_sha256": {
+    "watch/alert-editor.js": "f94e916eb34f525d87d3e13db1c12d47e7cad053993a84b626bf636cd76a6d9c",
     "watch/alerts.js": "37e778e87f1cf7c4224a3b87a1dd4982a84095cf5d24f0378aab162f3edd0e99",
-    "watch/app.js": "0f37018683c54d29e651502034353232fcdf8fd7b37875aac4e2a17df0ebc000",
+    "watch/app.js": "38157b3bbc47174c7ca0bc5577efeb38b69a3aac76f78842bda9e795093e6c88",
     "watch/boot.js": "17bcadbe43c2c2a7b2935f1453f5a05ecb191da171f1cbbb07e6b3d7cc3b2cb7",
-    "watch/configuration.js": "34c995d3c0922ed740bc42bed818c09cbb4e9843dfb1dfd2590869cc0d754bc9",
-    "watch/controls.js": "aabd2608b65e35e678545b5677850211b3d9054c469ac17cc7cb0b98a2698e93",
+    "watch/configuration.js": "e8cb0e57f65da71213b44000ee0e5a2d9e7172687f9d95a5d5b9a4417263acd2",
+    "watch/controls.js": "32b44dbee778e2d5b9df8478eadeea4c017035be5d2453a4a7405d4c5ef1b63b",
     "watch/display.js": "6471e8383ad163f9bae99a7e711bddd4a4a377deccf2e54191175d006de5f4ae",
     "watch/hardware.js": "932d9d2a2c5599304b4f764e4344f72269b050c942f476c5928cebc876131f03",
     "watch/horn.js": "d03479b8306fe88289b4b4932375b3efb4e696f44e8cad8deea9a93b83bd756c",
-    "watch/main.js": "0021912be33047112f13f01842bd0d4fad5d1ba8bf16ea1a69013a1710390c09",
+    "watch/main.js": "63fa54c5f1bb739285a1d1d94f86b6cf8f0e7efa3e14d8d9ed8c33e1f305ef46",
     "watch/motor.js": "7814a91690a99773458bbb9282be0b95ae863b1142dbac1892336b56de2a7cae",
-    "watch/preset-control.js": "616486d1ebe6fa7b6da63abbf285b6a7aea9794035abe5fb4a693e6a09160d1a",
-    "watch/preset-editor.js": "ca3d2f1a7bec3b172d793b84a3936076893810fb39fab3dc103f178789eab8c6",
+    "watch/preset-control.js": "245c955784a7bbb8e3c830ba334e0e572909ba83feb6647558be093fceeb1f77",
+    "watch/preset-editor.js": "5c02b1cfe051d26b259f70279e947de96dc431ab649cf1b5919df1c670df03fa",
     "watch/protocol.js": "173c2d4d534747a7e251ae06fb0b28a0578af8e3db229afd676ac2f6a2ab11b8",
-    "watch/render.js": "5a95a4176c8fdd95f39648528c6de6d44590efb2b363b8667153b52f4a2f7337",
+    "watch/render.js": "8585a4404c00d78d1475a8e6f6cd3c8fa8ac18d94405eea465840ab29d1a2293",
     "watch/store.js": "6bec86fdaa17ccc97f711ef91485929dbfc267c8f255ae250d1c5aae6aa1d32b",
-    "watch/transport.js": "fd5efeb7d6a794205dcc6ea6591e73caa395e4b36fe4024a11680f7ba3ea4e67"
+    "watch/transport.js": "eb9ffa675f1a47871aa413f79ef990cc133f87654e9cd51c8fc3d7db3ff8fde9"
   }
 }

@@ -2,7 +2,7 @@
   "spec": "docs/design/preset-value-editor.md",
   "provenance": "Actual laptop pointer trace through native CST816/main/Graphics/Storage; simulated hardware, clock, flash and BLE",
   "trace": "docs/acceptance/evidence/touch-layout/value-editor-laptop.json",
-  "trace_sha256": "418f27b4c4cee43e95b72bef92e1ed7c36b1998e8f8671bbbfcdb705995b987c",
+  "trace_sha256": "6b693c2b0ba161b47e80c0c5e9cce8b5e369149eaa31f8479f6afecda6653d5d",
   "events": 100,
   "renderings": [
     {
