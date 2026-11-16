@@ -32,6 +32,14 @@ The watch view presenting speed, PWM, wheel battery, watch battery, and connecti
 **Vibration alert**:
 A tactile notification delivered by the watch when a configured riding condition is met.
 
+**Alert editor**:
+The view for editing an unsaved draft of the four vibration alerts' settings, one alert per page, which replaces the saved alert settings only on Save.
+_Avoid_: Treating a draft change, or a Test vibration from the editor, as a saved alert setting.
+
+**Threshold entry**:
+The unaccepted threshold being typed on the alert editor's keypad for one measurement alert, separate from the alert draft until Set value.
+_Avoid_: Treating a set threshold as saved before the alert editor's Save.
+
 **EUC Watch**:
 The existing community project discussed in the imported chat archive. It is a reference project distinct from the owner's custom watch application.
 

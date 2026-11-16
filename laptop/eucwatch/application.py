@@ -6,12 +6,11 @@ from copy import deepcopy
 from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 
-from . import backup, presets
+from . import alert_editor, backup, presets
 from .alerts import AlertScheduler
 from .clock import Clock, ManualClock, SystemClock
 from .configuration import (
     default_configuration,
-    validate_alerts,
     validate_configuration,
 )
 from .control import PresetControl
@@ -85,7 +84,7 @@ class Application:
             self.persistence_error = self.store.warning
         except (OSError, ValueError) as exc:
             self.persistence_error = f"Saved configuration requires review: {exc}"
-        self.alerts_draft: dict[str, Any] | None = None
+        self.alert_editor = alert_editor.AlertEditor()
         self.editor = presets.PresetEditor()
         self.confirmed_preset: dict[str, Any] | None = None
         self.configuration_preview: dict[str, Any] | None = None
@@ -295,9 +294,7 @@ class Application:
             "button_hold",
             "interact",
             "alerts_begin",
-            "alerts_update",
-            "alerts_save",
-            "alerts_cancel",
+            *alert_editor.ACTIONS,
             "alert_test",
             "preset_begin",
             "preset_update",
@@ -559,14 +556,16 @@ class Application:
                 elif direction == "up" and self.screen == "preset_slots":
                     self.screen = "settings"
                 elif direction == "up" and self.screen == "settings":
-                    if self.alerts_draft is not None:
-                        self.alerts_draft = None
+                    if self.alert_editor.entry is not None:
+                        self.alert_editor.cancel_entry()
+                    elif self.alert_editor.draft is not None:
+                        self.alert_editor.close()
                     else:
                         self.screen = "dashboard"
                 elif direction == "right" and self.screen == "presets":
                     self.screen = "dashboard"
         elif name == "alerts_begin":
-            self.alerts_draft = deepcopy(self.config["alerts"])
+            self.alert_editor.open(self.config["alerts"])
         elif name == "configuration_export":
             self.configuration_export = backup.export(self.config)
         elif name == "configuration_import_prepare":
@@ -644,40 +643,21 @@ class Application:
                         self.screen = "preset_slots"
         elif name == "preset_slots":
             self._leave_editor()
-            self.alerts_draft = None
+            self.alert_editor.close()
             self.screen = "preset_slots"
-        elif name == "alerts_update":
-            alert = payload.pop("alert", None)
-            if self.alerts_draft is None:
-                raise ValueError("Open the alert editor before editing")
-            if (
-                alert not in self.alerts_draft
-                or not payload
-                or set(payload)
-                - ({"enabled"} if alert == "lost" else {"enabled", "threshold"})
-            ):
-                raise ValueError("Invalid alert draft field")
-            self.alerts_draft[alert].update(payload)
-        elif name == "alerts_save":
-            if self.alerts_draft is None:
-                raise ValueError("No alert draft is open")
-            alerts = validate_alerts(self.alerts_draft)
-            proposed = deepcopy(self.config)
-            proposed["alerts"] = alerts
-            proposed["revision"] += 1
-            proposed = validate_configuration(proposed)
-            try:
-                self.store.save(proposed)
-            except (OSError, ValueError) as exc:
-                self.persistence_error = f"Configuration save failed: {exc}"
-            else:
-                self.config = proposed
-                self.alerts_draft = None
-                self.persistence_error = None
-                self.alerts.configure(alerts, self.elapsed())
-                self._update_alerts()
-        elif name == "alerts_cancel":
-            self.alerts_draft = None
+        elif name in alert_editor.ACTIONS:
+            proposed = self.alert_editor.action(name, payload, self.config)
+            if proposed is not None:
+                try:
+                    self.store.save(proposed)
+                except (OSError, ValueError) as exc:
+                    self.persistence_error = f"Configuration save failed: {exc}"
+                else:
+                    self.config = proposed
+                    self.alert_editor.close()
+                    self.persistence_error = None
+                    self.alerts.configure(proposed["alerts"], self.elapsed())
+                    self._update_alerts()
         elif name == "alert_test":
             alert = payload.get("alert")
             if not isinstance(alert, str):
@@ -733,7 +713,7 @@ class Application:
             and not self.established_connection
             and not self.button_down
             and not self.recovery
-            and self.alerts_draft is None
+            and self.alert_editor.draft is None
             and self.editor.request is None
             and self.configuration_preview is None
             and self.elapsed() - self.last_interaction >= 30 - 1e-9
@@ -829,7 +809,8 @@ class Application:
             "feedback": self.feedback,
             "recording_error": self.recording_error,
             "config": deepcopy(self.config),
-            "alerts_draft": deepcopy(self.alerts_draft),
+            "alerts_draft": deepcopy(self.alert_editor.draft),
+            "alert_editor": self.alert_editor.view(),
             "preset_draft": deepcopy(self.editor.draft),
             "preset_editor": editor,
             "preset_page": self.editor.page,

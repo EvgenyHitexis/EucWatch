@@ -8,6 +8,8 @@ VERSION = 2
 DEFAULT_PRESETS = (("Jump", 0, 0, 0), ("Forest", 70, 0, 0),
                    ("Road", 30, 25, 10), ("Drag", 20, 70, 5))
 ALERTS = ("pwm", "speed", "battery", "lost")
+# Highest saved threshold per measurement alert; zero is the lowest.
+THRESHOLD_LIMITS = {"pwm": 100, "speed": 3276.7, "battery": 100}
 
 
 def validate_preset_name(name: Any) -> None:
@@ -54,7 +56,7 @@ def validate_alerts(alerts: Any) -> dict[str, Any]:
             isinstance(threshold, bool)
             or not isinstance(threshold, (int, float))
             or not math.isfinite(threshold)
-            or not 0 <= threshold <= (3276.7 if name == "speed" else 100)
+            or not 0 <= threshold <= THRESHOLD_LIMITS[name]
         ):
             raise ValueError(
                 f"Invalid {name} threshold (0–{'3276.7 km/h' if name == 'speed' else '100%'})"

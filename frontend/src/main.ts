@@ -38,6 +38,23 @@ interface LiveStatus {
   maximum_frame_gap_s: number;
   provenance: string;
 }
+// The alert editor view is Python's; the Canvas only draws it and forwards touches.
+interface AlertEditorView {
+  page: number;
+  previous_page: number;
+  next_page: number;
+  alert: AlertName;
+  label: string;
+  unit: string;
+  enabled: boolean;
+  toggle_label: string;
+  threshold: string | null;
+  threshold_label: string | null;
+  note: string | null;
+  reason: string;
+  entry: null | { alert: AlertName; label: string; unit: string; text: string; display: string };
+  keys: { key: string; label: string }[];
+}
 const alertNames: AlertName[] = ['pwm', 'speed', 'battery', 'lost'];
 const alertLabels: Record<AlertName, string> = { pwm: 'High PWM', speed: 'High speed', battery: 'Low wheel battery', lost: 'Lost telemetry' };
 const alertUnits: Record<AlertName, string> = { pwm: '%', speed: 'km/h', battery: '%', lost: '' };
@@ -59,6 +76,7 @@ interface View extends WatchPresetView {
   replay: { name: string; sha256: string; source: string; total: number; position: number; finished: boolean } | null;
   config: { version: number; revision: number; alerts: AlertSettings; presets: Preset[] };
   alerts_draft: AlertSettings | null;
+  alert_editor: AlertEditorView | null;
   preset_draft: WatchPresetView['preset_draft'];
   presets_menu: PresetMenuSlot[];
   configuration_preview: null | { content: unknown; base_revision:number; migration:{from:number;to:number;changes:string[]} };
@@ -191,13 +209,11 @@ let available = false;
 let submitting = false;
 let loadingReplay = false;
 let replayLoadGeneration = 0;
-let alertPage = 0;
 let watchError = '';
 let presetError = '';
 const documentId = crypto.randomUUID();
 let liveError = '';
 let discoveredDevices = '';
-let thresholdEntry: string | null = null;
 let rendered = '';
 const controllerStorageKey = 'sherman-l-controller';
 let readGeneration = 0;
@@ -264,7 +280,7 @@ const ridingRects: Rect[] = Array.from({length: 4}, (_, index) => {
 });
 
 function render(view: View | null): void {
-  const key = JSON.stringify([view, available, alertPage, watchError, thresholdEntry, presetError, liveError]);
+  const key = JSON.stringify([view, available, watchError, presetError, liveError]);
   if (key === rendered) return;
   rendered = key;
   ctx.fillStyle = '#000000';
@@ -333,8 +349,8 @@ function render(view: View | null): void {
   }
   if (view && watchPresets.render(view, presetError, available)) return;
   if (screen !== 'dashboard') {
-    if (screen === 'settings' && view?.alerts_draft) {
-      renderWatchAlerts(view.alerts_draft);
+    if (screen === 'settings' && view?.alert_editor) {
+      renderWatchAlerts(view.alert_editor);
       return;
     }
     text(screen === 'presets' ? 'RIDING PRESETS' : 'SETTINGS', 120, 26, 15, '#ffffff', 'center');
@@ -436,7 +452,7 @@ async function action(actionName: string, payload: Record<string, unknown> = {})
   submitting = true;
   setControls();
   message.textContent = '';
-  if (actionName.startsWith('alerts_')) watchError = '';
+  if (alertEditorAction(actionName)) watchError = '';
   if (actionName.startsWith('preset_')) presetError = '';
   if (actionName.startsWith('live_')) liveError = '';
   try {
@@ -458,7 +474,7 @@ async function action(actionName: string, payload: Record<string, unknown> = {})
     return true;
   } catch (error) {
     message.textContent = error instanceof Error ? error.message : 'Action could not be sent';
-    if (actionName.startsWith('alerts_')) watchError = message.textContent;
+    if (alertEditorAction(actionName)) watchError = message.textContent;
     if (actionName.startsWith('preset_')) presetError = message.textContent;
     if (actionName.startsWith('live_')) liveError = message.textContent;
     return false;
@@ -485,30 +501,34 @@ function drawPresetName(name: string, x: number, y: number, color: string): void
 }
 
 type Rect = readonly [number, number, number, number];
+interface WatchInput { action: string; payload?: Record<string, unknown> }
 const alertRects = {
   previous: [8, 0, 56, 44], next: [184, 0, 232, 44],
   toggle: [12, 52, 228, 92], decrease: [12, 100, 60, 140], threshold: [68, 100, 172, 140], increase: [180, 100, 228, 140],
   test: [12, 148, 228, 188], cancel: [12, 196, 116, 236], save: [124, 196, 228, 236],
 } as const;
-const thresholdKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'backspace'].map((key, index) => {
+function thresholdKeyRect(index: number): Rect {
   const x = 12 + index % 3 * 74, y = 52 + Math.floor(index / 3) * 35;
-  return {key, rect: [x, y, x + 68, y + 32] as Rect};
-});
+  return [x, y, x + 68, y + 32];
+}
 function hit(rect: Rect, x: number, y: number): boolean { return x >= rect[0] && x <= rect[2] && y >= rect[1] && y <= rect[3]; }
 function watchButton(rect: Rect, label: string, size = 16): void {
   ctx.strokeStyle = '#ffffff'; ctx.strokeRect(rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1]);
   text(label, (rect[0] + rect[2]) / 2, (rect[1] + rect[3]) / 2 + size / 3, size, '#ffffff', 'center');
 }
-function renderWatchAlerts(draft: AlertSettings): void {
-  const name = alertNames[alertPage], setting = draft[name];
-  const error = watchError || current?.persistence_error || '';
-  if (thresholdEntry !== null && name !== 'lost') {
-    text(alertLabels[name], 120, 14, 12, '#ffffff', 'center');
-    text(`${thresholdEntry || '—'} ${alertUnits[name]}`, 120, 39, 20, '#ffffff', 'center');
-    thresholdKeys.forEach(({key, rect}) => watchButton(rect, key === 'backspace' ? '<' : key, 18));
+// An action refused before it reached the alert editor (transport, lease) has no
+// reason in the view, so the Canvas shows the browser's own message for it.
+function alertEditorAction(actionName: string): boolean { return actionName.startsWith('alerts_') || actionName.startsWith('threshold_'); }
+function renderWatchAlerts(editor: AlertEditorView): void {
+  const error = watchError || editor.reason || current?.persistence_error || '';
+  const entry = editor.entry;
+  if (entry) {
+    text(entry.label, 120, 14, 12, '#ffffff', 'center');
+    text(entry.display, 120, 39, 20, '#ffffff', 'center');
+    editor.keys.forEach(({label}, index) => watchButton(thresholdKeyRect(index), label, 18));
     watchButton(alertRects.cancel, 'Cancel'); watchButton(alertRects.save, 'Set value');
-    canvas.setAttribute('aria-label', `Watch threshold keypad. ${alertLabels[name]} threshold ${thresholdEntry || 'empty'} ${alertUnits[name]}. Digits 1 through 9, decimal point, 0, backspace. Cancel or Set value updates the unsaved draft.`);
-    canvas.dataset.alert = name;
+    canvas.setAttribute('aria-label', `Watch threshold keypad. ${entry.label} threshold ${entry.text || 'empty'} ${entry.unit}. Digits 1 through 9, decimal point, 0, backspace. Cancel or Set value updates the unsaved draft.`);
+    canvas.dataset.alert = entry.alert;
     return;
   }
   watchButton(alertRects.previous, '‹', 24); watchButton(alertRects.next, '›', 24);
@@ -516,57 +536,43 @@ function renderWatchAlerts(draft: AlertSettings): void {
     text(error.slice(0, 23), 120, 17, 10, '#ffffff', 'center');
     text(error.slice(23, 46), 120, 32, 10, '#ffffff', 'center');
   } else {
-    text(alertLabels[name], 120, 18, 12, '#ffffff', 'center');
-    text(`${alertPage + 1}/4`, 120, 36, 12, '#ffffff', 'center');
+    text(editor.label, 120, 18, 12, '#ffffff', 'center');
+    text(`${editor.page + 1}/4`, 120, 36, 12, '#ffffff', 'center');
   }
-  watchButton(alertRects.toggle, setting.enabled ? 'Enabled' : 'Disabled');
-  if (name !== 'lost') {
+  watchButton(alertRects.toggle, editor.toggle_label);
+  if (editor.threshold_label !== null) {
     watchButton(alertRects.decrease, '−', 22); watchButton(alertRects.increase, '+', 22);
-    const threshold = (setting as MeasurementAlert).threshold;
-    watchButton(alertRects.threshold, threshold === null ? 'Not set' : `${threshold} ${alertUnits[name]}`);
-  } else text('1 short pulse', 120, 125, 14, '#ffffff', 'center');
+    watchButton(alertRects.threshold, editor.threshold_label);
+  } else text(editor.note ?? '', 120, 125, 14, '#ffffff', 'center');
   watchButton(alertRects.test, 'Test vibration');
   watchButton(alertRects.cancel, 'Cancel'); watchButton(alertRects.save, 'Save');
-  const thresholdText = name === 'lost' ? '' : `; threshold ${(setting as MeasurementAlert).threshold ?? 'not configured'} ${alertUnits[name]}`;
-  canvas.setAttribute('aria-label', `Alert editor ${alertPage + 1} of 4. ${alertLabels[name]}; ${setting.enabled ? 'enabled' : 'disabled'}${thresholdText}. Previous and next alert; toggle enabled; decrease or increase threshold or tap value for keypad; Test vibration pattern; Cancel; Save. Unsaved draft.${error ? ` Error: ${error}` : ''}`);
-  canvas.dataset.alert = name;
+  const thresholdText = editor.threshold_label === null ? '' : `; threshold ${editor.threshold ?? 'not configured'} ${editor.unit}`;
+  canvas.setAttribute('aria-label', `Alert editor ${editor.page + 1} of 4. ${editor.label}; ${editor.enabled ? 'enabled' : 'disabled'}${thresholdText}. Previous and next alert; toggle enabled; decrease or increase threshold or tap value for keypad; Test vibration pattern; Cancel; Save. Unsaved draft.${error ? ` Error: ${error}` : ''}`);
+  canvas.dataset.alert = editor.alert;
 }
 
-function watchAlertTap(x: number, y: number): void {
-  const draft = current?.alerts_draft;
-  if (!draft) return;
-  const name = alertNames[alertPage];
-  if (thresholdEntry !== null && name !== 'lost') {
-    if (hit(alertRects.cancel, x, y) || hit(alertRects.save, x, y)) {
-      const value = thresholdEntry;
-      thresholdEntry = null;
-      if (hit(alertRects.save, x, y)) enqueueWatch('alerts_update', { alert: name, threshold: value === '' ? null : Number(value) });
-    } else {
-      const key = thresholdKeys.find(item => hit(item.rect, x, y))?.key;
-      if (key === 'backspace') thresholdEntry = thresholdEntry.slice(0, -1);
-      else if (key === '.' && !thresholdEntry.includes('.')) thresholdEntry += key;
-      else if (key && key !== '.' && thresholdEntry.length < 8) thresholdEntry += key;
-    }
-    return;
+// The touched control's action, read from the view the earlier touches produced.
+function alertTarget(editor: AlertEditorView, x: number, y: number): WatchInput | null {
+  if (editor.entry) {
+    if (hit(alertRects.cancel, x, y)) return { action: 'threshold_cancel' };
+    if (hit(alertRects.save, x, y)) return { action: 'threshold_done' };
+    const index = editor.keys.findIndex((_, position) => hit(thresholdKeyRect(position), x, y));
+    return index < 0 ? null : { action: 'threshold_key', payload: { key: editor.keys[index].key } };
   }
-  if (hit(alertRects.previous, x, y) || hit(alertRects.next, x, y)) {
-    alertPage = (alertPage + (hit(alertRects.previous, x, y) ? 3 : 1)) % 4;
-    watchError = '';
-  } else if (hit(alertRects.toggle, x, y)) {
-    enqueueWatch('alerts_update', { alert: name, enabled: !draft[name].enabled });
-  } else if (name !== 'lost' && hit(alertRects.threshold, x, y)) {
-    const threshold = (draft[name] as MeasurementAlert).threshold;
-    thresholdEntry = threshold === null ? '' : String(threshold);
-  } else if (name !== 'lost' && (hit(alertRects.decrease, x, y) || hit(alertRects.increase, x, y))) {
-    const threshold = (draft[name] as MeasurementAlert).threshold;
-    const changed = threshold === null ? 0 : threshold + (hit(alertRects.decrease, x, y) ? -1 : 1);
-    enqueueWatch('alerts_update', { alert: name, threshold: Math.max(0, Math.min(name === 'speed' ? 3276.7 : 100, changed)) });
-  } else if (hit(alertRects.test, x, y)) enqueueWatch('alert_test', { alert: name });
-  else if (hit(alertRects.cancel, x, y)) enqueueWatch('alerts_cancel');
-  else if (hit(alertRects.save, x, y)) enqueueWatch('alerts_save');
+  const alert = editor.alert, measurement = editor.threshold_label !== null;
+  if (hit(alertRects.previous, x, y)) return { action: 'alerts_page', payload: { page: editor.previous_page } };
+  if (hit(alertRects.next, x, y)) return { action: 'alerts_page', payload: { page: editor.next_page } };
+  if (hit(alertRects.toggle, x, y)) return { action: 'alerts_update', payload: { alert, enabled: !editor.enabled } };
+  if (measurement && hit(alertRects.threshold, x, y)) return { action: 'threshold_begin', payload: { alert } };
+  if (measurement && hit(alertRects.decrease, x, y)) return { action: 'alerts_adjust', payload: { alert, delta: -1 } };
+  if (measurement && hit(alertRects.increase, x, y)) return { action: 'alerts_adjust', payload: { alert, delta: 1 } };
+  if (hit(alertRects.test, x, y)) return { action: 'alert_test', payload: { alert } };
+  if (hit(alertRects.cancel, x, y)) return { action: 'alerts_cancel' };
+  if (hit(alertRects.save, x, y)) return { action: 'alerts_save' };
+  return null;
 }
 
-document.querySelector('#alerts-edit')!.addEventListener('click', () => { alertPage = 0; thresholdEntry = null; void action('alerts_begin'); });
+document.querySelector('#alerts-edit')!.addEventListener('click', () => void action('alerts_begin'));
 document.querySelector('#alerts-editor')!.addEventListener('submit', event => { event.preventDefault(); enqueueWatch('alerts_save'); });
 document.querySelector('#alerts-cancel')!.addEventListener('click', () => { enqueueWatch('alerts_cancel'); });
 document.querySelectorAll<HTMLButtonElement>('[data-alert-test]').forEach(button => { button.addEventListener('click', () => void action('alert_test', { alert: button.dataset.alertTest })); });
@@ -662,18 +668,14 @@ canvas.addEventListener('pointerup', event => {
   if (Math.abs(dx) >= 40 && Math.abs(dx) > Math.abs(dy)) {
     enqueueWatch('swipe', { direction: dx < 0 ? 'left' : 'right', from_top: start.y <= 45, editor_id: start.editor_id, entry_id: start.entry_id });
   } else if (Math.abs(dy) >= 40 && Math.abs(dy) > Math.abs(dx)) {
-    if (dy < 0 && thresholdEntry !== null) { thresholdEntry = null; return; }
     enqueueWatch('swipe', { direction: dy < 0 ? 'up' : 'down', from_top: start.y <= 45, editor_id: start.editor_id, entry_id: start.entry_id });
   } else if (Math.abs(dx) < 12 && Math.abs(dy) < 12 && current && ['preset_slots', 'preset_editor'].includes(current.screen)) {
     watchPresets.tap(current, end.x, end.y);
   } else if (Math.abs(dx) < 12 && Math.abs(dy) < 12 && current?.screen === 'settings') {
-    if (current.alerts_draft) watchAlertTap(end.x, end.y);
+    if (current.alert_editor) enqueueInput(() => current?.alert_editor ? alertTarget(current.alert_editor, end.x, end.y) : null);
     else if (end.x >= 12 && end.x <= 228) {
       const button = settingsButtons.find(item => end.y >= item.top && end.y <= item.top + settingsButtonHeight);
-      if (button) {
-        if (button.action === 'alerts_begin') { alertPage = 0; thresholdEntry = null; }
-        enqueueWatch(button.action);
-      }
+      if (button) enqueueWatch(button.action);
     }
   } else if (Math.abs(dx)<12 && Math.abs(dy)<12 && current?.screen==='presets') {
     const index = ridingRects.findIndex(rect => hit(rect, end.x, end.y));
@@ -691,12 +693,17 @@ let inputGeneration = 0;
 const updateScenarios=mountScenarios(action,()=>current?.scenario ?? null,()=>JSON.stringify([inputGeneration,current?.session,session?.credential]));
 const updateBackup=mountBackup(action,()=>current,()=>JSON.stringify([inputGeneration,current?.session,current?.config.revision,session?.credential]));
 function enqueueWatch(actionName: string, payload: Record<string, unknown> = {}): Promise<unknown> {
+  return enqueueInput(() => ({ action: actionName, payload }));
+}
+// Inputs run in order; each is resolved when its turn comes, after earlier inputs' views.
+function enqueueInput(resolve: () => WatchInput | null): Promise<unknown> {
   const wheelSession = current?.session;
   const controller = session?.controller;
   const generation = inputGeneration;
   watchChain = watchChain.then(() => {
     if (generation !== inputGeneration || current?.session !== wheelSession || session?.controller !== controller) return false;
-    return action(actionName, payload);
+    const input = resolve();
+    return input ? action(input.action, input.payload) : false;
   });
   return watchChain;
 }
