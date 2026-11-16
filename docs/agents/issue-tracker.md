@@ -14,7 +14,7 @@ Issues and specs live in EvgenyHitexis/EucWatch on GitHub. Use the `gh` CLI from
 For multiline bodies, write the exact text to a temporary file and pass it with `--body-file`.
 
 - **Create an issue**: `gh issue create --title "..." --body-file <path>`
-- **Read an issue**: `gh issue view <number> --comments`, or structured: `gh issue view <number> --json number,title,body,labels,comments`
+- **Read an issue**: `gh issue view <number> --json title,body,comments --jq '.title, .body, (.comments[]|.body)'`, or structured: `gh issue view <number> --json number,title,body,labels,comments`. Read through `--json`: on the local `gh` 2.46, plain `gh issue view` fails with a Projects (classic) deprecation error.
 - **List issues**: `gh issue list --state open --json number,title,body,labels,comments --jq '[.[] | {number, title, body, labels: [.labels[].name], comments: [.comments[].body]}]'` with appropriate `--label` and `--state` filters.
 - **Make an issue a sub-issue of a parent**: the local `gh` is 2.46, which predates `--parent`/`--add-sub-issue` (2.94+). Use `gh api --method POST repos/EvgenyHitexis/EucWatch/issues/<parent>/sub_issues -F sub_issue_id=<child-db-id>` (database id, as in **Blocking** below). If that fails, put `Part of #<parent>` at the top of the child body.
 - **Comment on an issue**: `gh issue comment <number> --body-file <path>`
