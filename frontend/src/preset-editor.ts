@@ -26,13 +26,20 @@ export interface WatchPresetView {
   preset_draft: (Omit<Preset, 'pedal_sensitivity' | 'dynamic_assist' | 'pedal_dip_compensation'> & Record<string, unknown>) | null;
   preset_page: number;
   preset_input: null | { id: number; field: Field; text: string; letters: number; lowercase: boolean };
+  /** The open entry's keypad key set; empty without an entry. */
+  preset_keys: string[];
+  preset_fields: Field[];
+  preset_labels: string[];
+  preset_previous_page: number;
+  preset_next_page: number;
+  /** The reason the editor shows ('' when clear), and its short form for the value-entry header. */
+  preset_notice: string;
+  preset_entry_notice: string;
   preset_attempt: PresetOperation | null;
   config: { presets: Preset[] };
   persistence_error: string | null;
 }
 type Field = 'name' | 'pedal_sensitivity' | 'dynamic_assist' | 'pedal_dip_compensation';
-const fields: Field[] = ['name', 'pedal_sensitivity', 'dynamic_assist', 'pedal_dip_compensation'];
-const labels = ['Name', 'Pedal sensitivity', 'Dynamic assist', 'Pedal dip compensation'];
 
 type Target = { x: number; y: number; width: number; height: number; label: string; action: string; payload?: Record<string, unknown> };
 
@@ -43,21 +50,16 @@ export class WatchPresets {
     this.ctx.fillStyle = '#ffffff'; this.ctx.font = `${size}px sans-serif`;
     this.ctx.textAlign = 'center'; this.ctx.fillText(value, x, y, width);
   }
-  private keys(input: NonNullable<WatchPresetView['preset_input']>): string[] {
-    if (input.field !== 'name') return ['1','2','3','4','5','6','7','8','9','Clear','0','<'];
-    const text = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'.slice(input.letters * 12, input.letters * 12 + 12);
-    return Array.from(input.lowercase ? text.toLowerCase() : text);
-  }
   // Drawing and hit testing consume the same rectangles, including the gaps.
   private targets(view: WatchPresetView): Target[] {
     const button = (label: string, x: number, y: number, width: number, height: number, action: string, payload?: Record<string, unknown>): Target => ({label, x, y, width, height, action, payload});
     if (view.screen === 'preset_slots') return view.config.presets.map((slot, index) => button(`${slot.id} · ${slot.name}`, 12, 32 + index * 50, 216, 44, 'preset_begin', {slot: slot.id}));
     if (!view.preset_draft) return [];
-    const draft = view.preset_draft, input = view.preset_input, page = view.preset_page, field = fields[page];
+    const draft = view.preset_draft, input = view.preset_input, page = view.preset_page, field = view.preset_fields[page];
     const rows: Target[] = [];
     if (input) {
       const isNameEntry = input.field === 'name';
-      this.keys(input).forEach((key, index) => rows.push(button(key,
+      view.preset_keys.forEach((key, index) => rows.push(button(key,
         12 + index % (isNameEntry ? 4 : 3) * (isNameEntry ? 56 : 74),
         (isNameEntry ? 44 : 52) + Math.floor(index / (isNameEntry ? 4 : 3)) * (isNameEntry ? 38 : 35),
         isNameEntry ? 48 : 68, 32, 'preset_input_key', {key})));
@@ -66,7 +68,7 @@ export class WatchPresets {
           index === 4 ? 'preset_input_page' : 'preset_input_key', index === 4 ? {delta: 1} : {key: key === 'Space' ? ' ' : key})));
       } else if (field === 'pedal_dip_compensation') rows.push(button(draft.dip_included ? 'Included' : 'Omitted', 144, 4, 84, 40, 'preset_include_dip', {included: !draft.dip_included}));
     } else {
-      rows.push(button('‹', 8, 4, 48, 40, 'preset_page', {page: (page + 3) % 4}), button('›', 184, 4, 48, 40, 'preset_page', {page: (page + 1) % 4}));
+      rows.push(button('‹', 8, 4, 48, 40, 'preset_page', {page: view.preset_previous_page}), button('›', 184, 4, 48, 40, 'preset_page', {page: view.preset_next_page}));
       rows.push(button(String(draft[field]), 12, 72, 216, field === 'pedal_dip_compensation' ? 60 : 112, 'preset_input_begin'));
       if (field === 'pedal_dip_compensation') rows.push(button(draft.dip_included ? 'Dip included' : 'Dip omitted', 12, 140, 216, 44, 'preset_include_dip', {included: !draft.dip_included}));
     }
@@ -85,12 +87,12 @@ export class WatchPresets {
       this.canvas.setAttribute('aria-label', `Settings Presets. ${view.config.presets.map(slot => `Slot ${slot.id}: ${slot.name}, configured`).join('; ')}. Swipe up to Settings. ${notice}`);
       return true;
     }
-    const draft = view.preset_draft!, page = view.preset_page, field = fields[page], input = view.preset_input;
-    const notice = !available ? 'Application unavailable' : view.preset_editor!.reason || view.persistence_error || error;
+    const draft = view.preset_draft!, page = view.preset_page, field = view.preset_fields[page], input = view.preset_input, labels = view.preset_labels;
+    const notice = !available ? 'Application unavailable' : view.preset_notice || error;
     if (input) {
       const dip = field === 'pedal_dip_compensation', center = dip ? 74 : 120, width = dip ? 124 : 216;
       if (notice) {
-        const reason = notice.replace('Configuration save failed: ', 'Save failed: ').replace(/^.*: enter a whole percentage 0[–-]100$/, 'Enter whole % (0–100)'), length = dip ? 24 : 38;
+        const reason = !available ? notice : view.preset_entry_notice || error, length = dip ? 24 : 38;
         this.text(reason.slice(0, length), center, 11, 10, width); this.text(reason.slice(length, length * 2), center, 23, 10, width);
       } else this.text(dip ? 'Pedal dip %' : labels[page], center, 14, 12, width);
       this.text(input.text || '—', center, notice ? 42 : 38, notice ? 16 : 20, width);

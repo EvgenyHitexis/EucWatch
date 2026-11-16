@@ -8,6 +8,13 @@ VERSION = 2
 DEFAULT_PRESETS = (("Jump", 0, 0, 0), ("Forest", 70, 0, 0),
                    ("Road", 30, 25, 10), ("Drag", 20, 70, 5))
 ALERTS = ("pwm", "speed", "battery", "lost")
+# A preset riding value (Pedal sensitivity, Dynamic assist, Pedal dip compensation).
+WHOLE_PERCENTAGE = (0, 100)
+
+
+def whole_percentage(value: Any) -> bool:
+    """Whether a preset riding value is a whole percentage in WHOLE_PERCENTAGE."""
+    return type(value) is int and WHOLE_PERCENTAGE[0] <= value <= WHOLE_PERCENTAGE[1]
 
 
 def validate_preset_name(name: Any) -> None:
@@ -100,10 +107,10 @@ def validate_configuration(config: Any) -> dict[str, Any]:
         if not required <= set(preset) or set(preset) - required - optional:
             raise ValueError("Invalid preset fields")
         for field in ("pedal_sensitivity", "dynamic_assist", "pedal_dip_compensation"):
-            if field in preset and (
-                type(preset[field]) is not int or not 0 <= preset[field] <= 100
-            ):
-                raise ValueError(f"{field} must be a whole percentage from 0 to 100")
+            if field in preset and not whole_percentage(preset[field]):
+                raise ValueError(
+                    f"{field} must be a whole percentage from {WHOLE_PERCENTAGE[0]} to {WHOLE_PERCENTAGE[1]}"
+                )
     normalized = deepcopy(config)
     if config["version"] == 1:
         defaults = default_configuration()["presets"]
