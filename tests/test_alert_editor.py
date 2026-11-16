@@ -60,7 +60,7 @@ class AlertEditorTests(unittest.TestCase):
         saved = app.action("alerts_begin")["config"]
         entry = app.action("threshold_begin", alert="pwm")["alert_editor"]["entry"]
         self.assertEqual(entry, {"alert": "pwm", "label": "High PWM", "unit": "%",
-                                 "text": "", "display": "— %"})
+                                 "text": "", "display": "— %", "notice": ""})
         for key in ("7", "0"):
             state = app.action("threshold_key", key=key)
         self.assertEqual(state["alert_editor"]["entry"]["display"], "70 %")
@@ -105,9 +105,8 @@ class AlertEditorTests(unittest.TestCase):
         app = settings()
         app.action("alerts_begin")
         for keys, threshold, label in (
-            ("", None, "Not set"), (".", None, "Not set"), ("007", 7, "7 %"),
-            ("5.", 5, "5 %"), (".5", 0.5, "0.5 %"), ("0.00005", 0.00005, "0.00005 %"),
-            ("707", 707, "707 %"),
+            ("", None, "Not set"), ("007", 7, "7 %"), ("5.", 5, "5 %"), (".5", 0.5, "0.5 %"),
+            ("0.00005", 0.00005, "0.00005 %"), ("100", 100, "100 %"), ("0", 0, "0 %"),
         ):
             with self.subTest(keys=keys):
                 app.action("threshold_begin", alert="pwm")
@@ -137,9 +136,11 @@ class AlertEditorTests(unittest.TestCase):
                 self.assertIsNone(state["alert_editor"]["entry"])
                 self.assertEqual(state["alert_editor"]["page"], 2)
                 self.assertEqual(state["alerts_draft"]["pwm"]["threshold"], 70)
-        with self.assertRaisesRegex(ValueError, "No threshold input"):
-            app.action("threshold_cancel")
-        with self.assertRaisesRegex(ValueError, "No threshold input"):
+        # Keypad Cancel needs no open entry and changes nothing; Set value does need one.
+        before = app.view()
+        state = app.action("threshold_cancel")
+        self.assertEqual((state["alerts_draft"], state["alert_editor"]), (before["alerts_draft"], before["alert_editor"]))
+        with self.assertRaisesRegex(ValueError, "No threshold entry is open"):
             app.action("threshold_done")
         for alert in ("lost", "rain", None):
             with self.subTest(alert=alert), self.assertRaisesRegex(ValueError, "measurement alert"):
@@ -175,7 +176,7 @@ class AlertEditorTests(unittest.TestCase):
                 app.action("alerts_update", alert="pwm", threshold=threshold)
                 app.action("alerts_adjust", alert="pwm", delta=1)
 
-    def test_failed_save_explains_itself_until_the_draft_changes(self):
+    def test_failed_save_explains_itself_until_the_next_accepted_editor_action(self):
         app = settings()
         saved = app.action("alerts_begin")["config"]
         app.action("alerts_update", alert="pwm", enabled=True)
@@ -189,14 +190,17 @@ class AlertEditorTests(unittest.TestCase):
             return state
 
         fail()
-        # Opening, typing in and cancelling the keypad leave the explanation shown.
-        app.action("threshold_begin", alert="pwm")
-        app.action("threshold_key", key="7")
-        app.action("threshold_cancel")
+        # A Test vibration and refused editor actions leave the explanation shown, as on the watch.
         app.action("alert_test", alert="pwm")
-        self.assertIn("threshold is required", app.view()["alert_editor"]["reason"])
+        for refused, payload in (("alerts_page", {"page": 4}), ("alerts_adjust", {"alert": "lost", "delta": 1}),
+                                 ("alerts_update", {"alert": "rain", "enabled": True}),
+                                 ("threshold_key", {"key": "1"}), ("threshold_begin", {"alert": "lost"})):
+            with self.subTest(refused=refused), self.assertRaises(ValueError):
+                app.action(refused, **payload)
+            self.assertIn("threshold is required", app.view()["alert_editor"]["reason"])
         for change, payload in (("alerts_page", {"page": 1}), ("alerts_update", {"alert": "lost", "enabled": False}),
-                                ("alerts_adjust", {"alert": "speed", "delta": 1})):
+                                ("alerts_adjust", {"alert": "speed", "delta": 1}),
+                                ("threshold_begin", {"alert": "pwm"}), ("threshold_cancel", {})):
             with self.subTest(change=change):
                 fail()
                 self.assertEqual(app.action(change, **payload)["alert_editor"]["reason"], "")
@@ -232,19 +236,54 @@ class AlertEditorTests(unittest.TestCase):
                 editor = app.view()["alert_editor"]
                 self.assertEqual((editor["label"], editor["reason"]), (title, message))
 
-    def test_out_of_range_entry_is_refused_at_save(self):
+    def test_set_value_refuses_an_entry_outside_the_limits_or_without_a_number(self):
+        # The watch refuses the same entries (shared trace and watch/tests/alert-editor.cjs).
+        for page, alert, keys in ((0, "pwm", "101"), (0, "pwm", "707"), (1, "speed", "3276.8"),
+                                  (2, "battery", "."), (2, "battery", "100.01")):
+            with self.subTest(alert=alert, keys=keys):
+                app = settings()
+                app.action("alerts_begin")
+                app.action("alerts_page", page=page)
+                app.action("threshold_begin", alert=alert)
+                for key in keys:
+                    app.action("threshold_key", key=key)
+                with self.assertRaises(ValueError) as refused:
+                    app.action("threshold_done")
+                self.assertEqual(str(refused.exception), "Threshold outside supported range")
+                state = app.view()
+                self.assertEqual(state["alert_editor"]["reason"], "Threshold outside supported range")
+                self.assertEqual(state["alert_editor"]["entry"]["text"], keys)
+                # The keypad header shows the short form under the alert's name, as the watch does.
+                self.assertEqual(state["alert_editor"]["entry"]["notice"], "Invalid threshold")
+                self.assertIsNone(state["alerts_draft"][alert]["threshold"])
+                # The next key is accepted and clears the explanation.
+                state = app.action("threshold_key", key="backspace")
+                self.assertEqual(state["alert_editor"]["reason"], "")
+                self.assertEqual(state["alert_editor"]["entry"]["notice"], "")
         app = settings()
         app.action("alerts_begin")
-        app.action("alerts_page", page=2)
-        app.action("threshold_begin", alert="battery")
-        for key in "101":
+        app.action("alerts_page", page=1)
+        app.action("threshold_begin", alert="speed")
+        for key in "3276.7":
             app.action("threshold_key", key=key)
-        state = app.action("threshold_done")
-        self.assertEqual(state["alert_editor"]["threshold_label"], "101 %")
-        with self.assertRaisesRegex(ValueError, "Invalid Low wheel battery threshold"):
-            app.action("alerts_save")
-        self.assertEqual(app.view()["alert_editor"]["reason"], "Invalid Low wheel battery threshold (0–100%)")
-        self.assertEqual(app.view()["config"]["revision"], 0)
+        self.assertEqual(app.action("threshold_done")["alerts_draft"]["speed"]["threshold"], 3276.7)
+
+    def test_save_names_the_alert_and_its_range_for_an_out_of_range_draft(self):
+        app = settings()
+        app.action("alerts_begin")
+        for alert, threshold, message in (
+            ("battery", 101, "Invalid Low wheel battery threshold (0-100 %)"),
+            ("pwm", -1, "Invalid High PWM threshold (0-100 %)"),
+            ("speed", 3300, "Invalid High speed threshold (0-3276.7 km/h)"),
+        ):
+            with self.subTest(alert=alert):
+                app.action("alerts_begin")
+                app.action("alerts_update", alert=alert, threshold=threshold)
+                with self.assertRaises(ValueError) as refused:
+                    app.action("alerts_save")
+                self.assertEqual(str(refused.exception), message)
+                self.assertEqual(app.view()["alert_editor"]["reason"], message)
+                self.assertEqual(app.view()["config"]["revision"], 0)
 
     def test_cancel_discards_the_draft_and_keeps_the_saved_alerts(self):
         app = settings()
@@ -332,7 +371,7 @@ class AlertEditorTests(unittest.TestCase):
         self.assertEqual(state["config"]["alerts"]["speed"], {"enabled": False, "threshold": 5})
         self.assertEqual(state["command_events"], [])
 
-    def test_any_draft_threshold_is_shown_as_the_browser_spelled_it(self):
+    def test_any_draft_threshold_is_shown_as_the_watch_spells_it(self):
         app = settings()
         app.action("alerts_begin")
         app.action("alerts_page", page=1)
@@ -348,7 +387,18 @@ class AlertEditorTests(unittest.TestCase):
         app.action("threshold_cancel")
         with self.assertRaisesRegex(ValueError, "Invalid High speed threshold"):
             app.action("alerts_save")
-        self.assertEqual(app.view()["alert_editor"]["reason"], "Invalid High speed threshold (0–3276.7 km/h)")
+        self.assertEqual(app.view()["alert_editor"]["reason"], "Invalid High speed threshold (0-3276.7 km/h)")
+
+    def test_cancel_leaves_and_discards_the_draft_at_the_editor(self):
+        editor = AlertEditor()
+        self.assertFalse(editor.is_open())
+        editor.open(default_configuration()["alerts"])
+        self.assertTrue(editor.is_open())
+        editor.action("threshold_begin", {"alert": "pwm"}, default_configuration())
+        self.assertTrue(editor.entry_open())
+        self.assertEqual(editor.action("alerts_cancel", {}, default_configuration()), {"leave": True})
+        self.assertEqual((editor.is_open(), editor.entry_open()), (False, False))
+        self.assertEqual((editor.view()["alerts_draft"], editor.view()["alert_editor"]), (None, None))
 
     def test_no_editor_view_without_an_alert_draft(self):
         app = settings()
@@ -369,11 +419,12 @@ class AlertEditorTests(unittest.TestCase):
             except ValueError as exc:
                 refused = str(exc)
             view = editor.view()
-            entry = view["entry"] and {"alert": view["entry"]["alert"], "text": view["entry"]["text"]}
-            observed = {"page": view["page"], "entry": entry, "draft": editor.draft,
-                        "refused": refused, "reason": view["reason"]}
+            shown = view["alert_editor"]
+            entry = shown["entry"] and {"alert": shown["entry"]["alert"], "text": shown["entry"]["text"]}
+            observed = {"page": shown["page"], "entry": entry, "draft": view["alerts_draft"],
+                        "refused": refused, "reason": shown["reason"]}
             if result is not None:
-                observed["saved"] = {"revision": result["revision"], "alerts": result["alerts"]}
+                observed["saved"] = {"revision": result["save"]["revision"], "alerts": result["save"]["alerts"]}
             with self.subTest(step=index, action=step["action"], payload=step["payload"]):
                 self.assertEqual(observed, step["expect"])
         self.assertEqual(config["revision"], 0)

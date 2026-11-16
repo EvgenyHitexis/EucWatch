@@ -30,6 +30,10 @@ class Conflict(Exception):
     """The request cannot run against the current application state."""
 
 
+class Refused(ValueError):
+    """The Application itself refused the action, as opposed to a request the lease stopped before it."""
+
+
 class ControllerLease:
     def __init__(
         self,
@@ -182,4 +186,7 @@ class ControllerLease:
                 payload["recording"] = Replay.from_text(
                     payload["recording"], name=payload.pop("name", "Imported recording")
                 )
-            behavior.action(name, **payload)
+            try:
+                behavior.action(name, **payload)
+            except ValueError as exc:
+                raise Refused(str(exc)) from exc

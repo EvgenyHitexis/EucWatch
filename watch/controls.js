@@ -31,7 +31,7 @@ exports.targets=function(state){
       target([12,52,228,92],setting.enabled?'Enabled':'Disabled','alerts_update',{alert:name,enabled:!setting.enabled})];
     if(name!=='lost')rows=rows.concat([
       target([12,100,60,140],'-','alerts_adjust',{alert:name,delta:-1}),
-      target([68,100,172,140],setting.threshold===null?'Not set':String(setting.threshold)+(name==='speed'?' km/h':' %'),'threshold_begin',{alert:name}),
+      target([68,100,172,140],setting.threshold===null?'Not set':String(setting.threshold)+' '+require('sw-configuration').alertDefinitions[name].unit,'threshold_begin',{alert:name}),
       target([180,100,228,140],'+','alerts_adjust',{alert:name,delta:1})]);
     return rows.concat([target([12,148,228,188],'Test vibration','alert_test',{alert:name}),
       target([12,196,116,236],'Cancel','alerts_cancel'),target([124,196,228,236],'Save','alerts_save')]);

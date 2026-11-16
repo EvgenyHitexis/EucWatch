@@ -94,6 +94,17 @@ than 8 characters, so the limit changed no evidence file;
 `watch/evidence/local-presets/bundle.json` changed only because the bundle now
 ships the new module.
 
+Parity change (#55, #56 review): the laptop alert editor now follows the
+watch's rules, and the shared trace has no laptop exceptions. Set value refuses
+an entry above the alert's limit, or a lone '.', with "Threshold outside
+supported range" and keeps the entry open; the laptop used to accept it and
+refuse at Save. Every accepted editor action clears the explanation, opening
+the keypad included; a refused one leaves it. Keypad Cancel needs no open
+entry. Save's out-of-range text names the range on both sides, for example
+"Invalid High speed threshold (0-3276.7 km/h)" (the laptop wrote "(0–100%)").
+After a refused Set value both keypads keep the alert's name above "Invalid
+threshold" and the entry; the watch used to replace the name.
+
 `watch/THIRD_PARTY.md` records
 pinned driver provenance and the required MIT display notice.
 

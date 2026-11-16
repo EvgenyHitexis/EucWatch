@@ -10,7 +10,7 @@ from aiohttp import web
 
 from eucwatch import Application
 from eucwatch.clock import SystemClock
-from eucwatch.lease import Conflict, ControllerExpired, ControllerLease
+from eucwatch.lease import Conflict, ControllerExpired, ControllerLease, Refused
 from eucwatch.live import LiveSession
 from eucwatch.live_control import LiveControl
 from eucwatch.persistence import FileStore
@@ -92,6 +92,8 @@ def create_app(
             raise web.HTTPForbidden(text=str(exc)) from None
         except Conflict as exc:
             return web.json_response({"error": str(exc)}, status=409)
+        except Refused as exc:
+            return web.json_response({"error": str(exc), "refused_by": "application"}, status=400)
         except (KeyError, TypeError, ValueError, OSError) as exc:
             return web.json_response({"error": str(exc)}, status=400)
 

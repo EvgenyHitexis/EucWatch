@@ -1,51 +1,31 @@
 // The alert editor module alone: no clock, battery, wheel session or store.
 const assert=require('node:assert/strict');
-const {environment,plain,readJson}=require('./harness.cjs');
-function editing(alerts){
-  const env=environment(),config=env.require('sw-configuration').defaults(),editor=env.require('sw-alert-editor').create();
-  if(alerts)config.alerts=plain(alerts);editor.open(config.alerts);
-  const act=(name,payload={})=>plain(editor.action(name,plain(payload),config));
-  return {config,editor,act,view:()=>plain(editor.view())};
-}
-const message=value=>value&&String(value).replace(/^Error: /,'');
+const {alertEditor,plain,replayAlertEditorTrace}=require('./harness.cjs');
 {
-  // The shared trace: the laptop alert editor reads the same file (tests/test_alert_editor.py).
-  const trace=readJson('docs/acceptance/scenarios/alert-editor-keys.json');
-  const {config,act,view}=editing(trace.alerts);
-  trace.steps.forEach((step,index)=>{
-    let refused=null,result=null;
-    try{result=act(step.action,step.payload);}catch(error){refused=message(error.message);}
-    const state=view(),observed={page:state.page,entry:state.entry,draft:state.draft,refused,reason:message(state.reason)};
-    if(result&&result.save)observed.saved={revision:result.save.revision,alerts:result.save.alerts};
-    assert.deepEqual(observed,step.expect,`step ${index}: ${JSON.stringify(step)}`);
-  });
-  assert.equal(config.revision,0,'Save returns a replacement and leaves the saved configuration alone');
+  // The shared trace: the laptop alert editor replays the same steps (tests/test_alert_editor.py).
+  const trace=replayAlertEditorTrace('docs/acceptance/scenarios/alert-editor-keys.json');
   console.log(`watch alert editor shared key-sequence trace: ${trace.steps.length} steps matched`);
 }
 {
   // A missing threshold names the alert as the editor's title does; tests/test_alert_editor.py pins the same messages.
   for(const [page,alert,message] of [[0,'pwm','A threshold is required to enable High PWM'],
     [1,'speed','A threshold is required to enable High speed'],[2,'battery','A threshold is required to enable Low wheel battery']]){
-    const {act,view}=editing();act('alerts_page',{page});act('alerts_update',{alert,enabled:true});
+    const {act,view}=alertEditor();act('alerts_page',{page});act('alerts_update',{alert,enabled:true});
     assert.throws(()=>act('alerts_save'),error=>error.message===message,alert);
     assert.equal(view().reason,'Error: '+message,alert);
   }
   console.log('watch alert editor missing-threshold message per alert: passed');
 }
 {
-  // Watch rules the laptop does not share, kept from the core: Set value refuses an out-of-range or digitless entry and
-  // says so in the reason the core shares with the Preset editor; Cancel needs no open entry.
-  let shared=null;const reason={get:()=>shared,set:value=>{shared=value||null;}};
-  const env=environment(),config=env.require('sw-configuration').defaults(),editor=env.require('sw-alert-editor').create(reason);
-  editor.open(config.alerts);
-  for(const [alert,text] of [['pwm','101'],['speed','3276.8'],['battery','.']]){
-    editor.action('threshold_begin',{alert},config);for(const key of text)editor.action('threshold_key',{key},config);
-    assert.throws(()=>editor.action('threshold_done',{},config),/Threshold outside supported range/);
-    assert.equal(shared,'Threshold outside supported range');assert.equal(plain(editor.view()).draft[alert].threshold,null);
-    editor.action('threshold_cancel',{},config);assert.equal(shared,null);
-  }
-  assert.equal(editor.action('threshold_cancel',{},config),null);
+  // The core passes the reason it shares with the Preset editor: a refused Set value writes it, the next accepted
+  // action clears it. Cancel leaves the editor closed.
+  let held=null;const reason={get:()=>held,set:value=>{held=value||null;}};
+  const {editor,act}=alertEditor(null,reason);
+  act('threshold_begin',{alert:'pwm'});for(const key of '101')act('threshold_key',{key});
+  assert.throws(()=>act('threshold_done'),/Threshold outside supported range/);
+  assert.equal(held,'Threshold outside supported range');
+  act('threshold_cancel');assert.equal(held,null);
   assert.equal(editor.editing(),true);
-  assert.deepEqual(plain(editor.action('alerts_cancel',{},config)),{leave:true});assert.equal(editor.view().draft,null);assert.equal(editor.editing(),false);
-  console.log('watch alert editor Set value range, shared reason and Cancel: passed');
+  assert.deepEqual(act('alerts_cancel'),{leave:true});assert.equal(plain(editor.view()).draft,null);assert.equal(editor.editing(),false);
+  console.log('watch alert editor shared reason and Cancel: passed');
 }

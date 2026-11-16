@@ -52,12 +52,12 @@ interface AlertEditorView {
   threshold_label: string | null;
   note: string | null;
   reason: string;
-  entry: null | { alert: AlertName; label: string; unit: string; text: string; display: string };
+  entry: null | { alert: AlertName; label: string; unit: string; text: string; display: string; notice: string };
   keys: { key: string; label: string }[];
 }
+// Each alert's display name, threshold unit and highest saved threshold (null without a threshold), from Python.
+type AlertDefinitions = Record<AlertName, { label: string; unit: string; limit: number | null }>;
 const alertNames: AlertName[] = ['pwm', 'speed', 'battery', 'lost'];
-const alertLabels: Record<AlertName, string> = { pwm: 'High PWM', speed: 'High speed', battery: 'Low wheel battery', lost: 'Lost telemetry' };
-const alertUnits: Record<AlertName, string> = { pwm: '%', speed: 'km/h', battery: '%', lost: '' };
 interface View extends WatchPresetView {
   mode: string;
   controlled: boolean;
@@ -77,6 +77,7 @@ interface View extends WatchPresetView {
   config: { version: number; revision: number; alerts: AlertSettings; presets: Preset[] };
   alerts_draft: AlertSettings | null;
   alert_editor: AlertEditorView | null;
+  alert_definitions: AlertDefinitions;
   preset_draft: WatchPresetView['preset_draft'];
   presets_menu: PresetMenuSlot[];
   configuration_preview: null | { content: unknown; base_revision:number; migration:{from:number;to:number;changes:string[]} };
@@ -183,7 +184,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         <p class="intro">Edit the saved alert settings here or in watch Settings. Changes require Save; Cancel and watch back-navigation discard the draft.</p>
         <button id="alerts-edit" data-action="alerts_begin" data-control>Edit alerts</button>
         <form id="alerts-editor">
-          ${alertNames.map(name => `<div class="alert-row"><label class="check"><input id="alert-${name}-enabled" type="checkbox">${alertLabels[name]}</label>${name === 'lost' ? '<span class="metadata">One weak pulse per interruption</span>' : `<label>Threshold (${alertUnits[name]})<input id="alert-${name}-threshold" type="number" min="0" max="${name === 'speed' ? '3276.7' : '100'}" step="any" placeholder="Not configured"></label>`}<button type="button" data-alert-test="${name}" data-control>Test pattern</button></div>`).join('')}
+          ${alertNames.map(name => `<div class="alert-row"><label class="check"><input id="alert-${name}-enabled" type="checkbox"><span id="alert-${name}-label"></span></label>${name === 'lost' ? '<span class="metadata">One weak pulse per interruption</span>' : `<label>Threshold (<span id="alert-${name}-unit"></span>)<input id="alert-${name}-threshold" type="number" min="0" step="any" placeholder="Not configured"></label>`}<button type="button" data-alert-test="${name}" data-control>Test pattern</button></div>`).join('')}
           <div class="actions"><button type="submit" id="alerts-save" data-action="alerts_save" class="primary">Save alerts</button><button type="button" id="alerts-cancel" data-action="alerts_cancel">Cancel</button></div>
         </form>
         <p class="metadata" id="alerts-status">Loading saved settings…</p>
@@ -209,7 +210,9 @@ let available = false;
 let submitting = false;
 let loadingReplay = false;
 let replayLoadGeneration = 0;
-let watchError = '';
+// The refusal of an alert editor request that never reached the Application (transport, lease, session): the
+// editor's own refusals arrive as its reason in the view.
+let undeliveredAlertError = '';
 let presetError = '';
 const documentId = crypto.randomUUID();
 let liveError = '';
@@ -280,7 +283,7 @@ const ridingRects: Rect[] = Array.from({length: 4}, (_, index) => {
 });
 
 function render(view: View | null): void {
-  const key = JSON.stringify([view, available, watchError, presetError, liveError]);
+  const key = JSON.stringify([view, available, undeliveredAlertError, presetError, liveError]);
   if (key === rendered) return;
   rendered = key;
   ctx.fillStyle = '#000000';
@@ -319,6 +322,18 @@ function render(view: View | null): void {
   document.querySelector<HTMLElement>('#live-error')!.textContent = liveError || live?.error || '';
   document.querySelector<HTMLElement>('#live-diagnostics')!.textContent = live ? `${live.notifications} notifications · ${live.valid_frames} valid frames · ${live.rejected_frames} rejects · ${live.notification_rate_hz === null ? 'Cadence pending' : `${live.notification_rate_hz.toFixed(2)} notifications/s`} · max notification gap ${live.maximum_notification_gap_s.toFixed(3)} s · max frame gap ${live.maximum_frame_gap_s.toFixed(3)} s · ${live.disconnects} disconnects · ${live.reconnections} reconnections` : '';
   document.querySelector<HTMLElement>('#live-provenance')!.textContent = live?.provenance ?? 'Physical live evidence remains pending until observed.';
+  const definitions = view?.alert_definitions;
+  if (definitions) {
+    for (const name of alertNames) {
+      document.querySelector<HTMLElement>(`#alert-${name}-label`)!.textContent = definitions[name].label;
+      const limit = definitions[name].limit;
+      if (limit !== null) {
+        document.querySelector<HTMLElement>(`#alert-${name}-unit`)!.textContent = definitions[name].unit;
+        document.querySelector<HTMLInputElement>(`#alert-${name}-threshold`)!.max = String(limit);
+      }
+    }
+  }
+  const alertLabel = (name: AlertName): string => definitions?.[name].label ?? name;
   const alerts = view?.alerts_draft ?? view?.config?.alerts;
   if (alerts) {
     for (const name of alertNames) {
@@ -334,9 +349,9 @@ function render(view: View | null): void {
   document.querySelector<HTMLElement>('#persistence-error')!.textContent = view?.persistence_error ? `Configuration could not be saved: ${view.persistence_error}` : '';
   const vibration = view?.vibration;
   const vibrationStatus = document.querySelector<HTMLElement>('#vibration-status')!;
-  vibrationStatus.textContent = vibration?.current ? `Simulated vibration · ${alertLabels[vibration.current.alert]}${vibration.current.test ? ' test' : ''} · pulse ${vibration.current.duration_s * 1000} ms` : 'Simulated vibration output · idle';
+  vibrationStatus.textContent = vibration?.current ? `Simulated vibration · ${alertLabel(vibration.current.alert)}${vibration.current.test ? ' test' : ''} · pulse ${vibration.current.duration_s * 1000} ms` : 'Simulated vibration output · idle';
   vibrationStatus.classList.toggle('active', !!vibration?.current);
-  document.querySelector<HTMLElement>('#vibration-trace')!.textContent = vibration?.events.map(event => `${event.at_s.toFixed(3)} s · ${alertLabels[event.alert]}${event.test ? ' test' : ''} · ${event.phase} · ${event.duration_s * 1000} ms`).join('\n') ?? '';
+  document.querySelector<HTMLElement>('#vibration-trace')!.textContent = vibration?.events.map(event => `${event.at_s.toFixed(3)} s · ${alertLabel(event.alert)}${event.test ? ' test' : ''} · ${event.phase} · ${event.duration_s * 1000} ms`).join('\n') ?? '';
   if (!awake) {
     canvas.setAttribute('aria-label', 'Screen asleep. Press the watch physical button to wake only.');
     return;
@@ -452,7 +467,8 @@ async function action(actionName: string, payload: Record<string, unknown> = {})
   submitting = true;
   setControls();
   message.textContent = '';
-  if (alertEditorAction(actionName)) watchError = '';
+  if (alertEditorAction(actionName)) undeliveredAlertError = '';
+  let delivered = false;
   if (actionName.startsWith('preset_')) presetError = '';
   if (actionName.startsWith('live_')) liveError = '';
   try {
@@ -467,14 +483,17 @@ async function action(actionName: string, payload: Record<string, unknown> = {})
         session = null;
         available = false;
       }
-      const result = await response.json() as { error?: string };
+      const result = await response.json() as { error?: string; refused_by?: string };
+      delivered = result.refused_by === 'application';
+      // The Application's refusal may have set the editor's reason: show it now, not at the next poll.
+      if (delivered) await refresh();
       throw new Error(result.error ?? `Action refused (${response.status})`);
     }
     await refresh();
     return true;
   } catch (error) {
     message.textContent = error instanceof Error ? error.message : 'Action could not be sent';
-    if (alertEditorAction(actionName)) watchError = message.textContent;
+    if (alertEditorAction(actionName) && !delivered) undeliveredAlertError = message.textContent;
     if (actionName.startsWith('preset_')) presetError = message.textContent;
     if (actionName.startsWith('live_')) liveError = message.textContent;
     return false;
@@ -516,8 +535,6 @@ function watchButton(rect: Rect, label: string, size = 16): void {
   ctx.strokeStyle = '#ffffff'; ctx.strokeRect(rect[0], rect[1], rect[2] - rect[0], rect[3] - rect[1]);
   text(label, (rect[0] + rect[2]) / 2, (rect[1] + rect[3]) / 2 + size / 3, size, '#ffffff', 'center');
 }
-// An action refused before it reached the alert editor (transport, lease) has no
-// reason in the view, so the Canvas shows the browser's own message for it.
 function alertEditorAction(actionName: string): boolean { return actionName.startsWith('alerts_') || actionName.startsWith('threshold_'); }
 // The alert title stays above a message, wrapped at spaces into lines of at most width characters, as watch/render.js does.
 function wrapLines(value: string, width: number, count: number): string[] {
@@ -531,14 +548,17 @@ function wrapLines(value: string, width: number, count: number): string[] {
   return lines;
 }
 function renderWatchAlerts(editor: AlertEditorView): void {
-  const error = watchError || editor.reason || current?.persistence_error || '';
+  const error = undeliveredAlertError || editor.reason || current?.persistence_error || '';
   const entry = editor.entry;
   if (entry) {
-    text(entry.label, 120, 14, 12, '#ffffff', 'center');
-    text(entry.display, 120, 39, 20, '#ffffff', 'center');
+    // A refused Set value keeps the alert's name above the short notice, as watch/render.js does.
+    const notice = entry.notice;
+    text(entry.label, 120, notice ? 13 : 14, 12, '#ffffff', 'center');
+    if (notice) text(notice, 120, 24, 10, '#ffffff', 'center');
+    text(entry.display, 120, notice ? 46 : 39, 20, '#ffffff', 'center');
     editor.keys.forEach(({label}, index) => watchButton(thresholdKeyRect(index), label, 18));
     watchButton(alertRects.cancel, 'Cancel'); watchButton(alertRects.save, 'Set value');
-    canvas.setAttribute('aria-label', `Watch threshold keypad. ${entry.label} threshold ${entry.text || 'empty'} ${entry.unit}. Digits 1 through 9, decimal point, 0, backspace. Cancel or Set value updates the unsaved draft.`);
+    canvas.setAttribute('aria-label', `Watch threshold keypad. ${entry.label} threshold ${entry.text || 'empty'} ${entry.unit}. Digits 1 through 9, decimal point, 0, backspace. Cancel or Set value updates the unsaved draft.${notice ? ` Error: ${notice}` : ''}`);
     canvas.dataset.alert = entry.alert;
     return;
   }

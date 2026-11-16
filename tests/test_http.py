@@ -74,6 +74,9 @@ class LocalApplication(unittest.IsolatedAsyncioTestCase):
             {'error': "'id'"}))
         self.assertEqual(await post({**request, 'id': 'intruder', 'controller': 'intruder'}), (400, 'application/json',
             {'error': 'Valid controller and request identity required'}))
+        # The Application's own refusal says so, so the browser can tell it from a request that never reached it.
+        self.assertEqual(await post({**request, 'id': 'page', 'action': 'alerts_page', 'page': 4, 'epoch': started['session']}),
+            (400, 'application/json', {'error': 'Invalid alert page', 'refused_by': 'application'}))
 
 
 class GatedLive(LiveSession):

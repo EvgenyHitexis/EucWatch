@@ -11,8 +11,8 @@ exports.create = function (options) {
   var lastView = '', feedback = '', paintCount = 0, receivedAt = null;
   var paintDuration=0,maxPaintDuration=0,visibleReceipt=null,maxReceiptToPaint=0;
   var core, devices=[], recoveryCalled=false;
-  var config=configuration.defaults(),persistenceError=null,validationError=null,shared={get:function(){return validationError;},set:function(value){validationError=value||null;}};
-  var presetEditor=require('sw-preset-editor'),editor=presetEditor.create(shared),alertEditor=require('sw-alert-editor'),alertEdit=alertEditor.create(shared);
+  var config=configuration.defaults(),persistenceError=null,validationError=null,validationReason={get:function(){return validationError;},set:function(value){validationError=value||null;}};
+  var presetEditor=require('sw-preset-editor'),editor=presetEditor.create(validationReason),alertEditorModule=require('sw-alert-editor'),alertEditor=alertEditorModule.create(validationReason);
   if(options.store){try{var saved=options.store.load();if(saved!==null&&saved!==undefined)config=configuration.validate(saved);persistenceError=options.store.warning||null;}catch(error){persistenceError='Saved configuration requires review: '+String(error);}}
   var alerts=require('sw-alerts').create({output:options.vibration_output,settings:config.alerts});
   var commandEvents=[],controlFeedback='',control=require('sw-preset-control').create({send:submit});
@@ -37,18 +37,20 @@ exports.create = function (options) {
   }
   function fresh() { return connected && lastValid !== null && clock.now() - lastValid < 1; }
   function resetSession() { session++; connected = false; lastValid = null; parser = protocol.create(); }
-  function saveEditor(proposed){
+  function store(proposed){
     try{if(options.store)options.store.save(proposed);}
-    catch(error){persistenceError='Configuration save failed: '+String(error);return false;}
-    config=proposed;control.invalidate(clock.now(),'Saved configuration changed');persistenceError=null;return true;
+    catch(error){persistenceError=configuration.saveFailed+String(error);return false;}
+    config=proposed;persistenceError=null;return true;
   }
+  function saveEditor(proposed){if(!store(proposed))return false;control.invalidate(clock.now(),'Saved configuration changed');return true;}
+  function alertScreen(){return alertEditor.editing()?alertEditor.entryOpen()?'threshold':'alerts':'settings';}
   function leaveEditor(){editor.close();}
   function percent(voltage) {
     return voltage <= 119.02 ? 0 : voltage >= 148.05 ? 100 : Math.max(0, Math.min(100, Math.round((voltage - 119.02) / 0.2903)));
   }
   function updateAlerts(){alerts.evaluate(clock.now(),{fresh:fresh(),pwm:telemetry?telemetry.pwm_percent:null,speed:telemetry?Math.abs(telemetry.speed_kmh):null,battery:telemetry?percent(telemetry.voltage_V):null});}
   function view() {
-    var live = fresh(), values = telemetry,vibration=alerts.view(),controlState=control.view(),editing=editor.view(),alerting=alertEdit.view();
+    var live = fresh(), values = telemetry,vibration=alerts.view(),controlState=control.view(),editing=editor.view(),alertView=alertEditor.view();
     vibration.output=options.vibration_status?options.vibration_status():null;
     return { mode: 'watch',session: session, elapsed_s: clock.now(), connected: connected,
       fresh: live, awake: awake, screen: screen, recovery: recovery,
@@ -57,8 +59,8 @@ exports.create = function (options) {
       vibration:vibration,
       preset_attempt:controlState.attempt,confirmed_preset:controlState.confirmed&&controlState.confirmed.kind==='preset'?controlState.confirmed:null,actual_settings:controlState.actual,
       horn_feedback:horn.view(),command_events:configuration.copy(commandEvents),
-      config:configuration.copy(config),alerts_draft:alerting.draft,alert_page:alerting.page,persistence_error:persistenceError,validation_error:validationError,
-      threshold_input:alerting.entry,
+      config:configuration.copy(config),alerts_draft:alertView.draft,alert_page:alertView.page,persistence_error:persistenceError,validation_error:validationError,
+      threshold_entry:alertView.entry,
       preset_editor:editing.request,preset_draft:editing.draft,preset_page:editing.page,preset_input:editing.input,
       preset_keys:editing.keys,preset_previous_page:editing.previous_page,preset_next_page:editing.next_page,
       devices:devices,transport:options.transportStatus?options.transportStatus():null,
@@ -117,8 +119,8 @@ exports.create = function (options) {
         else if(payload.direction==='down'&&payload.from_top&&screen==='dashboard')screen='settings';
         else if(payload.direction==='up'){
           if(screen==='preset_slots')screen='settings';
-          else if(screen==='threshold'){alertEdit.action('threshold_cancel');screen='alerts';}
-          else if(screen==='alerts'){alertEdit.close();screen='settings';}
+          else if(screen==='threshold'){alertEditor.action('threshold_cancel');screen=alertScreen();}
+          else if(screen==='alerts'){alertEditor.close();screen=alertScreen();}
           else if(screen==='settings'||screen==='connection')screen='dashboard';
         }else if(payload.direction==='right'&&screen==='presets')screen='dashboard';
       } else if (name === 'sleep' && awake && screen === 'settings') awake = false;
@@ -132,7 +134,7 @@ exports.create = function (options) {
       else if(name==='devices'){devices=(payload.devices||[]).slice(0,4);}
       else if(name==='preset_slots'){
         if(!awake||recovery)throw new Error('Preset editing unavailable');
-        leaveEditor();alertEdit.close();screen='preset_slots';
+        leaveEditor();alertEditor.close();screen='preset_slots';
       }else if(name==='preset_begin'){
         if(!awake||recovery)throw new Error('Preset editing unavailable');
         editor.open(config,payload.slot);screen='preset_editor';
@@ -159,22 +161,19 @@ exports.create = function (options) {
         if(!options.store)throw new Error('Saved configuration adapter unavailable');
         var loaded=configuration.validate(options.store.load()||configuration.defaults());
         if(!configuration.equal(loaded,config))control.invalidate(clock.now(),'Saved configuration changed');
-        leaveEditor();alertEdit.close();config=loaded;screen='dashboard';alerts.configure(config.alerts,clock.now());persistenceError=options.store.warning||null;
+        leaveEditor();alertEditor.close();config=loaded;screen='dashboard';alerts.configure(config.alerts,clock.now());persistenceError=options.store.warning||null;
       }
       else if(name==='alert_test')alerts.test(payload.alert,clock.now());
       else if(name==='alerts_begin'){
         if(!awake||screen!=='settings')throw new Error('Open alert editing inside Settings');
-        alertEdit.open(config.alerts);screen='alerts';
-      }else if(alertEditor.actions.indexOf(name)>=0){
-        var result;try{result=alertEdit.action(name,payload,config);}catch(error){core.tick();throw error;}
-        if(name==='threshold_begin')screen='threshold';
-        else if(name==='threshold_done'||name==='threshold_cancel')screen='alerts';
-        else if(result&&result.leave)screen='settings';
-        else if(result&&result.save){
-          try{if(options.store)options.store.save(result.save);}
-          catch(error){persistenceError='Configuration save failed: '+String(error);core.tick();return view();}
-          config=result.save;alertEdit.close();screen='settings';persistenceError=null;alerts.configure(config.alerts,clock.now());
+        alertEditor.open(config.alerts);screen=alertScreen();
+      }else if(alertEditorModule.actions.indexOf(name)>=0){
+        var outcome;try{outcome=alertEditor.action(name,payload,config);}catch(error){core.tick();throw error;}
+        if(outcome&&outcome.save){
+          if(!store(outcome.save)){core.tick();return view();}
+          alertEditor.close();alerts.configure(config.alerts,clock.now());
         }
+        screen=alertScreen();
       }
       if (awake) lastInteraction = clock.now();
       core.tick();
@@ -186,10 +185,10 @@ exports.create = function (options) {
       updateAlerts();
       if (now - lastBattery >= 30) { watchBattery = battery(); lastBattery = now; }
       if (buttonDown && buttonStarted !== null && now - buttonStarted >= 30) { recovery = true; awake = true; feedback = 'Recovery mode'; if (options.recover&&!recoveryCalled) {recoveryCalled=true;options.recover();} }
-      if (!established && !buttonDown && !recovery && !alertEdit.editing() && !editor.view().request && now - lastInteraction >= 30) awake = false;
+      if (!established && !buttonDown && !recovery && !alertEditor.editing() && !editor.view().request && now - lastInteraction >= 30) awake = false;
       if (options.present && now - lastPaint >= 0.2 - 0.000000001) {
         state = view();
-        signature = JSON.stringify([state.awake,state.screen,state.recovery,state.dashboard,state.feedback,state.devices,state.transport,state.alerts_draft,state.alert_page,state.threshold_input,state.validation_error,state.persistence_error,state.presets,state.preset_attempt,state.confirmed_preset,state.actual_settings,state.horn_feedback,state.preset_editor,state.preset_draft,state.preset_page,state.preset_input]);
+        signature = JSON.stringify([state.awake,state.screen,state.recovery,state.dashboard,state.feedback,state.devices,state.transport,state.alerts_draft,state.alert_page,state.threshold_entry,state.validation_error,state.persistence_error,state.presets,state.preset_attempt,state.confirmed_preset,state.actual_settings,state.horn_feedback,state.preset_editor,state.preset_draft,state.preset_page,state.preset_input]);
         if (signature !== lastView) {
           lastPaint = now; lastView = signature; paintCount++;
           options.present(state);paintDuration=Math.max(0,clock.now()-now);maxPaintDuration=Math.max(maxPaintDuration,paintDuration);

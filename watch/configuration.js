@@ -1,4 +1,6 @@
 /* Versioned saved values only; no telemetry, commands or wheel confirmation. */
+/* How a failed save of the configuration starts its persistence error (laptop: persistence.SAVE_FAILED). */
+exports.saveFailed='Configuration save failed: ';
 exports.copy=function(value){
   if(Array.isArray(value))return value.map(exports.copy);
   if(value&&typeof value==='object'){var result={};Object.keys(value).forEach(function(key){result[key]=exports.copy(value[key]);});return result;}
@@ -29,19 +31,19 @@ function readableName(text){
   }
   return count>0&&readable;
 }
-/* Highest saved threshold per measurement alert; zero is the lowest. */
-exports.thresholdLimits={pwm:100,speed:3276.7,battery:100};
-/* Each alert's display name: the alert editor's title and the name its messages use. */
-exports.labels={pwm:'High PWM',speed:'High speed',battery:'Low wheel battery',lost:'Lost telemetry'};
+/* Each alert's display name (the alert editor's title and the name its messages use), threshold unit and highest saved
+   threshold (zero is the lowest; null for an alert without a threshold). */
+exports.alertDefinitions={pwm:{label:'High PWM',unit:'%',limit:100},speed:{label:'High speed',unit:'km/h',limit:3276.7},
+  battery:{label:'Low wheel battery',unit:'%',limit:100},lost:{label:'Lost telemetry',unit:'',limit:null}};
 exports.validateAlerts=function(alerts){
   if(!keys(alerts,['pwm','speed','battery','lost']))throw new Error('All four alert settings are required');
   Object.keys(alerts).forEach(function(name){
-    var setting=alerts[name],threshold;
-    if(!keys(setting,name==='lost'?['enabled']:['enabled','threshold'])||typeof setting.enabled!=='boolean')throw new Error('Invalid '+exports.labels[name]+' alert setting');
+    var setting=alerts[name],definition=exports.alertDefinitions[name],threshold;
+    if(!keys(setting,name==='lost'?['enabled']:['enabled','threshold'])||typeof setting.enabled!=='boolean')throw new Error('Invalid '+definition.label+' alert setting');
     if(name==='lost')return;
     threshold=setting.threshold;
-    if(threshold===null){if(setting.enabled)throw new Error('A threshold is required to enable '+exports.labels[name]);}
-    else if(typeof threshold!=='number'||!isFinite(threshold)||threshold<0||threshold>exports.thresholdLimits[name])throw new Error('Invalid '+exports.labels[name]+' threshold');
+    if(threshold===null){if(setting.enabled)throw new Error('A threshold is required to enable '+definition.label);}
+    else if(typeof threshold!=='number'||!isFinite(threshold)||threshold<0||threshold>definition.limit)throw new Error('Invalid '+definition.label+' threshold (0-'+definition.limit+' '+definition.unit+')');
   });
   return exports.copy(alerts);
 };

@@ -13,6 +13,8 @@
 //   harness.fixture.rows                     // parsed fixture-recording.jsonl
 //   harness.evidence.json(path,value)        // writes only when EUCWATCH_WRITE_EVIDENCE=1
 //   harness.laptopTrace('touch-layout/x.json')  // where the laptop browser flows' trace is, for parity replays
+//   harness.alertEditor(alerts,reason)       // the alert editor module alone: {config,editor,act,view}
+//   harness.replayAlertEditorTrace(path)     // replay a shared alert editor key-sequence trace, asserting every step
 //
 // Paths given to the harness are relative to the repository root, never to the current directory.
 const assert=require('node:assert/strict'),crypto=require('node:crypto'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),zlib=require('node:zlib');
@@ -179,6 +181,32 @@ function laptopTrace(relative){
 // The device's current screen as touch-layout evidence; returns the plain Graphics operations.
 function snapshot(env,name){const ops=plain(env.context.graphics.ops);evidence.svg('watch/evidence/touch-layout/'+name+'.svg',ops,'touch-layout');return ops;}
 
+// The alert editor module alone, with no clock, battery, wheel session or store, holding a draft of alerts (the defaults
+// when none). reason is the optional {get,set} the core would share. act(name,payload) returns the plain outcome.
+function alertEditor(alerts,reason){
+  const env=environment(),config=env.require('sw-configuration').defaults(),editor=env.require('sw-alert-editor').create(reason);
+  if(alerts)config.alerts=plain(alerts);editor.open(config.alerts);
+  const act=(name,payload={})=>plain(editor.action(name,plain(payload),config));
+  return {config,editor,act,view:()=>plain(editor.view())};
+}
+// A watch error or reason as the laptop words it: without Espruino's leading "Error: ".
+const message=value=>value&&String(value).replace(/^Error: /,'');
+// Replay a shared alert editor trace (tests/test_alert_editor.py replays the same file through the laptop editor):
+// after every step the page, entry, draft, refusal and reason must be the expected ones, and Save's replacement too.
+// Save only returns the replacement, so the configuration the editor was given stays at revision 0. Returns the trace.
+function replayAlertEditorTrace(relative){
+  const trace=readJson(relative),{config,act,view}=alertEditor(trace.alerts);
+  trace.steps.forEach((step,index)=>{
+    let refused=null,result=null;
+    try{result=act(step.action,step.payload);}catch(error){refused=message(error.message);}
+    const state=view(),observed={page:state.page,entry:state.entry,draft:state.draft,refused,reason:message(state.reason)};
+    if(result&&result.save)observed.saved={revision:result.save.revision,alerts:result.save.alerts};
+    assert.deepEqual(observed,step.expect,`step ${index}: ${JSON.stringify(step)}`);
+  });
+  assert.equal(config.revision,0,'Save returns a replacement and leaves the saved configuration alone');
+  return trace;
+}
+
 const sha256=relative=>crypto.createHash('sha256').update(fs.readFileSync(repoPath(relative))).digest('hex');
 const sourceHashes=files=>Object.fromEntries(files.map(file=>[file,sha256(file)]));
 // Every production module, in directory order, as the evidence files have always listed them.
@@ -186,4 +214,4 @@ const watchSourceHashes=()=>sourceHashes(fs.readdirSync(watch).filter(name=>name
 // The laptop interpreter for the differential suites.
 const python=()=>process.env.EUCWATCH_TEST_PYTHON||repoPath('experiments/laptop-feasibility/.venv/bin/python');
 
-module.exports={environment,flush,dispatchRecordedInput,fixture,frame,svg,evidence,laptopTrace,snapshot,plain,repo,repoPath,readJson,sha256,sourceHashes,watchSourceHashes,python};
+module.exports={environment,flush,dispatchRecordedInput,fixture,frame,svg,evidence,laptopTrace,snapshot,alertEditor,message,replayAlertEditorTrace,plain,repo,repoPath,readJson,sha256,sourceHashes,watchSourceHashes,python};

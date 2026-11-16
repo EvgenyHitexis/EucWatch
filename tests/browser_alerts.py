@@ -152,6 +152,20 @@ async def exercise(page, app, clock):
     await label('Error:')
     await heading(page, ['Low wheel battery', 'A threshold is required', 'to enable Low wheel', 'battery'])
     await snapshot('alerts-validation-battery')
+    # A refused Set value keeps the alert's name above "Invalid threshold" and the entry, as the watch draws them
+    # (watch/tests/alerts-runtime.cjs). Not part of the recorded #31 inputs either.
+    await page.tap(120, 120)
+    await label('Watch threshold keypad.')
+    for x, y in ((46, 68), (120, 173), (46, 68)):  # 1, 0, 1
+        await page.tap(x, y)
+    await label('threshold 101 %')
+    await page.tap(176, 217)
+    await label('Error: Invalid threshold')
+    await heading(page, ['Low wheel battery', 'Invalid threshold', '101 %'])
+    await snapshot('alert-keypad-invalid')
+    assert app.view()['alerts_draft']['battery'] == {'enabled': True, 'threshold': None}
+    await page.tap(64, 217)  # Keypad Cancel, then the alert editor's Cancel.
+    await label('Alert editor 3 of 4')
     await page.tap(64, 217)
     await label('Settings.')
     assert app.view()['config'] == expected

@@ -55,4 +55,18 @@ for(const [page,lines] of [[0,['High PWM','A threshold is required','to enable H
   heading.forEach((op,index)=>{assert.ok(op.y+op.size<=52&&op.width<=128,`${op.value} fits between the arrows`);if(index)assert.ok(op.y>=heading[index-1].y+heading[index-1].size,`${op.value} below the line before`);});
   app.stop();
 }
+// A refused Set value keeps the alert's name above "Invalid threshold" and the entry, all above the keys (y 52); the
+// laptop Canvas draws the same lines (frontend/src/main.ts).
+{
+  const screen=environment(),app=screen.start();screen.advance(200);begin(app);
+  screen.touch(5,120,120);for(const [x,y] of [[46,68],[120,173],[46,68]])screen.touch(5,x,y);
+  screen.touch(5,176,216);screen.advance(400);
+  assert.equal(app.core.view().screen,'threshold');assert.equal(app.core.view().validation_error,'Threshold outside supported range');
+  const heading=screen.context.graphics.ops.filter(op=>op.kind==='text'&&op.x===120&&op.y<52);
+  assert.deepEqual(heading.map(op=>op.value),['High PWM','Invalid threshold','101 %']);
+  heading.forEach((op,index)=>{assert.ok(op.y+op.size<=52,`${op.value} above the keys`);if(index)assert.ok(op.y>=heading[index-1].y+heading[index-1].size,`${op.value} below the line before`);});
+  screen.touch(5,120,173);screen.advance(800);
+  assert.deepEqual(screen.context.graphics.ops.filter(op=>op.kind==='text'&&op.x===120&&op.y<52).map(op=>op.value),['High PWM','1010 %'],'the next key clears the refusal');
+  app.stop();
+}
 console.log('watch physical editor and actual active-high motor adapter: passed');

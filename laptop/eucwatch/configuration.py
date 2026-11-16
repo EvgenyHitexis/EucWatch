@@ -2,17 +2,29 @@
 
 import math
 from copy import deepcopy
-from typing import Any
+from typing import Any, NamedTuple
 
 VERSION = 2
 DEFAULT_PRESETS = (("Jump", 0, 0, 0), ("Forest", 70, 0, 0),
                    ("Road", 30, 25, 10), ("Drag", 20, 70, 5))
-ALERTS = ("pwm", "speed", "battery", "lost")
-# Each alert's display name: the alert editor's title and the name its messages use.
-ALERT_LABELS = {"pwm": "High PWM", "speed": "High speed", "battery": "Low wheel battery",
-                "lost": "Lost telemetry"}
-# Highest saved threshold per measurement alert; zero is the lowest.
-THRESHOLD_LIMITS = {"pwm": 100, "speed": 3276.7, "battery": 100}
+
+
+class AlertDefinition(NamedTuple):
+    """One vibration alert's facts: its display name (the alert editor's title and the name its
+    messages use), the unit of its threshold, and its highest saved threshold (zero is the
+    lowest; None for an alert without a threshold)."""
+    label: str
+    unit: str
+    limit: int | float | None
+
+
+ALERT_DEFINITIONS = {
+    "pwm": AlertDefinition("High PWM", "%", 100),
+    "speed": AlertDefinition("High speed", "km/h", 3276.7),
+    "battery": AlertDefinition("Low wheel battery", "%", 100),
+    "lost": AlertDefinition("Lost telemetry", "", None),
+}
+ALERTS = tuple(ALERT_DEFINITIONS)
 # A preset riding value (Pedal sensitivity, Dynamic assist, Pedal dip compensation).
 WHOLE_PERCENTAGE = (0, 100)
 
@@ -49,28 +61,28 @@ def validate_alerts(alerts: Any) -> dict[str, Any]:
     if not isinstance(alerts, dict) or set(alerts) != set(ALERTS):
         raise ValueError("All four alert settings are required")
     for name, setting in alerts.items():
+        label, unit, limit = ALERT_DEFINITIONS[name]
         required = {"enabled"} if name == "lost" else {"enabled", "threshold"}
         if (
             not isinstance(setting, dict)
             or set(setting) != required
             or type(setting["enabled"]) is not bool
         ):
-            raise ValueError(f"Invalid {ALERT_LABELS[name]} alert setting")
+            raise ValueError(f"Invalid {label} alert setting")
         if name == "lost":
             continue
         threshold = setting["threshold"]
         if threshold is None:
             if setting["enabled"]:
-                raise ValueError(f"A threshold is required to enable {ALERT_LABELS[name]}")
+                raise ValueError(f"A threshold is required to enable {label}")
         elif (
             isinstance(threshold, bool)
             or not isinstance(threshold, (int, float))
             or not math.isfinite(threshold)
-            or not 0 <= threshold <= THRESHOLD_LIMITS[name]
+            or not 0 <= threshold <= limit
         ):
-            raise ValueError(
-                f"Invalid {ALERT_LABELS[name]} threshold (0–{'3276.7 km/h' if name == 'speed' else '100%'})"
-            )
+            # watch/configuration.js builds the same text.
+            raise ValueError(f"Invalid {label} threshold (0-{limit} {unit})")
     return deepcopy(alerts)
 
 

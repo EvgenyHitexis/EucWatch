@@ -90,6 +90,6 @@ assert.ok(bounded.app.view().vibration.events.length<=32);assert.equal(bounded.a
 console.log('watch complete validation, ongoing editor and bounded diagnostic history: passed');
 const keypad=scenario();keypad.app.action('swipe',{direction:'down',from_top:true});keypad.app.action('alerts_begin');keypad.app.action('alerts_page',{page:1});
 keypad.app.action('threshold_begin',{alert:'speed'});for(const key of '12.3.45678.9')keypad.app.action('threshold_key',{key});
-assert.equal(keypad.app.view().threshold_input.text,'12.34567','the keypad holds 8 characters, one decimal point among them');
+assert.equal(keypad.app.view().threshold_entry.text,'12.34567','the keypad holds 8 characters, one decimal point among them');
 keypad.app.action('threshold_done');assert.equal(keypad.app.view().alerts_draft.speed.threshold,12.34567);assert.equal(keypad.app.view().screen,'alerts');
 console.log('watch threshold keypad 8-character limit: passed');

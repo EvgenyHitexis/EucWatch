@@ -222,16 +222,22 @@ class Application:
                 self.control_status = status
                 self.feedback = f"{attempt['name']} · {'Applying' if attempt['pending'] else attempt['status']}"
 
-    def _save_editor(self, proposed: dict[str, Any]) -> bool:
+    def _store(self, proposed: dict[str, Any]) -> bool:
+        """Persist a replacement configuration and adopt it; a failed save keeps the current one and says so."""
         try:
             self.store.save(proposed)
         except (OSError, ValueError) as exc:
             self.persistence_error = f"{SAVE_FAILED}{exc}"
             return False
         self.config = proposed
+        self.persistence_error = None
+        return True
+
+    def _save_editor(self, proposed: dict[str, Any]) -> bool:
+        if not self._store(proposed):
+            return False
         self.control.confirmed = None
         self.confirmed_preset = None
-        self.persistence_error = None
         return True
 
     def _leave_editor(self) -> None:
@@ -547,9 +553,9 @@ class Application:
                 elif direction == "up" and self.screen == "preset_slots":
                     self.screen = "settings"
                 elif direction == "up" and self.screen == "settings":
-                    if self.alert_editor.entry is not None:
-                        self.alert_editor.cancel_entry()
-                    elif self.alert_editor.draft is not None:
+                    if self.alert_editor.entry_open():
+                        self.alert_editor.action("threshold_cancel", {}, self.config)
+                    elif self.alert_editor.is_open():
                         self.alert_editor.close()
                     else:
                         self.screen = "dashboard"
@@ -571,18 +577,12 @@ class Application:
             proposed = backup.replacement(
                 self.configuration_preview, self.config["revision"]
             )
-            try:
-                self.store.save(proposed)
-            except (OSError, ValueError) as exc:
-                self.persistence_error = f"{SAVE_FAILED}{exc}"
-            else:
-                self.config = proposed
+            if self._store(proposed):
                 self.confirmed_preset = None
                 self.configuration_preview = None
                 self._leave_editor()
                 if self.screen == "preset_editor":
                     self.screen = "preset_slots"
-                self.persistence_error = None
                 self.alerts.configure(proposed["alerts"], self.elapsed())
                 self._update_alerts()
         elif name == "preset_begin":
@@ -602,18 +602,11 @@ class Application:
             self.alert_editor.close()
             self.screen = "preset_slots"
         elif name in alert_editor.ACTIONS:
-            proposed = self.alert_editor.action(name, payload, self.config)
-            if proposed is not None:
-                try:
-                    self.store.save(proposed)
-                except (OSError, ValueError) as exc:
-                    self.persistence_error = f"{SAVE_FAILED}{exc}"
-                else:
-                    self.config = proposed
-                    self.alert_editor.close()
-                    self.persistence_error = None
-                    self.alerts.configure(proposed["alerts"], self.elapsed())
-                    self._update_alerts()
+            edited = self.alert_editor.action(name, payload, self.config)
+            if edited and "save" in edited and self._store(edited["save"]):
+                self.alert_editor.close()
+                self.alerts.configure(self.config["alerts"], self.elapsed())
+                self._update_alerts()
         elif name == "alert_test":
             alert = payload.get("alert")
             if not isinstance(alert, str):
@@ -669,7 +662,7 @@ class Application:
             and not self.established_connection
             and not self.button_down
             and not self.recovery
-            and self.alert_editor.draft is None
+            and not self.alert_editor.is_open()
             and not self.editor.is_open()
             and self.configuration_preview is None
             and self.elapsed() - self.last_interaction >= 30 - 1e-9
@@ -764,8 +757,7 @@ class Application:
             "feedback": self.feedback,
             "recording_error": self.recording_error,
             "config": deepcopy(self.config),
-            "alerts_draft": deepcopy(self.alert_editor.draft),
-            "alert_editor": self.alert_editor.view(),
+            **self.alert_editor.view(),
             **self.editor.view(self.persistence_error),
             "configuration_preview": deepcopy(self.configuration_preview),
             "configuration_export": deepcopy(self.configuration_export),

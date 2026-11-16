@@ -1,6 +1,6 @@
 /* Original 240x240, 1-bpp presentation; Canvas layout carried to Espruino Graphics.
-   The alert editor keeps its title above a message, wrapped at spaces into up to three 23-character lines, as the
-   laptop Canvas does (frontend/src/main.ts). */
+   The alert editor keeps its title above a message, wrapped at spaces into up to three 23-character lines, and the
+   threshold keypad keeps the alert's name above "Invalid threshold", as the laptop Canvas does (frontend/src/main.ts). */
 exports.draw = function (g, state) {
   var d = state.dashboard, i, x, y;
   function text(value, x, y, size, align) {
@@ -33,7 +33,7 @@ exports.draw = function (g, state) {
   }else if(state.screen==='preset_editor'){
     var slot=state.preset_draft,page=state.preset_page,labels=require('sw-preset-editor').labels;
     if(slot){
-      var notice=(state.validation_error||state.persistence_error||'').replace('Configuration save failed: Error: ','Save failed: ').replace(/^Error: /,'');
+      var notice=(state.validation_error||state.persistence_error||'').replace(require('sw-configuration').saveFailed+'Error: ','Save failed: ').replace(/^Error: /,'');
       controls();
       if(state.preset_input){
         notice=notice.replace(/^.*: enter a whole percentage 0-100$/,'Enter whole % (0-100)');
@@ -71,15 +71,16 @@ exports.draw = function (g, state) {
     var message=state.horn_feedback?state.horn_feedback.message:state.validation_error|| (state.persistence_error?'Configuration needs review':'');
     text(message||'SETTINGS',120,10,message?10:15);controls();
   }else if(state.screen==='alerts'){
-    var name=['pwm','speed','battery','lost'][state.alert_page],alertLabels=require('sw-configuration').labels;
+    var name=['pwm','speed','battery','lost'][state.alert_page],label=require('sw-configuration').alertDefinitions[name].label;
     controls();
     var message=state.validation_error||state.persistence_error||(state.vibration.output_error?'Vibration output unavailable':'')||(state.horn_feedback?state.horn_feedback.message:'');
-    if(message){text(alertLabels[name],120,2,12);wrap(message.replace(/^Error: /,''),23,3).forEach(function(line,index){text(line,120,16+index*11,10);});}
-    else {text(alertLabels[name],120,6,12);text((state.alert_page+1)+'/4',120,24,12);}
+    if(message){text(label,120,2,12);wrap(message.replace(/^Error: /,''),23,3).forEach(function(line,index){text(line,120,16+index*11,10);});}
+    else {text(label,120,6,12);text((state.alert_page+1)+'/4',120,24,12);}
     if(name==='lost')text('1 short pulse',120,111,14);
   }else if(state.screen==='threshold'){
-    text(state.validation_error?'Invalid threshold':require('sw-configuration').labels[state.threshold_input.alert],120,2,12);
-    text((state.threshold_input.text||'-')+(state.threshold_input.alert==='speed'?' km/h':' %'),120,20,20);controls();
+    var entry=state.threshold_entry,definition=require('sw-configuration').alertDefinitions[entry.alert],refused=!!state.validation_error;
+    text(definition.label,120,refused?1:2,12);if(refused)text('Invalid threshold',120,14,10);
+    text((entry.text||'-')+' '+definition.unit,120,refused?27:20,20);controls();
   } else if(state.screen==='connection'){
     text('SELECT WHEEL',120,10,15);
     if(state.horn_feedback)text(state.horn_feedback.message,120,27,8);
