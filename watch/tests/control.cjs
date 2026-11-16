@@ -1,10 +1,8 @@
 // Actual watch App input/raw-parser/output seam. All radio/time/storage controlled.
 const assert=require('node:assert/strict');
 const child=require('node:child_process');
-const {environment,flush,frame,evidence,repo,repoPath,python}=require('./harness.cjs');
+const {environment,flush,frame,evidence,drawnText,repo,repoPath,python}=require('./harness.cjs');
 const record={issue:34,provenance:'Original production ES5 watch modules in Node VM; controlled clock/store/NRF, synthetic settings and movement derived from the sanitized WheelLog fixture; no physical operations',fixture:'experiments/laptop-feasibility/evidence/fixture-recording.jsonl',hardware_acceptance:'Pending owner-authorized actual-device controls, BLE writes, audible horn and recovery coexistence; #9/#31 remain open'};
-// The renderer's text, drawn on a fresh Graphics buffer of the scenario's device.
-function drawnText(env,state){const g=env.context.Graphics.createArrayBuffer(240,240,1);env.require('sw-render').draw(g,state);return g.ops.filter(op=>op.kind==='text').map(op=>op.value);}
 // Moving at 25 km/h and reporting the Road preset's settings, unless a step reports others.
 const road={speed:25,settings:{pedal_sensitivity:31,dynamic_assist:26,pedal_dip_compensation:10}};
 const reporting=settings=>settings?{...road,settings}:road;

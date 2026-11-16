@@ -82,7 +82,8 @@ through an adapter; the transport reports only link events (devices, session
 start, connected, disconnect) and no longer sends `open_connection` or
 `wheel_selected`. Two visible changes: a discovery or selection the transport
 refuses now stays on its screen with the reason shown, where before nothing
-showed; and the core refuses every unknown action name, as the laptop does,
+showed (a discovery tapped while a timed-out connect is still pending says
+"Previous Bluetooth operation is still pending"); and the core refuses every unknown action name, as the laptop does,
 instead of ignoring it (`interact` and `button_hold` are accepted no-ops). Every
 `watch/evidence/**` file regenerates unchanged
 (`scripts/evidence-compare.py cea77ec`).

@@ -137,7 +137,8 @@ exports.create=function(options){
     },
     tick:function(){var state=app.ownership();if(write&&!writeOwned(write))cancelWrite('Command no longer eligible; no retry');if(desired&&(state.recovery||(token!==null&&token!==state.session)))adapter.disconnect();},
     discover:function(){
-      if(busy||gatt)throw new Error('Disconnect the wheel before discovery');
+      if(gatt)throw new Error('Disconnect the wheel before discovery');
+      if(busy)throw new Error('Previous Bluetooth operation is still pending');
       if(scanTimer!==null)timers.clearTimeout(scanTimer);
       var value=++generation;
       desired=false;devices=[];link='discovering';error='';app.action('devices',{devices:[]});

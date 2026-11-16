@@ -1,6 +1,6 @@
 // Public application actions/raw notifications; no physical wheel or watch.
 const assert=require('node:assert/strict');
-const {environment,frame,plain}=require('./harness.cjs');
+const {environment,frame,plain,fakeTransport}=require('./harness.cjs');
 const riding={settings:{pedal_sensitivity:41,dynamic_assist:51,pedal_dip_compensation:61}};
 function scenario(transport){
   const env=environment();
@@ -29,8 +29,7 @@ assert.equal(test.writes.length,0);assert.equal(test.create().view().config.pres
 console.log('watch local drafts, retry, stale completion/reload and retired actions: passed');
 {
   // The Preset editor and the alert editor share one validation error: the last one set or cleared shows in both views.
-  const idle={discover(){},select(){},disconnect(){},status:()=>({active:false,connected:false})};
-  const shared=scenario(idle);open(shared,1);
+  const shared=scenario(fakeTransport().adapter);open(shared,1);
   const editorId={editor_id:shared.app.view().preset_editor.id},entryId=()=>({...editorId,entry_id:shared.app.view().preset_input.id});
   const reasons=()=>{const state=shared.app.view();return [state.validation_error,state.preset_editor.reason];};
   const percentage='Error: Pedal sensitivity: enter a whole percentage 0-100',threshold='Threshold outside supported range';

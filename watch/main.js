@@ -4,10 +4,10 @@ exports.start=function(options){
   var hardware=options.hardware||require('sw-hardware').create();
   var renderer=require('sw-render'),transport=null,stopped=false;
   var store=options.store||require('sw-store').create(),clock=options.clock||{now:getTime},radio=options.radio||NRF;
-  function ready(){if(!transport)throw new Error('Wheel transport not ready');return transport;}
   var core=require('sw-app').create({clock:clock,battery:hardware.readBattery,store:store,
-    command_output:function(row){ready().submit(row);},
-    transport:{discover:function(){ready().discover();},select:function(id){ready().select(id);},disconnect:function(){ready().disconnect();},
+    command_output:function(row){if(!transport)throw new Error('Wheel transport not ready');transport.submit(row);},
+    // The transport needs the core, so the core gets this forwarder; input is bound only once the transport exists.
+    transport:{discover:function(){transport.discover();},select:function(id){transport.select(id);},disconnect:function(){transport.disconnect();},
       status:function(){return transport?transport.status():null;}},
     vibration_output:hardware.vibrationOutput,vibration_status:hardware.vibrationStatus,
     memory:function(){return process.memory();},

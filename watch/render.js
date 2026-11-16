@@ -68,7 +68,7 @@ exports.draw = function (g, state) {
       });
     }else if(state.horn_feedback){g.setColor(0);g.fillRect(0,0,239,31);text(state.horn_feedback.message,120,10,11);}
   } else if (state.screen === 'settings') {
-    var message=state.horn_feedback?state.horn_feedback.message:state.validation_error||state.connection_error|| (state.persistence_error?'Configuration needs review':'');
+    var message=state.horn_feedback?state.horn_feedback.message:state.validation_error||state.wheel_link_error|| (state.persistence_error?'Configuration needs review':'');
     text(message||'SETTINGS',120,10,message?10:15);controls();
   }else if(state.screen==='alerts'){
     var name=['pwm','speed','battery','lost'][state.alert_page],label=require('sw-configuration').alertDefinitions[name].label;
@@ -83,7 +83,7 @@ exports.draw = function (g, state) {
     text((entry.text||'-')+' '+definition.unit,120,refused?27:20,20);controls();
   } else if(state.screen==='connection'){
     text('SELECT WHEEL',120,10,15);
-    if(state.horn_feedback||state.connection_error)text(state.horn_feedback?state.horn_feedback.message:state.connection_error,120,27,8);
+    if(state.horn_feedback||state.wheel_link_error)text(state.horn_feedback?state.horn_feedback.message:state.wheel_link_error,120,27,8);
     if(!state.devices.length)text(state.transport&&state.transport.error?'Discovery failed':'Discovering...',120,90,14);
     for(i=0;i<state.devices.length;i++){
       y=40+i*38;g.setColor(1);g.drawRect(8,y,232,y+34);

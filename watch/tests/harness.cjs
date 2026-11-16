@@ -14,6 +14,8 @@
 //   harness.evidence.json(path,value)        // writes only when EUCWATCH_WRITE_EVIDENCE=1
 //   harness.laptopTrace('touch-layout/x.json')  // where the laptop browser flows' trace is, for parity replays
 //   harness.alertEditor(alerts,reason)       // the alert editor module alone: {config,editor,act,view}
+//   harness.drawnText(env,state)             // the renderer's text for state, on a fresh Graphics buffer of env
+//   harness.fakeTransport()                  // a core transport adapter: {adapter,calls,refusals,status,link}
 //   harness.replayAlertEditorTrace(path)     // replay a shared alert editor key-sequence trace, asserting every step
 //
 // Paths given to the harness are relative to the repository root, never to the current directory.
@@ -189,6 +191,20 @@ function alertEditor(alerts,reason){
   const act=(name,payload={})=>plain(editor.action(name,plain(payload),config));
   return {config,editor,act,view:()=>plain(editor.view())};
 }
+// The renderer's text, drawn on a fresh Graphics buffer of the scenario's device.
+function drawnText(env,state){const g=env.context.Graphics.createArrayBuffer(240,240,1);env.require('sw-render').draw(g,plain(state));return g.ops.filter(op=>op.kind==='text').map(op=>op.value);}
+// The core's transport adapter without a radio. It records every request in calls, refuses a request whose name has a
+// reason in refusals (throwing it, as the real transport does), and reports status. An accepted discover or select
+// changes status as the real one does; after link(app) it also reports to that core from inside the request (devices
+// on discovery, session_start on selection), as the real transport does.
+function fakeTransport(){
+  const calls=[],refusals={},status={link:'idle',active:false,connected:false,busy:false};let app=null;
+  const ask=(name,...args)=>{calls.push([name,...args]);if(refusals[name])throw new Error(refusals[name]);};
+  return {calls,refusals,status,link:value=>{app=value;},adapter:{
+    discover:()=>{ask('discover');status.link='discovering';if(app)app.action('devices',{devices:[]});},
+    select:id=>{ask('select',id);status.link='connecting';status.active=true;if(app)app.action('session_start');},
+    disconnect:()=>ask('disconnect'),status:()=>({...status})}};
+}
 // A watch error or reason as the laptop words it: without Espruino's leading "Error: ".
 const message=value=>value&&String(value).replace(/^Error: /,'');
 // Replay a shared alert editor trace (tests/test_alert_editor.py replays the same file through the laptop editor):
@@ -214,4 +230,4 @@ const watchSourceHashes=()=>sourceHashes(fs.readdirSync(watch).filter(name=>name
 // The laptop interpreter for the differential suites.
 const python=()=>process.env.EUCWATCH_TEST_PYTHON||repoPath('experiments/laptop-feasibility/.venv/bin/python');
 
-module.exports={environment,flush,dispatchRecordedInput,fixture,frame,svg,evidence,laptopTrace,snapshot,alertEditor,message,replayAlertEditorTrace,plain,repo,repoPath,readJson,sha256,sourceHashes,watchSourceHashes,python};
+module.exports={environment,flush,dispatchRecordedInput,fixture,frame,svg,evidence,laptopTrace,snapshot,alertEditor,drawnText,fakeTransport,message,replayAlertEditorTrace,plain,repo,repoPath,readJson,sha256,sourceHashes,watchSourceHashes,python};

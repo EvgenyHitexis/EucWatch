@@ -10,9 +10,9 @@ exports.create = function (options) {
   var watchBattery = battery(), lastBattery = clock.now(), lastPaint = -Infinity;
   var lastView = '', feedback = '', paintCount = 0, receivedAt = null;
   var paintDuration=0,maxPaintDuration=0,visibleReceipt=null,maxReceiptToPaint=0;
-  var core, devices=[], recoveryCalled=false, connectionError='';
+  var core, devices=[], recoveryCalled=false, wheelLinkError='';
   /* options.transport: {discover(), select(id), disconnect(), status()}. discover and select throw the reason when the
-     transport refuses; the core changes screen only after the transport accepts. */
+     transport refuses, before reporting anything; a refused request leaves the screen as it was. */
   var transport=options.transport||null;
   var config=configuration.defaults(),persistenceError=null,validationError=null,validationReason={get:function(){return validationError;},set:function(value){validationError=value||null;}};
   var presetEditor=require('sw-preset-editor'),editor=presetEditor.create(validationReason),alertEditorModule=require('sw-alert-editor'),alertEditor=alertEditorModule.create(validationReason);
@@ -52,12 +52,12 @@ exports.create = function (options) {
   // The Connect/Disconnect target's meaning: a wanted or live wheel link is disconnected, otherwise discovery starts.
   function disconnectAvailable(){var status=transportStatus();return !!(status&&(status.active||status.connected));}
   function askTransport(request){
-    connectionError='';
+    wheelLinkError='';
     try{if(!transport)throw new Error('Wheel transport not ready');request();return true;}
-    catch(error){connectionError=error&&error.message?error.message:String(error);return false;}
+    catch(error){wheelLinkError=error&&error.message?error.message:String(error);return false;}
   }
   // The core's own input carries the current editor and entry ids, which the Preset editor checks.
-  function current(name,payload){
+  function withEditorIds(name,payload){
     var copy={},state=editor.view(),key;payload=payload||{};
     for(key in payload)copy[key]=payload[key];
     if((name==='swipe'||name.indexOf('preset_')===0)&&state.request){copy.editor_id=state.request.id;if(state.input)copy.entry_id=state.input.id;}
@@ -81,7 +81,7 @@ exports.create = function (options) {
       threshold_entry:alertView.entry,
       preset_editor:editing.request,preset_draft:editing.draft,preset_page:editing.page,preset_input:editing.input,
       preset_keys:editing.keys,preset_previous_page:editing.previous_page,preset_next_page:editing.next_page,
-      devices:devices,transport:transportStatus(),disconnect_available:disconnectAvailable(),connection_error:connectionError,
+      devices:devices,transport:transportStatus(),disconnect_available:disconnectAvailable(),wheel_link_error:wheelLinkError,
       diagnostics: { valid_frames: validFrames, rejected_frames: rejectedFrames,
         retained_bytes: parser.status().retained_bytes, display_frames: paintCount,
         framebuffer_bytes: 7200, last_frame_received_s: receivedAt,
@@ -127,10 +127,10 @@ exports.create = function (options) {
     // A touch at (x, y): the target under it, if any, acts with the current editor and entry ids.
     touch:function(x,y){
       var target=require('sw-controls').hit(view(),x,y);
-      return target?core.action(target.action,current(target.action,target.payload)):null;
+      return target?core.action(target.action,withEditorIds(target.action,target.payload)):null;
     },
     // A hardware input (swipe, button, battery or interact); a swipe carries the current editor and entry ids.
-    gesture:function(name,payload){return core.action(name,name==='swipe'?current(name,payload):payload);},
+    gesture:function(name,payload){return core.action(name,name==='swipe'?withEditorIds(name,payload):payload);},
     action: function (name, payload) {
       payload = payload || {};
       core.tick();
@@ -157,13 +157,13 @@ exports.create = function (options) {
       } } else if (name === 'button_up') { buttonDown = false; wakeCycle = false; buttonStarted = null; }
       else if (name === 'button_hold' || name === 'interact') {}
       else if (name === 'battery_refresh') { watchBattery = battery(); lastBattery = clock.now(); }
-      else if(name==='transport_toggle'){
+      else if(name==='transport_toggle'||name==='device_select'){
         if(recovery)throw new Error('Wheel connection unavailable in recovery mode');
-        if(disconnectAvailable())askTransport(function(){transport.disconnect();});
-        else if(askTransport(function(){transport.discover();})&&awake)screen='connection';
-      }else if(name==='device_select'){
-        if(recovery)throw new Error('Wheel connection unavailable in recovery mode');
-        if(askTransport(function(){transport.select(payload.id);})&&screen==='connection')screen='dashboard';
+        // The screen changes before the request, so a paint from inside it (the transport reports back synchronously)
+        // already shows the new screen; a refusal, thrown before the transport reports anything, restores it.
+        if(name==='transport_toggle'&&disconnectAvailable())askTransport(function(){transport.disconnect();});
+        else if(name==='transport_toggle'){if(awake)screen='connection';if(!askTransport(function(){transport.discover();}))screen=before;}
+        else{if(screen==='connection')screen='dashboard';if(!askTransport(function(){transport.select(payload.id);}))screen=before;}
       }
       else if(name==='preset_slots'){
         if(!awake||recovery)throw new Error('Preset editing unavailable');
@@ -210,7 +210,7 @@ exports.create = function (options) {
       }
       else throw new Error('Unknown action: '+name);
       // A refusal reason belongs to the screen it was shown on.
-      if(screen!==before)connectionError='';
+      if(screen!==before)wheelLinkError='';
       if (awake) lastInteraction = clock.now();
       core.tick();
       return view();
@@ -224,7 +224,7 @@ exports.create = function (options) {
       if (!established && !buttonDown && !recovery && !alertEditor.editing() && !editor.view().request && now - lastInteraction >= 30) awake = false;
       if (options.present && now - lastPaint >= 0.2 - 0.000000001) {
         state = view();
-        signature = JSON.stringify([state.awake,state.screen,state.recovery,state.dashboard,state.feedback,state.devices,state.transport,state.connection_error,state.alerts_draft,state.alert_page,state.threshold_entry,state.validation_error,state.persistence_error,state.presets,state.preset_attempt,state.confirmed_preset,state.actual_settings,state.horn_feedback,state.preset_editor,state.preset_draft,state.preset_page,state.preset_input]);
+        signature = JSON.stringify([state.awake,state.screen,state.recovery,state.dashboard,state.feedback,state.devices,state.transport,state.wheel_link_error,state.alerts_draft,state.alert_page,state.threshold_entry,state.validation_error,state.persistence_error,state.presets,state.preset_attempt,state.confirmed_preset,state.actual_settings,state.horn_feedback,state.preset_editor,state.preset_draft,state.preset_page,state.preset_input]);
         if (signature !== lastView) {
           lastPaint = now; lastView = signature; paintCount++;
           options.present(state);paintDuration=Math.max(0,clock.now()-now);maxPaintDuration=Math.max(maxPaintDuration,paintDuration);
