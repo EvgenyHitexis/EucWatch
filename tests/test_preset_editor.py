@@ -135,6 +135,7 @@ class PresetEditorTests(unittest.TestCase):
             app.action('preset_begin',slot=4);edit(app,'preset_update',name='Retry',pedal_dip_compensation=17)
             with patch('os.replace',side_effect=OSError('Disk full')):state=edit(app,'preset_save')
             self.assertEqual(state['config'],before);self.assertEqual(state['preset_draft']['name'],'Retry');self.assertIn('Disk full',state['persistence_error'])
+            self.assertEqual(state['preset_notice'],'Configuration save failed: Disk full');self.assertEqual(state['preset_entry_notice'],'Save failed: Disk full')
             state=edit(app,'preset_save');self.assertEqual(state['config']['presets'][3]['pedal_dip_compensation'],17);self.assertEqual(state['command_events'],[])
             app.action('preset_begin',slot=1);old=app.view()['preset_editor']['id']
             app.action('configuration_import_prepare',content=json.dumps(before));app.action('configuration_import_commit')

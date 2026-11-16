@@ -10,6 +10,8 @@ from typing import Any, Protocol
 from .configuration import default_configuration, validate_configuration
 
 MAX_CONFIG_BYTES = 32 * 1024
+# How a refused Save is reported to the rider, followed by the store's reason.
+SAVE_FAILED = "Configuration save failed: "
 
 
 class ConfigStore(Protocol):

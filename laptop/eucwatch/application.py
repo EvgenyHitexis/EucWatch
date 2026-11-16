@@ -15,7 +15,7 @@ from .configuration import (
 )
 from .control import PresetControl
 from .horn import HornRequests
-from .persistence import ConfigStore, MemoryStore
+from .persistence import SAVE_FAILED, ConfigStore, MemoryStore
 from .protocol import CHARACTERISTIC, Assembler, Telemetry, decode, decode_settings
 from .recording import Replay
 from .simulator import Simulator
@@ -226,7 +226,7 @@ class Application:
         try:
             self.store.save(proposed)
         except (OSError, ValueError) as exc:
-            self.persistence_error = f"Configuration save failed: {exc}"
+            self.persistence_error = f"{SAVE_FAILED}{exc}"
             return False
         self.config = proposed
         self.control.confirmed = None
@@ -537,18 +537,9 @@ class Application:
                 raise ValueError("Invalid swipe direction")
             if self.awake and not self.recovery:
                 if self.screen == "preset_editor":
-                    self.editor.require(payload.get("editor_id"))
-                    if self.editor.input or payload.get("entry_id") is not None:
-                        self.editor.require_input(payload.get("entry_id"))
-                    if direction in ("left", "right"):
-                        self.editor.set_page((self.editor.page + (1 if direction == "left" else -1)) % 4)
-                    elif direction == "up":
-                        if self.editor.input:
-                            self.editor.cancel_input()
-                            self.editor.set_reason("")
-                        else:
-                            self._leave_editor()
-                            self.screen = "preset_slots"
+                    if self.editor.swipe(payload):
+                        self._leave_editor()
+                        self.screen = "preset_slots"
                 elif direction == "left" and self.screen == "dashboard":
                     self.screen = "presets"
                 elif direction == "down" and self.screen == "dashboard" and payload.get("from_top", True):
@@ -583,7 +574,7 @@ class Application:
             try:
                 self.store.save(proposed)
             except (OSError, ValueError) as exc:
-                self.persistence_error = f"Configuration save failed: {exc}"
+                self.persistence_error = f"{SAVE_FAILED}{exc}"
             else:
                 self.config = proposed
                 self.confirmed_preset = None
@@ -599,48 +590,13 @@ class Application:
                 raise ValueError("Preset editing unavailable")
             self.editor.open(self.config, payload.get("slot"))
             self.screen = "preset_editor"
-        elif name in ("preset_update", "preset_save", "preset_cancel", "preset_include_dip",
-                      "preset_page", "preset_input_begin", "preset_input_key", "preset_input_page",
-                      "preset_input_accept", "preset_input_cancel"):
-            self.editor.require(payload.pop("editor_id", None))
-            entry_id = payload.pop("entry_id", None)
-            if entry_id is not None or name in ("preset_input_key", "preset_input_page", "preset_input_accept", "preset_input_cancel"):
-                self.editor.require_input(entry_id)
-            if name != "preset_cancel" and (not self.awake or self.recovery):
-                raise ValueError("Preset editing unavailable")
-            payload.pop("source", None)
-            self.editor.set_reason("")
-            if name == "preset_update":
-                self.editor.update(payload)
-            elif name == "preset_include_dip":
-                self.editor.include_dip(payload.get("included"))
-            elif name == "preset_page":
-                self.editor.set_page(payload.get("page"))
-            elif name == "preset_input_begin":
-                self.editor.begin_input()
-            elif name == "preset_input_key":
-                self.editor.key(payload.get("key"))
-            elif name == "preset_input_page":
-                self.editor.input_page(payload.get("delta"))
-            elif name == "preset_input_accept":
-                try:
-                    self.editor.accept_input()
-                except ValueError as exc:
-                    self.editor.set_reason(str(exc))
-            elif name == "preset_input_cancel":
-                self.editor.cancel_input()
-            elif name == "preset_cancel":
+        elif name in presets.ACTIONS:
+            edited = self.editor.action(
+                name, payload, self.awake and not self.recovery, self.config
+            )
+            if edited and (edited.get("leave") or self._save_editor(edited["save"])):
                 self._leave_editor()
                 self.screen = "preset_slots"
-            elif name == "preset_save":
-                try:
-                    proposed = self.editor.validated(self.config)
-                except ValueError as exc:
-                    self.editor.set_reason(str(exc))
-                else:
-                    if self._save_editor(proposed):
-                        self._leave_editor()
-                        self.screen = "preset_slots"
         elif name == "preset_slots":
             self._leave_editor()
             self.alert_editor.close()
@@ -651,7 +607,7 @@ class Application:
                 try:
                     self.store.save(proposed)
                 except (OSError, ValueError) as exc:
-                    self.persistence_error = f"Configuration save failed: {exc}"
+                    self.persistence_error = f"{SAVE_FAILED}{exc}"
                 else:
                     self.config = proposed
                     self.alert_editor.close()
@@ -714,7 +670,7 @@ class Application:
             and not self.button_down
             and not self.recovery
             and self.alert_editor.draft is None
-            and self.editor.request is None
+            and not self.editor.is_open()
             and self.configuration_preview is None
             and self.elapsed() - self.last_interaction >= 30 - 1e-9
         ):
@@ -797,7 +753,6 @@ class Application:
         self.tick()
         live = self.fresh()
         values = self.telemetry
-        editor = self.editor.view()
         return {
             "mode": self.mode,
             "controlled": self.controlled,
@@ -811,10 +766,7 @@ class Application:
             "config": deepcopy(self.config),
             "alerts_draft": deepcopy(self.alert_editor.draft),
             "alert_editor": self.alert_editor.view(),
-            "preset_draft": deepcopy(self.editor.draft),
-            "preset_editor": editor,
-            "preset_page": self.editor.page,
-            "preset_input": deepcopy(self.editor.input),
+            **self.editor.view(self.persistence_error),
             "configuration_preview": deepcopy(self.configuration_preview),
             "configuration_export": deepcopy(self.configuration_export),
             "confirmed_preset": deepcopy(self.confirmed_preset),
