@@ -80,6 +80,20 @@ dashboard. Discovery, selection failure, disconnect and reconnect are unchanged.
 captures after selection, showed SELECT WHEEL before #64. It now shows the
 connected Riding dashboard.
 
+Watch behavior change (#56): the alert editor (alert draft, alert page and
+threshold entry) moved from `watch/app.js` into `watch/alert-editor.js`, and
+the threshold keypad now holds at most 8 characters, down from 10, to match the
+laptop. A '.' counts toward the 8, and only one '.' is accepted. A key typed at
+the limit is ignored, as a second '.' already was; before, the key that would
+have made an 11th character was refused. `node watch/tests/alert-editor.cjs`
+replays the key sequence in
+[alert-editor-keys.json](scenarios/alert-editor-keys.json) through the watch
+alert editor alone, and `tests/test_alert_editor.py` replays the same file
+through the laptop alert editor. No regenerated evidence showed an entry longer
+than 8 characters, so the limit changed no evidence file;
+`watch/evidence/local-presets/bundle.json` changed only because the bundle now
+ships the new module.
+
 `watch/THIRD_PARTY.md` records
 pinned driver provenance and the required MIT display notice.
 

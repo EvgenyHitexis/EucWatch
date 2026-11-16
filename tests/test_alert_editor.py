@@ -1,13 +1,18 @@
 """The alert editor through public actions and views; no browser is involved."""
+import json
 import unittest
 from pathlib import Path
 
 from eucwatch import Application, ManualClock
+from eucwatch.alert_editor import AlertEditor
+from eucwatch.configuration import default_configuration
 from eucwatch.lease import ControllerLease
 from eucwatch.recording import Replay
 from eucwatch.scenarios import ScenarioLibrary
 
 FIXTURE = Path("experiments/laptop-feasibility/evidence/fixture-recording.jsonl")
+# One key sequence for both alert editors; watch/tests/alert-editor.cjs replays it on the watch module.
+TRACE = Path("docs/acceptance/scenarios/alert-editor-keys.json")
 EDITING = (("alerts_page", {"page": 1}), ("alerts_adjust", {"alert": "speed", "delta": 1}),
            ("threshold_begin", {"alert": "speed"}), ("threshold_key", {"key": "5"}),
            ("threshold_done", {}), ("threshold_begin", {"alert": "speed"}),
@@ -333,6 +338,27 @@ class AlertEditorTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             app.action("alerts_page", page=1)
 
+    def test_the_shared_key_sequence_trace(self):
+        trace = json.loads(TRACE.read_text(encoding="utf-8"))
+        config = default_configuration()
+        config["alerts"] = trace["alerts"]
+        editor = AlertEditor()
+        editor.open(config["alerts"])
+        for index, step in enumerate(trace["steps"]):
+            refused, result = None, None
+            try:
+                result = editor.action(step["action"], dict(step["payload"]), config)
+            except ValueError as exc:
+                refused = str(exc)
+            view = editor.view()
+            entry = view["entry"] and {"alert": view["entry"]["alert"], "text": view["entry"]["text"]}
+            observed = {"page": view["page"], "entry": entry, "draft": editor.draft,
+                        "refused": refused, "reason": view["reason"]}
+            if result is not None:
+                observed["saved"] = {"revision": result["revision"], "alerts": result["alerts"]}
+            with self.subTest(step=index, action=step["action"], payload=step["payload"]):
+                self.assertEqual(observed, step["expect"])
+        self.assertEqual(config["revision"], 0)
 
 
 class NoLive:

@@ -37,8 +37,7 @@ exports.targets=function(state){
       target([12,196,116,236],'Cancel','alerts_cancel'),target([124,196,228,236],'Save','alerts_save')]);
   }
   if(state.screen==='threshold'){
-    var keys=['1','2','3','4','5','6','7','8','9','.','0','backspace'];
-    return keys.map(function(key,index){var x=12+(index%3)*74,y=52+Math.floor(index/3)*35;return target([x,y,x+68,y+32],key==='backspace'?'<':key,'threshold_key',{key:key});}).concat([
+    return require('sw-alert-editor').keys.map(function(key,index){var x=12+(index%3)*74,y=52+Math.floor(index/3)*35;return target([x,y,x+68,y+32],key==='backspace'?'<':key,'threshold_key',{key:key});}).concat([
       target([12,196,116,236],'Cancel','threshold_cancel'),target([124,196,228,236],'Set value','threshold_done')]);
   }
   if(state.screen==='connection')return state.devices.map(function(device,index){return target([8,40+index*38,232,74+index*38],device.name,'device_select',{id:device.id});});

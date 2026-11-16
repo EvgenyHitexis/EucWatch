@@ -29,6 +29,8 @@ function readableName(text){
   }
   return count>0&&readable;
 }
+/* Highest saved threshold per measurement alert; zero is the lowest. */
+exports.thresholdLimits={pwm:100,speed:3276.7,battery:100};
 exports.validateAlerts=function(alerts){
   if(!keys(alerts,['pwm','speed','battery','lost']))throw new Error('All four alert settings are required');
   Object.keys(alerts).forEach(function(name){
@@ -37,7 +39,7 @@ exports.validateAlerts=function(alerts){
     if(name==='lost')return;
     threshold=setting.threshold;
     if(threshold===null){if(setting.enabled)throw new Error('A threshold is required to enable '+name);}
-    else if(typeof threshold!=='number'||!isFinite(threshold)||threshold<0||threshold>(name==='speed'?3276.7:100))throw new Error('Invalid '+name+' threshold');
+    else if(typeof threshold!=='number'||!isFinite(threshold)||threshold<0||threshold>exports.thresholdLimits[name])throw new Error('Invalid '+name+' threshold');
   });
   return exports.copy(alerts);
 };

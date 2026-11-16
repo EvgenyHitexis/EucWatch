@@ -11,8 +11,8 @@ exports.create = function (options) {
   var lastView = '', feedback = '', paintCount = 0, receivedAt = null;
   var paintDuration=0,maxPaintDuration=0,visibleReceipt=null,maxReceiptToPaint=0;
   var core, devices=[], recoveryCalled=false;
-  var config=configuration.defaults(),draft=null,persistenceError=null,validationError=null,alertPage=0,thresholdInput=null;
-  var presetEditor=require('sw-preset-editor'),editor=presetEditor.create({get:function(){return validationError;},set:function(value){validationError=value||null;}});
+  var config=configuration.defaults(),persistenceError=null,validationError=null,shared={get:function(){return validationError;},set:function(value){validationError=value||null;}};
+  var presetEditor=require('sw-preset-editor'),editor=presetEditor.create(shared),alertEditor=require('sw-alert-editor'),alertEdit=alertEditor.create(shared);
   if(options.store){try{var saved=options.store.load();if(saved!==null&&saved!==undefined)config=configuration.validate(saved);persistenceError=options.store.warning||null;}catch(error){persistenceError='Saved configuration requires review: '+String(error);}}
   var alerts=require('sw-alerts').create({output:options.vibration_output,settings:config.alerts});
   var commandEvents=[],controlFeedback='',control=require('sw-preset-control').create({send:submit});
@@ -48,7 +48,7 @@ exports.create = function (options) {
   }
   function updateAlerts(){alerts.evaluate(clock.now(),{fresh:fresh(),pwm:telemetry?telemetry.pwm_percent:null,speed:telemetry?Math.abs(telemetry.speed_kmh):null,battery:telemetry?percent(telemetry.voltage_V):null});}
   function view() {
-    var live = fresh(), values = telemetry,vibration=alerts.view(),controlState=control.view(),editing=editor.view();
+    var live = fresh(), values = telemetry,vibration=alerts.view(),controlState=control.view(),editing=editor.view(),alerting=alertEdit.view();
     vibration.output=options.vibration_status?options.vibration_status():null;
     return { mode: 'watch',session: session, elapsed_s: clock.now(), connected: connected,
       fresh: live, awake: awake, screen: screen, recovery: recovery,
@@ -57,8 +57,8 @@ exports.create = function (options) {
       vibration:vibration,
       preset_attempt:controlState.attempt,confirmed_preset:controlState.confirmed&&controlState.confirmed.kind==='preset'?controlState.confirmed:null,actual_settings:controlState.actual,
       horn_feedback:horn.view(),command_events:configuration.copy(commandEvents),
-      config:configuration.copy(config),alerts_draft:draft?configuration.copy(draft):null,alert_page:alertPage,persistence_error:persistenceError,validation_error:validationError,
-      threshold_input:thresholdInput?configuration.copy(thresholdInput):null,
+      config:configuration.copy(config),alerts_draft:alerting.draft,alert_page:alerting.page,persistence_error:persistenceError,validation_error:validationError,
+      threshold_input:alerting.entry,
       preset_editor:editing.request,preset_draft:editing.draft,preset_page:editing.page,preset_input:editing.input,
       preset_keys:editing.keys,preset_previous_page:editing.previous_page,preset_next_page:editing.next_page,
       devices:devices,transport:options.transportStatus?options.transportStatus():null,
@@ -117,8 +117,8 @@ exports.create = function (options) {
         else if(payload.direction==='down'&&payload.from_top&&screen==='dashboard')screen='settings';
         else if(payload.direction==='up'){
           if(screen==='preset_slots')screen='settings';
-          else if(screen==='threshold'){thresholdInput=null;screen='alerts';validationError=null;}
-          else if(screen==='alerts'){draft=null;screen='settings';validationError=null;}
+          else if(screen==='threshold'){alertEdit.action('threshold_cancel');screen='alerts';}
+          else if(screen==='alerts'){alertEdit.close();screen='settings';}
           else if(screen==='settings'||screen==='connection')screen='dashboard';
         }else if(payload.direction==='right'&&screen==='presets')screen='dashboard';
       } else if (name === 'sleep' && awake && screen === 'settings') awake = false;
@@ -132,7 +132,7 @@ exports.create = function (options) {
       else if(name==='devices'){devices=(payload.devices||[]).slice(0,4);}
       else if(name==='preset_slots'){
         if(!awake||recovery)throw new Error('Preset editing unavailable');
-        leaveEditor();draft=null;screen='preset_slots';
+        leaveEditor();alertEdit.close();screen='preset_slots';
       }else if(name==='preset_begin'){
         if(!awake||recovery)throw new Error('Preset editing unavailable');
         editor.open(config,payload.slot);screen='preset_editor';
@@ -159,50 +159,23 @@ exports.create = function (options) {
         if(!options.store)throw new Error('Saved configuration adapter unavailable');
         var loaded=configuration.validate(options.store.load()||configuration.defaults());
         if(!configuration.equal(loaded,config))control.invalidate(clock.now(),'Saved configuration changed');
-        leaveEditor();config=loaded;draft=null;thresholdInput=null;screen='dashboard';alerts.configure(config.alerts,clock.now());persistenceError=options.store.warning||null;
+        leaveEditor();alertEdit.close();config=loaded;screen='dashboard';alerts.configure(config.alerts,clock.now());persistenceError=options.store.warning||null;
       }
       else if(name==='alert_test')alerts.test(payload.alert,clock.now());
       else if(name==='alerts_begin'){
         if(!awake||screen!=='settings')throw new Error('Open alert editing inside Settings');
-        draft=configuration.copy(config.alerts);alertPage=0;screen='alerts';validationError=null;
-      }else if(name==='alerts_update'){
-        if(!draft||!Object.prototype.hasOwnProperty.call(draft,payload.alert))throw new Error('Open a valid alert draft before editing');
-        var allowed=payload.alert==='lost'?['alert','enabled']:['alert','enabled','threshold'];
-        if(Object.keys(payload).some(function(key){return allowed.indexOf(key)<0;})||Object.keys(payload).length<2)throw new Error('Invalid alert draft field');
-        if(Object.prototype.hasOwnProperty.call(payload,'enabled'))draft[payload.alert].enabled=payload.enabled;
-        if(Object.prototype.hasOwnProperty.call(payload,'threshold'))draft[payload.alert].threshold=payload.threshold;
-        validationError=null;
-      }else if(name==='alerts_save'){
-        if(!draft)throw new Error('No alert draft is open');
-        var proposed=configuration.copy(config);
-        try{proposed.alerts=configuration.validateAlerts(draft);proposed.revision++;proposed=configuration.validate(proposed);}
-        catch(error){validationError=String(error);core.tick();throw error;}
-        try{if(options.store)options.store.save(proposed);}
-        catch(error){persistenceError='Configuration save failed: '+String(error);core.tick();return view();}
-        config=proposed;draft=null;screen='settings';validationError=null;persistenceError=null;alerts.configure(config.alerts,clock.now());
-      }else if(name==='alerts_cancel'){draft=null;thresholdInput=null;screen='settings';validationError=null;}
-      else if(name==='alerts_page'){
-        if(!draft||typeof payload.page!=='number'||Math.floor(payload.page)!==payload.page||payload.page<0||payload.page>3)throw new Error('Invalid alert page');
-        alertPage=payload.page;validationError=null;
-      }else if(name==='alerts_adjust'){
-        if(!draft||['pwm','speed','battery'].indexOf(payload.alert)<0||(payload.delta!==1&&payload.delta!==-1))throw new Error('Invalid threshold adjustment');
-        var value=draft[payload.alert].threshold;
-        draft[payload.alert].threshold=value===null?0:Math.max(0,Math.min(payload.alert==='speed'?3276.7:100,value+payload.delta));validationError=null;
-      }else if(name==='threshold_begin'){
-        if(!draft||['pwm','speed','battery'].indexOf(payload.alert)<0)throw new Error('Select a measurement alert threshold');
-        thresholdInput={alert:payload.alert,text:draft[payload.alert].threshold===null?'':String(draft[payload.alert].threshold)};screen='threshold';validationError=null;
-      }else if(name==='threshold_key'){
-        if(!thresholdInput)throw new Error('No threshold input is open');
-        if(payload.key==='backspace')thresholdInput.text=thresholdInput.text.slice(0,-1);
-        else if(typeof payload.key==='string'&&/^[0-9.]$/.test(payload.key)&&thresholdInput.text.length<10){if(payload.key!=='.'||thresholdInput.text.indexOf('.')<0)thresholdInput.text+=payload.key;}
-        else throw new Error('Invalid threshold key');
-        validationError=null;
-      }else if(name==='threshold_done'){
-        if(!thresholdInput||!draft)throw new Error('No threshold input is open');
-        var number=thresholdInput.text===''?null:Number(thresholdInput.text),limit=thresholdInput.alert==='speed'?3276.7:100;
-        if(number!==null&&(!isFinite(number)||number<0||number>limit)){validationError='Threshold outside supported range';core.tick();throw new Error(validationError);}
-        draft[thresholdInput.alert].threshold=number;thresholdInput=null;screen='alerts';validationError=null;
-      }else if(name==='threshold_cancel'){thresholdInput=null;screen='alerts';validationError=null;}
+        alertEdit.open(config.alerts);screen='alerts';
+      }else if(alertEditor.actions.indexOf(name)>=0){
+        var result;try{result=alertEdit.action(name,payload,config);}catch(error){core.tick();throw error;}
+        if(name==='threshold_begin')screen='threshold';
+        else if(name==='threshold_done'||name==='threshold_cancel')screen='alerts';
+        else if(result&&result.leave)screen='settings';
+        else if(result&&result.save){
+          try{if(options.store)options.store.save(result.save);}
+          catch(error){persistenceError='Configuration save failed: '+String(error);core.tick();return view();}
+          config=result.save;alertEdit.close();screen='settings';persistenceError=null;alerts.configure(config.alerts,clock.now());
+        }
+      }
       if (awake) lastInteraction = clock.now();
       core.tick();
       return view();
@@ -213,7 +186,7 @@ exports.create = function (options) {
       updateAlerts();
       if (now - lastBattery >= 30) { watchBattery = battery(); lastBattery = now; }
       if (buttonDown && buttonStarted !== null && now - buttonStarted >= 30) { recovery = true; awake = true; feedback = 'Recovery mode'; if (options.recover&&!recoveryCalled) {recoveryCalled=true;options.recover();} }
-      if (!established && !buttonDown && !recovery && !draft && !editor.view().request && now - lastInteraction >= 30) awake = false;
+      if (!established && !buttonDown && !recovery && !alertEdit.editing() && !editor.view().request && now - lastInteraction >= 30) awake = false;
       if (options.present && now - lastPaint >= 0.2 - 0.000000001) {
         state = view();
         signature = JSON.stringify([state.awake,state.screen,state.recovery,state.dashboard,state.feedback,state.devices,state.transport,state.alerts_draft,state.alert_page,state.threshold_input,state.validation_error,state.persistence_error,state.presets,state.preset_attempt,state.confirmed_preset,state.actual_settings,state.horn_feedback,state.preset_editor,state.preset_draft,state.preset_page,state.preset_input]);
