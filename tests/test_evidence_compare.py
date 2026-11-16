@@ -197,7 +197,7 @@ class CheckScriptTests(unittest.TestCase):
                   for words in commands if words[0] == "node"]
         flows = [words[-1].removeprefix("tests/").removesuffix(".py") for words in commands
                  if words[0] == "uv" and words[-1].startswith("tests/") and words[-1] != "tests/launch_smoke.py"]
-        self.assertEqual(len(suites), 14)
+        self.assertEqual(len(suites), 15)
         self.assertEqual(evidence_compare.listed(ROOT, "suite"), suites)
         self.assertGreater(len(flows), 1)
         self.assertEqual(evidence_compare.listed(ROOT, "flow"), flows)

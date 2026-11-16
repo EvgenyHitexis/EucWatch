@@ -2,11 +2,11 @@
 const assert=require('node:assert/strict');
 const {environment,frame,plain}=require('./harness.cjs');
 const riding={settings:{pedal_sensitivity:41,dynamic_assist:51,pedal_dip_compensation:61}};
-function scenario(){
+function scenario(transport){
   const env=environment();
   let now=0,saved=env.require('sw-configuration').defaults(),fail=false;const writes=[];
   const store={load:()=>JSON.parse(JSON.stringify(saved)),save:value=>{if(fail)throw Error('Controlled storage full');saved=JSON.parse(JSON.stringify(value));}};
-  function create(){return env.require('sw-app').create({clock:{now:()=>now},battery:()=>({percent:50,charging:false}),store,command_output:row=>writes.push(JSON.parse(JSON.stringify(row)))});}
+  function create(){return env.require('sw-app').create({clock:{now:()=>now},battery:()=>({percent:50,charging:false}),store,transport,command_output:row=>writes.push(JSON.parse(JSON.stringify(row)))});}
   const app=create(),session=app.action('session_start').session;app.action('connected',{session});
   return {app,writes,session,create,fail:value=>{fail=value;},at:value=>{now=value;app.tick();},receive:bytes=>app.receive(app.view().session,bytes||frame(riding)),
     result:(row,success=true)=>app.action('command_result',{attempt:row.attempt,session:row.session,index:row.index,success,error:'Controlled transport rejection'})};
@@ -29,14 +29,15 @@ assert.equal(test.writes.length,0);assert.equal(test.create().view().config.pres
 console.log('watch local drafts, retry, stale completion/reload and retired actions: passed');
 {
   // The Preset editor and the alert editor share one validation error: the last one set or cleared shows in both views.
-  const shared=scenario();open(shared,1);
+  const idle={discover(){},select(){},disconnect(){},status:()=>({active:false,connected:false})};
+  const shared=scenario(idle);open(shared,1);
   const editorId={editor_id:shared.app.view().preset_editor.id},entryId=()=>({...editorId,entry_id:shared.app.view().preset_input.id});
   const reasons=()=>{const state=shared.app.view();return [state.validation_error,state.preset_editor.reason];};
   const percentage='Error: Pedal sensitivity: enter a whole percentage 0-100',threshold='Threshold outside supported range';
   shared.app.action('preset_update',{...editorId,pedal_sensitivity:101});shared.app.action('preset_save',editorId);
   assert.deepEqual(reasons(),[percentage,percentage]);
   // Leave the Preset editor open behind other screens and use the alert editor.
-  shared.app.action('open_connection');shared.app.action('swipe',{direction:'up'});shared.app.action('swipe',{direction:'down',from_top:true});
+  shared.app.action('transport_toggle');assert.equal(shared.app.view().screen,'connection');shared.app.action('swipe',{direction:'up'});shared.app.action('swipe',{direction:'down',from_top:true});
   shared.app.action('alerts_begin');
   assert.equal(shared.app.view().preset_editor.id,editorId.editor_id);
   assert.deepEqual(reasons(),[null,''],'an alert action clears the Preset editor reason');

@@ -1,9 +1,9 @@
 /* Shared rendered rectangles and touch targets: [left,top,right,bottom]. */
 exports.targets=function(state){
   if(!state.awake||state.recovery)return [];
-  function target(rect,label,action,payload){payload=payload||{};if(action.indexOf('preset_')===0&&state.preset_editor){payload.editor_id=state.preset_editor.id;if(state.preset_input)payload.entry_id=state.preset_input.id;}return {rect:rect,label:label,action:action,payload:payload};}
+  function target(rect,label,action,payload){return {rect:rect,label:label,action:action,payload:payload||{}};}
   if(state.screen==='settings')return [
-    target([12,32,228,76],state.transport&&(state.transport.active||state.transport.connected)?'Disconnect wheel':'Connect wheel','transport_toggle'),
+    target([12,32,228,76],state.disconnect_available?'Disconnect wheel':'Connect wheel','transport_toggle'),
     target([12,82,228,126],'Sleep screen','sleep'),target([12,132,228,176],'Vibration alerts','alerts_begin'),
     target([12,182,228,226],'Presets','preset_slots')];
   if(state.screen==='preset_slots')return state.presets.map(function(slot,index){var y=32+index*50;return target([12,y,228,y+44],slot.id+' '+slot.name,'preset_begin',{slot:slot.id});});

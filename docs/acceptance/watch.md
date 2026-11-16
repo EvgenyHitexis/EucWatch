@@ -56,7 +56,8 @@ dashboard artifact.
 | Physical navigation paths | Left→riding slots, down from top→Settings, up→Settings hierarchy, right→dashboard from riding slots, Settings Sleep; whole wake button cycle consumed | Passed | Public actions and raw CST816 interrupt bytes with fake pins |
 | Initial idle versus established loss | Sleep after 30 idle seconds before connection; keep warning awake after connected loss | Passed | Controlled clock |
 | Direct connection and cleanup | Explicit discovery/selection, FFE0/FFE1 subscribe, bounded operations, no wheel writes; failed cleanup blocks replacement connection | Passed | Actual direct adapter with fake Promise-returning 2v14 GATT |
-| Wheel selection returns to the Riding dashboard (#64) | Selecting a discovered wheel on the connection screen shows the Riding dashboard; the transport calls the explicit `wheel_selected` core action, not a gesture | Passed | Actual main/transport with raw CST816 tap and fake GATT; fails before the fix |
+| Wheel selection returns to the Riding dashboard (#64) | Selecting a discovered wheel on the connection screen shows the Riding dashboard; the transport calls the explicit `wheel_selected` core action, not a gesture (scope as of #64; #59 replaced `wheel_selected`) | Passed | Actual main/transport with raw CST816 tap and fake GATT; fails before the fix |
+| The core decides what every touch means (#59) | Connect, select and disconnect are core actions asked of the transport; an accepted discovery opens Wheel selection and an accepted selection returns to the Riding dashboard; a refusal stays on its screen with the reason; link events never change the screen; unknown action names are refused | Passed | `wheel-selection.cjs`: public core `touch`/`gesture` with a fake transport and production render; `runtime.cjs` taps through actual main/transport |
 | Startup vibration and reconnect retry | D16 idle 0; first failed reconnect can recover on a later attempt; stop after three retries; initial selection failure stays terminal | Passed | Actual hardware/transport with fake pins and delayed wheel availability |
 | Independent recovery | Held startup button bypasses app imports; failed startup leaves console recovery/watchdog | Passed | Production boot code in fake runtime, no device boot attempted |
 | Alert defaults/editing | Lost enabled; measurement alerts disabled with null thresholds; independent switches, decimal keypad, explicit Save/Cancel, validation and back discard | Passed | Public core and raw touch through the actual entry |
@@ -67,9 +68,24 @@ dashboard artifact.
 
 `watch/app.js` owns parsing, freshness, calculations, navigation and clocks.
 `watch/main.js` composes narrow adapters; its public `start(options)` returns
-`core`, `transport` and `stop`. The core exposes `action(name, payload)`,
-`receive(session, rawBytes)`, `tick()` and `view()`. Raw notifications and
-replayed test input share its actual parser.
+`core`, `transport` and `stop`. The core exposes `touch(x, y)`,
+`gesture(name, payload)`, `action(name, payload)`, `receive(session, rawBytes)`,
+`tick()` and `view()`. Raw notifications and replayed test input share its
+actual parser.
+
+Watch behavior change (#59): the core decides what every touch and gesture
+means. `touch` hit-tests the screen and `gesture` takes the hardware's swipes,
+button and battery inputs; both add the current Preset editor and entry ids,
+which `main.js` and `controls.js` no longer add. Connect wheel, Disconnect wheel
+and choosing a wheel on Wheel selection are core actions that ask the transport
+through an adapter; the transport reports only link events (devices, session
+start, connected, disconnect) and no longer sends `open_connection` or
+`wheel_selected`. Two visible changes: a discovery or selection the transport
+refuses now stays on its screen with the reason shown, where before nothing
+showed; and the core refuses every unknown action name, as the laptop does,
+instead of ignoring it (`interact` and `button_hold` are accepted no-ops). Every
+`watch/evidence/**` file regenerates unchanged
+(`scripts/evidence-compare.py cea77ec`).
 
 Watch behavior change (#64): from #49 until #64, selecting a wheel left the watch
 on the connection screen, because the transport sent a right swipe and #49 had

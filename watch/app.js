@@ -10,7 +10,10 @@ exports.create = function (options) {
   var watchBattery = battery(), lastBattery = clock.now(), lastPaint = -Infinity;
   var lastView = '', feedback = '', paintCount = 0, receivedAt = null;
   var paintDuration=0,maxPaintDuration=0,visibleReceipt=null,maxReceiptToPaint=0;
-  var core, devices=[], recoveryCalled=false;
+  var core, devices=[], recoveryCalled=false, connectionError='';
+  /* options.transport: {discover(), select(id), disconnect(), status()}. discover and select throw the reason when the
+     transport refuses; the core changes screen only after the transport accepts. */
+  var transport=options.transport||null;
   var config=configuration.defaults(),persistenceError=null,validationError=null,validationReason={get:function(){return validationError;},set:function(value){validationError=value||null;}};
   var presetEditor=require('sw-preset-editor'),editor=presetEditor.create(validationReason),alertEditorModule=require('sw-alert-editor'),alertEditor=alertEditorModule.create(validationReason);
   if(options.store){try{var saved=options.store.load();if(saved!==null&&saved!==undefined)config=configuration.validate(saved);persistenceError=options.store.warning||null;}catch(error){persistenceError='Saved configuration requires review: '+String(error);}}
@@ -45,6 +48,21 @@ exports.create = function (options) {
   function saveEditor(proposed){if(!store(proposed))return false;control.invalidate(clock.now(),'Saved configuration changed');return true;}
   function alertScreen(){return alertEditor.editing()?alertEditor.entryOpen()?'threshold':'alerts':'settings';}
   function leaveEditor(){editor.close();}
+  function transportStatus(){return transport?transport.status():null;}
+  // The Connect/Disconnect target's meaning: a wanted or live wheel link is disconnected, otherwise discovery starts.
+  function disconnectAvailable(){var status=transportStatus();return !!(status&&(status.active||status.connected));}
+  function askTransport(request){
+    connectionError='';
+    try{if(!transport)throw new Error('Wheel transport not ready');request();return true;}
+    catch(error){connectionError=error&&error.message?error.message:String(error);return false;}
+  }
+  // The core's own input carries the current editor and entry ids, which the Preset editor checks.
+  function current(name,payload){
+    var copy={},state=editor.view(),key;payload=payload||{};
+    for(key in payload)copy[key]=payload[key];
+    if((name==='swipe'||name.indexOf('preset_')===0)&&state.request){copy.editor_id=state.request.id;if(state.input)copy.entry_id=state.input.id;}
+    return copy;
+  }
   function percent(voltage) {
     return voltage <= 119.02 ? 0 : voltage >= 148.05 ? 100 : Math.max(0, Math.min(100, Math.round((voltage - 119.02) / 0.2903)));
   }
@@ -63,7 +81,7 @@ exports.create = function (options) {
       threshold_entry:alertView.entry,
       preset_editor:editing.request,preset_draft:editing.draft,preset_page:editing.page,preset_input:editing.input,
       preset_keys:editing.keys,preset_previous_page:editing.previous_page,preset_next_page:editing.next_page,
-      devices:devices,transport:options.transportStatus?options.transportStatus():null,
+      devices:devices,transport:transportStatus(),disconnect_available:disconnectAvailable(),connection_error:connectionError,
       diagnostics: { valid_frames: validFrames, rejected_frames: rejectedFrames,
         retained_bytes: parser.status().retained_bytes, display_frames: paintCount,
         framebuffer_bytes: 7200, last_frame_received_s: receivedAt,
@@ -106,14 +124,23 @@ exports.create = function (options) {
       rejectedFrames += parser.status().rejected_frames - previous;
       core.tick();
     },
+    // A touch at (x, y): the target under it, if any, acts with the current editor and entry ids.
+    touch:function(x,y){
+      var target=require('sw-controls').hit(view(),x,y);
+      return target?core.action(target.action,current(target.action,target.payload)):null;
+    },
+    // A hardware input (swipe, button, battery or interact); a swipe carries the current editor and entry ids.
+    gesture:function(name,payload){return core.action(name,name==='swipe'?current(name,payload):payload);},
     action: function (name, payload) {
-      if(typeof name==='string'&&(/^(transfer_|nordic_)/.test(name)||['preset_clear','preset_clear_begin','preset_clear_cancel','preset_clear_done','preset_input_done'].indexOf(name)>=0))throw new Error('Unknown action: '+name);
       payload = payload || {};
       core.tick();
+      var before=screen;
+      // Link events from the transport: they change connection state, never the screen.
       if (name === 'session_start') resetSession();
-      else if (name === 'connected' && payload.session === session) { connected = true; established = true; awake = true; }
-      else if (name === 'disconnect' && payload.session === session) resetSession();
-      else if (name === 'swipe' && awake && !recovery) {
+      else if (name === 'connected') { if (payload.session === session) { connected = true; established = true; awake = true; } }
+      else if (name === 'disconnect') { if (payload.session === session) resetSession(); }
+      else if(name==='devices'){devices=(payload.devices||[]).slice(0,4);}
+      else if (name === 'swipe') { if (awake && !recovery) {
         if(screen==='preset_editor'){if(editor.swipe(payload)){leaveEditor();screen='preset_slots';}}
         else if(payload.direction==='left'&&screen==='dashboard')screen='presets';
         else if(payload.direction==='down'&&payload.from_top&&screen==='dashboard')screen='settings';
@@ -123,15 +150,21 @@ exports.create = function (options) {
           else if(screen==='alerts'){alertEditor.close();screen=alertScreen();}
           else if(screen==='settings'||screen==='connection')screen='dashboard';
         }else if(payload.direction==='right'&&screen==='presets')screen='dashboard';
-      } else if (name === 'sleep' && awake && screen === 'settings') awake = false;
-      else if (name === 'button_down' && !buttonDown) {
+      } } else if (name === 'sleep') { if (awake && screen === 'settings') awake = false; }
+      else if (name === 'button_down') { if (!buttonDown) {
         buttonDown = true; buttonStarted = clock.now(); wakeCycle = !awake; awake = true;
         if(wakeCycle)feedback='Wake only';else requestHorn();
-      } else if (name === 'button_up') { buttonDown = false; wakeCycle = false; buttonStarted = null; }
+      } } else if (name === 'button_up') { buttonDown = false; wakeCycle = false; buttonStarted = null; }
+      else if (name === 'button_hold' || name === 'interact') {}
       else if (name === 'battery_refresh') { watchBattery = battery(); lastBattery = clock.now(); }
-      else if(name==='open_connection'){if(awake)screen='connection';}
-      else if(name==='wheel_selected'){if(screen==='connection')screen='dashboard';}
-      else if(name==='devices'){devices=(payload.devices||[]).slice(0,4);}
+      else if(name==='transport_toggle'){
+        if(recovery)throw new Error('Wheel connection unavailable in recovery mode');
+        if(disconnectAvailable())askTransport(function(){transport.disconnect();});
+        else if(askTransport(function(){transport.discover();})&&awake)screen='connection';
+      }else if(name==='device_select'){
+        if(recovery)throw new Error('Wheel connection unavailable in recovery mode');
+        if(askTransport(function(){transport.select(payload.id);})&&screen==='connection')screen='dashboard';
+      }
       else if(name==='preset_slots'){
         if(!awake||recovery)throw new Error('Preset editing unavailable');
         leaveEditor();alertEditor.close();screen='preset_slots';
@@ -175,6 +208,9 @@ exports.create = function (options) {
         }
         screen=alertScreen();
       }
+      else throw new Error('Unknown action: '+name);
+      // A refusal reason belongs to the screen it was shown on.
+      if(screen!==before)connectionError='';
       if (awake) lastInteraction = clock.now();
       core.tick();
       return view();
@@ -188,7 +224,7 @@ exports.create = function (options) {
       if (!established && !buttonDown && !recovery && !alertEditor.editing() && !editor.view().request && now - lastInteraction >= 30) awake = false;
       if (options.present && now - lastPaint >= 0.2 - 0.000000001) {
         state = view();
-        signature = JSON.stringify([state.awake,state.screen,state.recovery,state.dashboard,state.feedback,state.devices,state.transport,state.alerts_draft,state.alert_page,state.threshold_entry,state.validation_error,state.persistence_error,state.presets,state.preset_attempt,state.confirmed_preset,state.actual_settings,state.horn_feedback,state.preset_editor,state.preset_draft,state.preset_page,state.preset_input]);
+        signature = JSON.stringify([state.awake,state.screen,state.recovery,state.dashboard,state.feedback,state.devices,state.transport,state.connection_error,state.alerts_draft,state.alert_page,state.threshold_entry,state.validation_error,state.persistence_error,state.presets,state.preset_attempt,state.confirmed_preset,state.actual_settings,state.horn_feedback,state.preset_editor,state.preset_draft,state.preset_page,state.preset_input]);
         if (signature !== lastView) {
           lastPaint = now; lastView = signature; paintCount++;
           options.present(state);paintDuration=Math.max(0,clock.now()-now);maxPaintDuration=Math.max(maxPaintDuration,paintDuration);

@@ -137,10 +137,10 @@ exports.create=function(options){
     },
     tick:function(){var state=app.ownership();if(write&&!writeOwned(write))cancelWrite('Command no longer eligible; no retry');if(desired&&(state.recovery||(token!==null&&token!==state.session)))adapter.disconnect();},
     discover:function(){
-      if(busy||gatt){error='Disconnect the wheel before discovery';publish();return;}
+      if(busy||gatt)throw new Error('Disconnect the wheel before discovery');
       if(scanTimer!==null)timers.clearTimeout(scanTimer);
       var value=++generation;
-      desired=false;devices=[];link='discovering';error='';app.action('open_connection');app.action('devices',{devices:[]});
+      desired=false;devices=[];link='discovering';error='';app.action('devices',{devices:[]});
       scanTimer=timers.setTimeout(function(){
         scanTimer=null;if(value!==generation)return;
         generation++;link='failed';error='Discovery timed out';publish();
@@ -157,7 +157,7 @@ exports.create=function(options){
       if(busy||gatt)throw new Error('Disconnect the selected wheel first');
       var allowed=devices.some(function(device){return device.id===id;});
       if(!allowed)throw new Error('Select a device from explicit discovery');
-      selected=id;desired=true;recovering=false;attempts=0;app.action('wheel_selected');connect();
+      selected=id;desired=true;recovering=false;attempts=0;connect();
     },
     disconnect:function(){
       cancelWrite('Wheel disconnect requested; no retry');

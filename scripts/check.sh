@@ -13,6 +13,6 @@ if [[ "${EUCWATCH_BROWSER_CHECKS:-0}" == 1 ]]; then
     env PYTHONPATH=laptop:tests uv run --offline --no-sync --project experiments/laptop-feasibility python "tests/$flow.py"
   done
 fi
-for suite in offline runtime alerts alerts-runtime compare-alerts alert-editor control local-configuration preset-defaults preset-editor preset-editor-runtime preset-navigation preset-value-editor preset-editor-bundle; do
+for suite in offline runtime alerts alerts-runtime compare-alerts alert-editor control local-configuration preset-defaults preset-editor preset-editor-runtime preset-navigation preset-value-editor preset-editor-bundle wheel-selection; do
   node "watch/tests/$suite.cjs"
 done
