@@ -26,6 +26,10 @@ The watch's own battery, shown separately from the wheel battery on the riding d
 **Direct connection**:
 A connection between the watch and the wheel that does not require a phone to relay riding information.
 
+**Wheel selection**:
+The watch view listing the wheels found by a rider-started discovery, where choosing one starts a direct connection to it.
+_Avoid_: Connection screen, device list; treating discovery as connecting.
+
 **Riding dashboard**:
 The watch view presenting speed, PWM, wheel battery, watch battery, and connection status during a ride.
 
