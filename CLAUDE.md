@@ -24,7 +24,8 @@ The only Python project is `experiments/laptop-feasibility/` (Python 3.12, aioht
 
 ```bash
 ./scripts/setup.sh        # uv sync --locked + npm ci + frontend build
-./scripts/check.sh        # ES5 parse of the watch modules, every Python unit test, frontend typecheck/build, every watch suite
+./scripts/check.sh        # every Python unit test, frontend typecheck/build, then check-watch.sh
+./scripts/check-watch.sh  # the watch checks alone: ES5 parse of the watch modules, every watch suite
 EUCWATCH_BROWSER_CHECKS=1 ./scripts/check.sh   # adds launch smoke + Chrome CDP flows (Chrome required)
 ./scripts/launch.sh       # backend on 127.0.0.1:8765 + browser; EUCWATCH_NO_BROWSER=1, EUCWATCH_PORT=...
 uv run --offline --no-sync --project experiments/laptop-feasibility python scripts/evidence-compare.py <base-ref> [--browser]   # did behavior change since <base-ref>?

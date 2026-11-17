@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-# Watch modules must stay ES5 for Espruino 2v14: parse exactly what the bundle builder ships.
-uv run --offline --no-sync --project experiments/laptop-feasibility python scripts/check-es5.py
 env PYTHONPATH=laptop uv run --offline --no-sync --project experiments/laptop-feasibility python -m unittest discover -s tests
 npm run build --prefix frontend
 # Configuration-transfer gates (#28/#29/#35) were superseded by #40.
@@ -13,6 +11,5 @@ if [[ "${EUCWATCH_BROWSER_CHECKS:-0}" == 1 ]]; then
     env PYTHONPATH=laptop:tests uv run --offline --no-sync --project experiments/laptop-feasibility python "tests/$flow.py"
   done
 fi
-for suite in offline runtime alerts alerts-runtime compare-alerts alert-editor control local-configuration preset-defaults preset-editor preset-editor-runtime preset-navigation preset-value-editor preset-editor-bundle wheel-selection; do
-  node "watch/tests/$suite.cjs"
-done
+# The ES5 check and the watch suites, after the browser flows: the parity suites replay the traces those flows wrote.
+./scripts/check-watch.sh
