@@ -41,8 +41,10 @@ def manifest_problems(root):
         name = manifest.relative_to(root).as_posix()
         try:
             content = json.loads(manifest.read_text())
-        except ValueError:
-            continue  # Not a manifest; the suites that write JSON evidence check its form.
+        except ValueError as error:
+            # A manifest that no longer parses would otherwise drop its artifact_sha256 from the check.
+            problems.append(f'{name}: not valid JSON ({error})')
+            continue
         for holder in artifact_maps(content):
             superseded = holder.get('superseded', {})
             for path in sorted(set(superseded) - set(holder['artifact_sha256'])):
@@ -52,7 +54,7 @@ def manifest_problems(root):
                 if not file.is_file():
                     problems.append(f'{name}: {path}: missing')
                     continue
-                actual = hashlib.sha256(file.read_bytes()).hexdigest()
+                actual = sha256(file.read_bytes())
                 entry = superseded.get(path)
                 if entry is None:
                     if actual != recorded:
@@ -135,6 +137,12 @@ class ManifestCheckTests(unittest.TestCase):
         self.manifest['superseded'] = {'watch/evidence/other.json': {'sha256': 'aa', 'commit': '6ddf5e5'}}
         self.assertEqual(self.problems(), ['docs/acceptance/evidence/touch-layout/validation.json: '
                                            'watch/evidence/other.json: superseded, but not in artifact_sha256'])
+
+    def test_a_manifest_that_is_not_valid_json_fails_rather_than_going_unchecked(self):
+        self.write('docs/acceptance/evidence/touch-layout/review.json', b'{"artifact_sha256": {')
+        problems = self.problems()
+        self.assertEqual(len(problems), 1)
+        self.assertTrue(problems[0].startswith('docs/acceptance/evidence/touch-layout/review.json: not valid JSON'))
 
     def test_nested_maps_in_any_manifest_are_found_and_source_hashes_are_not_checked(self):
         self.manifest['source_sha256'] = {self.png: 'stale'}

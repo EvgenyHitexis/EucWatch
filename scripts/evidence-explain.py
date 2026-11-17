@@ -44,12 +44,12 @@ PROVENANCE_HEADING = ("Provenance only (the fields evidence-compare ignores: " +
                       + ")")
 
 
-def short(value) -> str:
+def shown_value(value) -> str:
     text = compare.rendered(value)
     return text if len(text) <= VALUE_WIDTH else text[:VALUE_WIDTH - 1] + "…"
 
 
-def collapsed(relative: str, base: bytes, tree: bytes) -> list[str]:
+def json_field_lines(relative: str, base: bytes, tree: bytes) -> list[str]:
     """The report lines for one changed JSON file: its changes grouped by field with
     list indexes collapsed. Empty if only provenance changed."""
     base, tree = compare.parsed(relative, "base", base), compare.parsed(relative, "working tree", tree)
@@ -57,7 +57,7 @@ def collapsed(relative: str, base: bytes, tree: bytes) -> list[str]:
         base, tree = compare.without_version(relative, "base", base), compare.without_version(relative, "working tree", tree)
     fields: dict[str, Counter] = {}
     for field, left, right in compare.json_differences(base, tree):
-        fields.setdefault(INDEX.sub("[*]", field), Counter())[(short(left), short(right))] += 1
+        fields.setdefault(INDEX.sub("[*]", field), Counter())[(shown_value(left), shown_value(right))] += 1
     lines = []
     for field, changes in list(fields.items())[:SHOWN_FIELDS]:
         total = sum(changes.values())
@@ -82,7 +82,7 @@ def explain(base: dict[str, bytes], tree: dict[str, bytes], identical_to) -> lis
 
     identical_to(content) lists the tracked files whose bytes are content.
     """
-    json_lines, provenance, png_lines, other = [], [], [], []
+    json_lines, provenance, png_lines, other_lines = [], [], [], []
     changed = [path for path in sorted(base.keys() | tree.keys()) if base.get(path) != tree.get(path)]
     for path in changed:
         left, right = base.get(path), tree.get(path)
@@ -91,15 +91,15 @@ def explain(base: dict[str, bytes], tree: dict[str, bytes], identical_to) -> lis
             png_lines.append(f"    base         {hashlib.sha256(left).hexdigest() if left is not None else 'absent'}")
             png_lines.append(f"    working tree {hashlib.sha256(right).hexdigest() if right is not None else 'absent'}")
             if right is not None:
-                same = [other_path for other_path in identical_to(right) if other_path != path]
-                png_lines += [f"    identical to {other_path}" for other_path in same] or ["    identical to no other tracked file"]
+                same = [copy for copy in identical_to(right) if copy != path]
+                png_lines += [f"    identical to {copy}" for copy in same] or ["    identical to no other tracked file"]
         elif left is None or right is None:
-            other.append(f"  {path}: only {'in the working tree' if left is None else 'at base'}")
+            other_lines.append(f"  {path}: only {'in the working tree' if left is None else 'at base'}")
         elif path.endswith(".json"):
             try:
-                lines = collapsed(path, left, right)
+                lines = json_field_lines(path, left, right)
             except compare.Failed as error:
-                other.append(f"  {error}")
+                other_lines.append(f"  {error}")
                 continue
             if lines:
                 json_lines += [f"  {path}", *lines]
@@ -107,28 +107,21 @@ def explain(base: dict[str, bytes], tree: dict[str, bytes], identical_to) -> lis
                 provenance.append(f"  {path}")
         elif path.endswith(".svg"):
             count = sum(1 for _ in compare.line_differences(left.decode().splitlines(), right.decode().splitlines()))
-            other.append(f"  {path}: {count} changed line(s)")
+            other_lines.append(f"  {path}: {count} changed line(s)")
         else:
-            other.append(f"  {path}: bytes differ")
+            other_lines.append(f"  {path}: bytes differ")
     report = []
     for heading, lines in [("JSON differences", json_lines), (PROVENANCE_HEADING, provenance),
-                           ("PNG files", png_lines), ("Other changes", other)]:
+                           ("PNG files", png_lines), ("Other changes", other_lines)]:
         if lines:
             report += [heading, *lines, ""]
     report.append(f"{len(changed)} evidence file(s) differ" if changed else "no tracked evidence differs")
     return report
 
 
-def git(*args) -> bytes:
-    result = subprocess.run(["git", "-C", str(ROOT), *args], capture_output=True)
-    if result.returncode:
-        raise compare.Failed(f"git {' '.join(args)}: {result.stderr.decode().strip()}")
-    return result.stdout
-
-
 def at_commit(commit: str) -> dict[str, bytes]:
     """The evidence files at commit, read in one git cat-file batch."""
-    entries = [line.split("\t", 1) for line in git("ls-tree", "-r", "-z", commit, "--", *DIRECTORIES).decode().split("\0") if line]
+    entries = [line.split("\t", 1) for line in compare.git("ls-tree", "-r", "-z", commit, "--", *DIRECTORIES).split("\0") if line]
     blobs = [(path, info.split()[2]) for info, path in entries if info.split()[1] == "blob"]
     batch = subprocess.run(["git", "-C", str(ROOT), "cat-file", "--batch"], capture_output=True,
                            input="".join(f"{sha}\n" for _, sha in blobs).encode())
@@ -144,14 +137,14 @@ def at_commit(commit: str) -> dict[str, bytes]:
 
 
 def in_working_tree() -> dict[str, bytes]:
-    listed = git("ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", *DIRECTORIES).decode().split("\0")
+    listed = compare.git("ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", *DIRECTORIES).split("\0")
     return {path: (ROOT / path).read_bytes() for path in listed if path and (ROOT / path).is_file()}
 
 
 def tracked_identical_to():
     """identical_to for explain(): the tracked working-tree files with the same bytes."""
     by_size: dict[int, list[Path]] = {}
-    for path in git("ls-files", "-z").decode().split("\0"):
+    for path in compare.git("ls-files", "-z").split("\0"):
         if path and (ROOT / path).is_file():
             by_size.setdefault((ROOT / path).stat().st_size, []).append(Path(path))
 
@@ -165,8 +158,7 @@ def main() -> int:
     parser.add_argument("ref", help="the ref to compare the working tree with, e.g. HEAD or 6ddf5e5^")
     args = parser.parse_args()
     try:
-        commit = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "--verify", "--quiet", f"{args.ref}^{{commit}}"],
-                                capture_output=True, text=True).stdout.strip()
+        commit = compare.git("rev-parse", "--verify", "--quiet", f"{args.ref}^{{commit}}", allow_failure=True).strip()
         if not commit:
             raise compare.Failed(f"{args.ref} is not a commit")
         report = explain(at_commit(commit), in_working_tree(), tracked_identical_to())
