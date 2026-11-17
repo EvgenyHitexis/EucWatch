@@ -2,118 +2,118 @@
   "issue": 50,
   "manifest": {
     "schema": 1,
-    "version": "68a2317f",
+    "version": "abdf3edb",
     "runtime": {
       "BOARD": "P22",
       "VERSION": "2v14"
     },
-    "main": "sw-68a2317f-main",
-    "recovery": "sw-68a2317f-boot",
+    "main": "sw-abdf3edb-main",
+    "recovery": "sw-abdf3edb-boot",
     "files": [
       {
-        "name": "sw-68a2317f-alert-editor",
-        "bytes": 5157,
-        "sha256": "dcb25cc21cb55ff10b687dcce2db43c4ff1b69bb3ac06d6a21f1a60b475b01ac",
-        "crc32": "072a6158"
+        "name": "sw-abdf3edb-alert-editor",
+        "bytes": 5340,
+        "sha256": "aeb6b31ddd5e200d294f4bc1cefc3a2dda5895212ad97ab52d893e8499210036",
+        "crc32": "afeb49ef"
       },
       {
-        "name": "sw-68a2317f-alerts",
+        "name": "sw-abdf3edb-alerts",
         "bytes": 4696,
         "sha256": "37e778e87f1cf7c4224a3b87a1dd4982a84095cf5d24f0378aab162f3edd0e99",
         "crc32": "9150e3c8"
       },
       {
-        "name": "sw-68a2317f-app",
-        "bytes": 15775,
-        "sha256": "243c294e14308964bcf4de75efa5e203126efc526325396a50f3a26d6bca0c24",
-        "crc32": "bcc56585"
+        "name": "sw-abdf3edb-app",
+        "bytes": 18295,
+        "sha256": "a9720221cf8c8ded1ae965e70e325fb17816292f0cac86e4d9dcbd68a7af5359",
+        "crc32": "cbdb6e39"
       },
       {
-        "name": "sw-68a2317f-boot",
+        "name": "sw-abdf3edb-boot",
         "bytes": 1322,
         "sha256": "17bcadbe43c2c2a7b2935f1453f5a05ecb191da171f1cbbb07e6b3d7cc3b2cb7",
         "crc32": "86c503ff"
       },
       {
-        "name": "sw-68a2317f-configuration",
-        "bytes": 5477,
-        "sha256": "9d0e62a168fd6c52ee8061e11d832adebdf8b5176d856d3932c5b994155e0790",
-        "crc32": "fd99df41"
+        "name": "sw-abdf3edb-configuration",
+        "bytes": 6039,
+        "sha256": "e8cb0e57f65da71213b44000ee0e5a2d9e7172687f9d95a5d5b9a4417263acd2",
+        "crc32": "7a8e32b8"
       },
       {
-        "name": "sw-68a2317f-controls",
-        "bytes": 5037,
-        "sha256": "9b77ca4aa9302c59cd6f48c07514607fe75800d45ca1f96201150289d0a7ccd4",
-        "crc32": "37135ab6"
+        "name": "sw-abdf3edb-controls",
+        "bytes": 4860,
+        "sha256": "c19b50f943eba92db2105940ce07603fba388408fe9d1dd9ffc9596f745dde9a",
+        "crc32": "1b3c0f8c"
       },
       {
-        "name": "sw-68a2317f-display",
+        "name": "sw-abdf3edb-display",
         "bytes": 6744,
         "sha256": "6471e8383ad163f9bae99a7e711bddd4a4a377deccf2e54191175d006de5f4ae",
         "crc32": "47b7ad9d"
       },
       {
-        "name": "sw-68a2317f-hardware",
+        "name": "sw-abdf3edb-hardware",
         "bytes": 3135,
-        "sha256": "fbeeb98d2ca562052c0c87ed6cd8a94fd1ef59b97d7a06390f25dff5d6c216e3",
-        "crc32": "6b6ec938"
+        "sha256": "cbff41a2db2c10542c588824230d3c1f576e8f06e844e51175cbef57d8ce2d0a",
+        "crc32": "ec7aab76"
       },
       {
-        "name": "sw-68a2317f-horn",
+        "name": "sw-abdf3edb-horn",
         "bytes": 1358,
         "sha256": "d03479b8306fe88289b4b4932375b3efb4e696f44e8cad8deea9a93b83bd756c",
         "crc32": "7020dd6a"
       },
       {
-        "name": "sw-68a2317f-main",
-        "bytes": 2285,
-        "sha256": "b9437fae4db5f37d8439e364fc2c22f2821b41da2fc12f41bbd105bcd25055c7",
-        "crc32": "06eddd09"
+        "name": "sw-abdf3edb-main",
+        "bytes": 1994,
+        "sha256": "08db8990640ecc5e55524190091e059a531a52e13862956edab8e0b715a5f223",
+        "crc32": "a86652db"
       },
       {
-        "name": "sw-68a2317f-motor",
+        "name": "sw-abdf3edb-motor",
         "bytes": 1327,
         "sha256": "7814a91690a99773458bbb9282be0b95ae863b1142dbac1892336b56de2a7cae",
         "crc32": "a87e41b0"
       },
       {
-        "name": "sw-68a2317f-preset-control",
+        "name": "sw-abdf3edb-preset-control",
         "bytes": 5361,
-        "sha256": "681345bfa654e3ded8dc855bd05035423e0774be1289774f8fab271b6db2d86d",
-        "crc32": "1f2490aa"
+        "sha256": "686ba94c27eec7ad75ea321b0e53bb3b4dc1615d88e68100b4fc844b07a4af64",
+        "crc32": "acd37618"
       },
       {
-        "name": "sw-68a2317f-preset-editor",
+        "name": "sw-abdf3edb-preset-editor",
         "bytes": 7388,
-        "sha256": "b4447e89eea9e8551c156ab20ea3e40522bdc3ec30e935738474bcef01663cc3",
-        "crc32": "c03a8348"
+        "sha256": "1879517ce3da9106d50cd70f1e0529331310953ec0a2768aaffb44299e158d62",
+        "crc32": "d16113ac"
       },
       {
-        "name": "sw-68a2317f-protocol",
+        "name": "sw-abdf3edb-protocol",
         "bytes": 2261,
         "sha256": "173c2d4d534747a7e251ae06fb0b28a0578af8e3db229afd676ac2f6a2ab11b8",
         "crc32": "c5ce248d"
       },
       {
-        "name": "sw-68a2317f-render",
-        "bytes": 6569,
-        "sha256": "0fbb15af7fcd28fc3a0ceddf57e2de7627cac6e34631a50d756088bd3f8ab3d3",
-        "crc32": "dff33792"
+        "name": "sw-abdf3edb-render",
+        "bytes": 7261,
+        "sha256": "5dab7355d5049ce6675bc49a88f2e54d01ef0dff9cd2bc6e5fa245546bd808cd",
+        "crc32": "7c13768b"
       },
       {
-        "name": "sw-68a2317f-store",
+        "name": "sw-abdf3edb-store",
         "bytes": 2866,
-        "sha256": "f19e96bb2ee606299fd293befd4b3025d22d9297337b848d08f73b9095b5fae2",
-        "crc32": "47fe8fbf"
+        "sha256": "102bb4b97b614c8047e9ec9e4fb7c45add751cd90ab4822875b261a4cb348068",
+        "crc32": "0a441119"
       },
       {
-        "name": "sw-68a2317f-transport",
-        "bytes": 10983,
-        "sha256": "fd5efeb7d6a794205dcc6ea6591e73caa395e4b36fe4024a11680f7ba3ea4e67",
-        "crc32": "80e94715"
+        "name": "sw-abdf3edb-transport",
+        "bytes": 10990,
+        "sha256": "eb9ffa675f1a47871aa413f79ef990cc133f87654e9cd51c8fc3d7db3ff8fde9",
+        "crc32": "d8f7f004"
       },
       {
-        "name": "sw-68a2317f-notice",
+        "name": "sw-abdf3edb-notice",
         "bytes": 4958,
         "sha256": "6611699176860c4dd1527c3922743d435a7380123fc24fc05b47de62cc2511c5",
         "crc32": "76d7ef9b"
@@ -122,34 +122,34 @@
   },
   "rehearsal": {
     "status": "local-bundle-verified",
-    "version": "68a2317f",
+    "version": "abdf3edb",
     "files": 18,
-    "bytes": 92699,
+    "bytes": 96195,
     "deployment": "not performed; full application, laptop acceptance and separate authorization required",
     "provenance": "synthetic Storage/runtime/authorization only",
     "plan": {
-      "required_bytes": 95398,
+      "required_bytes": 98886,
       "available_bytes": 1000000,
       "first_install": true,
       "writes": [
-        "sw-68a2317f-alert-editor",
-        "sw-68a2317f-alerts",
-        "sw-68a2317f-app",
-        "sw-68a2317f-boot",
-        "sw-68a2317f-configuration",
-        "sw-68a2317f-controls",
-        "sw-68a2317f-display",
-        "sw-68a2317f-hardware",
-        "sw-68a2317f-horn",
-        "sw-68a2317f-main",
-        "sw-68a2317f-motor",
-        "sw-68a2317f-preset-control",
-        "sw-68a2317f-preset-editor",
-        "sw-68a2317f-protocol",
-        "sw-68a2317f-render",
-        "sw-68a2317f-store",
-        "sw-68a2317f-transport",
-        "sw-68a2317f-notice"
+        "sw-abdf3edb-alert-editor",
+        "sw-abdf3edb-alerts",
+        "sw-abdf3edb-app",
+        "sw-abdf3edb-boot",
+        "sw-abdf3edb-configuration",
+        "sw-abdf3edb-controls",
+        "sw-abdf3edb-display",
+        "sw-abdf3edb-hardware",
+        "sw-abdf3edb-horn",
+        "sw-abdf3edb-main",
+        "sw-abdf3edb-motor",
+        "sw-abdf3edb-preset-control",
+        "sw-abdf3edb-preset-editor",
+        "sw-abdf3edb-protocol",
+        "sw-abdf3edb-render",
+        "sw-abdf3edb-store",
+        "sw-abdf3edb-transport",
+        "sw-abdf3edb-notice"
       ],
       "activation_last": "sw-active.json",
       "deletions": []
@@ -158,24 +158,24 @@
       "status": "verified"
     },
     "writes": [
-      "sw-68a2317f-alert-editor",
-      "sw-68a2317f-alerts",
-      "sw-68a2317f-app",
-      "sw-68a2317f-boot",
-      "sw-68a2317f-configuration",
-      "sw-68a2317f-controls",
-      "sw-68a2317f-display",
-      "sw-68a2317f-hardware",
-      "sw-68a2317f-horn",
-      "sw-68a2317f-main",
-      "sw-68a2317f-motor",
-      "sw-68a2317f-preset-control",
-      "sw-68a2317f-preset-editor",
-      "sw-68a2317f-protocol",
-      "sw-68a2317f-render",
-      "sw-68a2317f-store",
-      "sw-68a2317f-transport",
-      "sw-68a2317f-notice",
+      "sw-abdf3edb-alert-editor",
+      "sw-abdf3edb-alerts",
+      "sw-abdf3edb-app",
+      "sw-abdf3edb-boot",
+      "sw-abdf3edb-configuration",
+      "sw-abdf3edb-controls",
+      "sw-abdf3edb-display",
+      "sw-abdf3edb-hardware",
+      "sw-abdf3edb-horn",
+      "sw-abdf3edb-main",
+      "sw-abdf3edb-motor",
+      "sw-abdf3edb-preset-control",
+      "sw-abdf3edb-preset-editor",
+      "sw-abdf3edb-protocol",
+      "sw-abdf3edb-render",
+      "sw-abdf3edb-store",
+      "sw-abdf3edb-transport",
+      "sw-abdf3edb-notice",
       ".bootrst",
       "sw-active.json"
     ],
@@ -629,29 +629,29 @@
   ],
   "versioned_runtime": "fresh/migrated/custom local configuration and Save survive compatible startup; no draft, command or confirmation replay",
   "native_imports": [
-    "sw-68a2317f-main",
-    "sw-68a2317f-hardware",
-    "sw-68a2317f-display",
-    "sw-68a2317f-motor",
-    "sw-68a2317f-render",
-    "sw-68a2317f-store",
-    "sw-68a2317f-configuration",
-    "sw-68a2317f-app",
-    "sw-68a2317f-protocol",
-    "sw-68a2317f-configuration",
-    "sw-68a2317f-preset-editor",
-    "sw-68a2317f-configuration",
-    "sw-68a2317f-alert-editor",
-    "sw-68a2317f-configuration",
-    "sw-68a2317f-alerts",
-    "sw-68a2317f-preset-control",
-    "sw-68a2317f-protocol",
-    "sw-68a2317f-horn",
-    "sw-68a2317f-transport",
-    "sw-68a2317f-controls",
-    "sw-68a2317f-controls"
+    "sw-abdf3edb-main",
+    "sw-abdf3edb-hardware",
+    "sw-abdf3edb-display",
+    "sw-abdf3edb-motor",
+    "sw-abdf3edb-render",
+    "sw-abdf3edb-store",
+    "sw-abdf3edb-configuration",
+    "sw-abdf3edb-app",
+    "sw-abdf3edb-protocol",
+    "sw-abdf3edb-configuration",
+    "sw-abdf3edb-preset-editor",
+    "sw-abdf3edb-configuration",
+    "sw-abdf3edb-alert-editor",
+    "sw-abdf3edb-configuration",
+    "sw-abdf3edb-alerts",
+    "sw-abdf3edb-preset-control",
+    "sw-abdf3edb-protocol",
+    "sw-abdf3edb-horn",
+    "sw-abdf3edb-transport",
+    "sw-abdf3edb-controls",
+    "sw-abdf3edb-controls"
   ],
   "recovery": "held button bypasses imports; absent main retains recovery guard",
-  "artifact": ".test-output/watch-preset-editor/68a2317f",
+  "artifact": ".test-output/watch-preset-editor/abdf3edb",
   "hardware": "all hardware, flash capacity and authorization are simulated; display/input/vibration, memory fit, live controls and deployment pending"
 }

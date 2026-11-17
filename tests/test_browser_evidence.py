@@ -1,12 +1,17 @@
-"""The browser flows write tracked acceptance evidence only on request (#65)."""
+"""The browser flows write tracked acceptance evidence only on request (#65),
+and what they write does not depend on where the checkout is (#68)."""
+import asyncio
+import contextlib
+import io
 import json
 import os
 import subprocess
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from support import ROOT, evidence_directory
+from support import ROOT, evidence_directory, record_flow
 
 
 class BrowserEvidenceTests(unittest.TestCase):
@@ -28,6 +33,45 @@ class BrowserEvidenceTests(unittest.TestCase):
         for flow in flows:
             with self.subTest(flow=flow.name):
                 self.assertNotIn('acceptance/evidence', flow.read_text())
+
+
+async def empty_exercise(page, app, output):
+    return {}
+
+
+@contextlib.asynccontextmanager
+async def no_browser(app):
+    yield None
+
+
+class RecordFlowSourceTests(unittest.TestCase):
+    """record_flow names every source by its path from the repository root."""
+
+    def recorded_sources(self, working_directory):
+        with tempfile.TemporaryDirectory() as directory, \
+                patch('support.watch_page', no_browser), \
+                patch('support.evidence_directory', lambda name: Path(directory)), \
+                contextlib.chdir(working_directory), \
+                contextlib.redirect_stdout(io.StringIO()):
+            asyncio.run(record_flow(empty_exercise, 'flow', 'touch-layout'))
+            return json.loads((Path(directory) / 'flow.json').read_text())['source_sha256']
+
+    def test_every_source_key_is_repository_relative(self):
+        sources = self.recorded_sources(ROOT)
+        self.assertIn('tests/support.py', sources)
+        self.assertIn('tests/test_browser_evidence.py', sources)
+        self.assertIn('laptop/eucwatch/application.py', sources)
+        self.assertIn('frontend/src/main.ts', sources)
+        for key in sources:
+            with self.subTest(key=key):
+                self.assertFalse(Path(key).is_absolute())
+                self.assertTrue((ROOT / key).is_file())
+
+    def test_sources_are_in_one_order_whatever_the_working_directory(self):
+        sources = self.recorded_sources(ROOT)
+        self.assertEqual(list(sources), sorted(sources))
+        with tempfile.TemporaryDirectory() as elsewhere:
+            self.assertEqual(self.recorded_sources(elsewhere), sources)
 
 
 class WatchParityTraceTests(unittest.TestCase):

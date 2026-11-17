@@ -383,6 +383,14 @@ def write_evidence(path, value):
     path.write_text(json.dumps(value, indent=2) + '\n')
 
 
+def source_digests(paths):
+    """The sha256 of each source, keyed by its path from the repository root
+    and sorted, so every checkout and working directory writes the same keys."""
+    digests = {Path(p).resolve().relative_to(ROOT).as_posix(): hashlib.sha256(Path(p).read_bytes()).hexdigest()
+               for p in paths}
+    return dict(sorted(digests.items()))
+
+
 async def record_flow(exercise, name, directory):
     """Run exercise(page, app, output) on a fresh FileStore application and
     record its result as <name>.json in evidence_directory(directory)."""
@@ -392,10 +400,10 @@ async def record_flow(exercise, name, directory):
         app = Application(clock=ManualClock(), store=FileStore(Path(temporary) / 'config.json'))
         async with watch_page(app) as page:
             result = await exercise(page, app, output)
-        sources = [*Path('laptop/eucwatch').glob('*.py'), *Path('frontend/src').glob('*.ts'),
+        sources = [*ROOT.glob('laptop/eucwatch/*.py'), *ROOT.glob('frontend/src/*.ts'),
                    Path(__file__), Path(inspect.getfile(exercise))]
         result.update(provenance='Actual built Canvas / Chrome pointer events / aiohttp Application / FileStore / controlled simulator; no physical operations',
-                      source_sha256={str(p): hashlib.sha256(p.read_bytes()).hexdigest() for p in sources})
+                      source_sha256=source_digests(sources))
         write_evidence(output / (name + '.json'), result)
         print(name + ': passed')
 

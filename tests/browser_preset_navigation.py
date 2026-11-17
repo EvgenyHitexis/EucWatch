@@ -55,6 +55,8 @@ async def exercise(page,app,output):
     await swipe('up','preset_slots');assert app.view()['config']==saved
     await swipe('up','settings');await swipe('up','dashboard')
     assert Application(store=app.store).view()['config']==saved
+    # The Application is on the dashboard, but the Canvas redraws on its own 200 ms timer: wait for it.
+    await page.screen('dashboard')
     await page.snapshot(output/'navigation-dashboard.png')
     return {'spec':'docs/design/preset-value-editor.md','timeline':timeline,'states':states,'saved':saved,'packets':[],'outcome':'passed','expected':'up hierarchy, both wraps, every slot, active keypads, empty text, validation, failed save, gesture crossing old targets, local Save and restart'}
 
