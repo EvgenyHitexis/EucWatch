@@ -2,10 +2,11 @@
 const assert=require('node:assert/strict');
 const {environment,frame:frame,drawnText}=require('./harness.cjs');
 const clone=value=>JSON.parse(JSON.stringify(value));
-function scenario(saved=null){let time=0,configuration=saved;const output=[];
-  const app=environment().require('sw-app').create({clock:{now:()=>time},battery:()=>({voltage:3.9,percent:57,charging:false}),
-    store:{load:()=>clone(configuration),save:value=>{configuration=clone(value);}},vibration_output:row=>output.push(clone(row))});
-  return {app,output,at:value=>{time=value;app.tick();},setTime:value=>{time=value;},saved:()=>clone(configuration)};
+// options replace or add core options, such as a vibration_output that fails or a present hook.
+function scenario(saved=null,options={}){let time=0,configuration=saved;const output=[],env=environment();
+  const app=env.require('sw-app').create({clock:{now:()=>time},battery:()=>({voltage:3.9,percent:57,charging:false}),
+    store:{load:()=>clone(configuration),save:value=>{configuration=clone(value);}},vibration_output:row=>output.push(clone(row)),...options});
+  return {env,app,output,at:value=>{time=value;app.tick();},setTime:value=>{time=value;},saved:()=>clone(configuration)};
 }
 const test=scenario();test.app.action('alert_test',{alert:'pwm'});
 for(const time of [.15,.3,.45,.6,.75])test.at(time);
@@ -93,16 +94,14 @@ keypad.app.action('threshold_begin',{alert:'speed'});for(const key of '12.3.4567
 assert.equal(keypad.app.view().threshold_entry.text,'12.34567','the keypad holds 8 characters, one decimal point among them');
 keypad.app.action('threshold_done');assert.equal(keypad.app.view().alerts_draft.speed.threshold,12.34567);assert.equal(keypad.app.view().screen,'alerts');
 console.log('watch threshold keypad 8-character limit: passed');
-// A vibration output failure changes nothing else in the view, and still repaints the Vibration alerts screen.
+// A vibration output failure changes nothing else in the view, and still repaints the Alert editor.
 {
-  const env=environment();let time=0;const presented=[];
-  const app=env.require('sw-app').create({clock:{now:()=>time},battery:()=>({voltage:3.9,percent:57,charging:false}),
-    vibration_output:()=>{throw new Error('motor driver absent');},present:state=>presented.push(clone(state))});
-  time=1;app.action('swipe',{direction:'down',from_top:true});time=2;app.action('alerts_begin');
+  const presented=[],failing=scenario(null,{vibration_output:()=>{throw new Error('motor driver absent');},present:state=>presented.push(clone(state))});
+  failing.setTime(1);failing.app.action('swipe',{direction:'down',from_top:true});failing.setTime(2);failing.app.action('alerts_begin');
   assert.equal(presented.at(-1).screen,'alerts');assert.equal(presented.at(-1).vibration.output_error,null);
-  const before=presented.length;time=3;app.action('alert_test',{alert:'pwm'});
+  const before=presented.length;failing.setTime(3);failing.app.action('alert_test',{alert:'pwm'});
   assert.equal(presented.length,before+1,'the output failure alone repaints');
   assert.match(presented.at(-1).vibration.output_error,/motor driver absent/);
-  assert.deepEqual(drawnText(env,presented.at(-1)).slice(-2),['Vibration output','unavailable'],'the message, wrapped at 23 characters');
+  assert.deepEqual(drawnText(failing.env,presented.at(-1)).slice(-2),['Vibration output','unavailable'],'the message, wrapped at 23 characters');
 }
-console.log('watch vibration output failure repaints the Vibration alerts screen: passed');
+console.log('watch vibration output failure repaints the Alert editor: passed');

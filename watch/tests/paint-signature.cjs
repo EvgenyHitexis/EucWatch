@@ -15,12 +15,13 @@ const derived={
 };
 
 // The signature's entries without their state. prefix: 'awake', 'vibration.output_error', ...
-function signature(app){
+function signatureEntries(app){
   const match=/signature\s*=\s*JSON\.stringify\(\[([^\]]*)\]\)/.exec(app);
   assert.ok(match,'watch/app.js computes signature = JSON.stringify([...])');
   return match[1].split(',').map(entry=>entry.trim()).map(entry=>{assert.match(entry,/^state(\.\w+)+$/,'a signature entry reads the view');return entry.slice(6);});
 }
-// Every state.<field>(.<field>)* chain a module reads, as 'field.sub'.
+// Every state.<field>(.<field>)* chain a module reads, as 'field.sub'. Only dotted reads are seen, so check() refuses
+// state[...] in the readers; the view reaching another module under another name would also get past this guard.
 const reads=source=>[...new Set([...source.matchAll(/\bstate((?:\.\w+)+)/g)].map(match=>match[1].slice(1)))];
 // Each read neither in the signature (itself or a parent of it) nor derived, as 'state.<path> (<module>)'.
 function uncovered(sources,listed,derivedFields){
@@ -32,14 +33,15 @@ function uncovered(sources,listed,derivedFields){
   return missing;
 }
 function check(sources,app,derivedFields){
-  const listed=signature(app),missing=uncovered(sources,listed,derivedFields);
+  for(const [module,source] of Object.entries(sources))assert.ok(!/\bstate\s*\[/.test(source),`${module} reads state[...], which this guard cannot follow`);
+  const listed=signatureEntries(app),missing=uncovered(sources,listed,derivedFields);
   assert.deepEqual(missing,[],'read by the renderer but neither in the paint signature (watch/app.js) nor derived: '+missing.join(', '));
-  const top=new Set(listed.filter(entry=>!entry.includes('.'))),used=new Set(Object.values(sources).flatMap(source=>reads(source).map(path=>path.split('.')[0])));
+  const wholeFields=new Set(listed.filter(entry=>!entry.includes('.'))),readFields=new Set(Object.values(sources).flatMap(source=>reads(source).map(path=>path.split('.')[0])));
   for(const [field,entry] of Object.entries(derivedFields)){
     assert.ok(entry.follows.length&&typeof entry.because==='string'&&entry.because,`derived ${field} names what it follows and why`);
-    for(const follows of entry.follows)assert.ok(top.has(follows),`derived ${field} follows ${follows}, which is not a whole field of the signature`);
-    assert.ok(used.has(field),`derived ${field} is no longer read; drop it from the list`);
-    assert.ok(!top.has(field),`derived ${field} is already in the signature`);
+    for(const follows of entry.follows)assert.ok(wholeFields.has(follows),`derived ${field} follows ${follows}, which is not a whole field of the signature`);
+    assert.ok(readFields.has(field),`derived ${field} is no longer read; drop it from the list`);
+    assert.ok(!wholeFields.has(field),`derived ${field} is already in the signature`);
   }
 }
 
@@ -48,5 +50,6 @@ const sources=Object.fromEntries(readers.map(file=>[file,fs.readFileSync(repoPat
 // The guard itself: a new read names its field and module, and a derived entry must follow signature fields.
 assert.throws(()=>check({...sources,'watch/render.js':sources['watch/render.js']+'\ntext(state.new_field.label);'},app,derived),/state\.new_field\.label \(watch\/render\.js\)/);
 assert.throws(()=>check(sources,app,{...derived,fresh:{follows:['telemetry'],because:'test'}}),/follows telemetry/);
+assert.throws(()=>check({...sources,'watch/controls.js':sources['watch/controls.js']+'\nstate[name];'},app,derived),/controls\.js reads state\[/);
 check(sources,app,derived);
 console.log('watch paint signature covers every view field the renderer reads: passed');
