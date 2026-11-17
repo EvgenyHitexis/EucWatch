@@ -177,7 +177,7 @@ class RunFailureTests(unittest.TestCase):
 
 
 class CheckScriptTests(unittest.TestCase):
-    """evidence-compare reads its suite and flow lists out of scripts/check.sh."""
+    """evidence-compare reads its suite and flow lists out of scripts/check.sh and the check-watch.sh it calls."""
 
     def test_listed_names_exactly_what_check_sh_runs(self):
         # Run the real check.sh with node, npm and uv replaced by loggers, and
@@ -197,10 +197,20 @@ class CheckScriptTests(unittest.TestCase):
                   for words in commands if words[0] == "node"]
         flows = [words[-1].removeprefix("tests/").removesuffix(".py") for words in commands
                  if words[0] == "uv" and words[-1].startswith("tests/") and words[-1] != "tests/launch_smoke.py"]
-        self.assertEqual(len(suites), 15)
+        self.assertGreater(len(suites), 1)
         self.assertEqual(evidence_compare.listed(ROOT, "suite"), suites)
         self.assertGreater(len(flows), 1)
         self.assertEqual(evidence_compare.listed(ROOT, "flow"), flows)
+
+    def test_a_base_without_check_watch_sh_lists_the_suites_in_check_sh(self):
+        # Before #70 the watch suite loop was in check.sh itself, and a base ref may predate check-watch.sh.
+        with tempfile.TemporaryDirectory() as copy:
+            (Path(copy) / "scripts").mkdir()
+            (Path(copy) / "scripts/check.sh").write_text(
+                'for suite in offline runtime; do\n  node "watch/tests/$suite.cjs"\ndone\n')
+            self.assertEqual(evidence_compare.listed(Path(copy), "suite"), ["offline", "runtime"])
+            with self.assertRaisesRegex(evidence_compare.Failed, r"no `for flow in \.\.\.` loop"):
+                evidence_compare.listed(Path(copy), "flow")
 
 
 if __name__ == "__main__":

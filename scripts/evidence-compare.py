@@ -9,7 +9,8 @@ those copies with EUCWATCH_WRITE_EVIDENCE=1, so it writes the copy's evidence
 paths and never the repository's.
 
 In each copy the watch evidence directory is emptied and every watch suite that
-the copy's scripts/check.sh lists runs. With --browser, the copy's acceptance
+the copy's check scripts list runs (scripts/check-watch.sh, or scripts/check.sh
+in a base from before it existed). With --browser, the copy's acceptance
 evidence directory is emptied too, and the copy's frontend is built and its
 browser flows run before the watch suites, so the watch parity suites replay the
 laptop traces those flows just wrote, not the committed ones. The two outputs
@@ -172,12 +173,19 @@ def export_working_tree(copy: Path):
             shutil.copy2(source, copy / relative, follow_symlinks=False)
 
 
+# The scripts that hold the suite and flow loops. A base from before #70 has no
+# check-watch.sh: its watch suite loop is in check.sh.
+CHECK_SCRIPTS = ["scripts/check.sh", "scripts/check-watch.sh"]
+
+
 def listed(copy: Path, variable: str) -> list[str]:
-    """The names a `for <variable> in ...; do` loop in the copy's scripts/check.sh runs."""
-    match = re.search(rf"^\s*for {variable} in ([^;]+); do", (copy / "scripts/check.sh").read_text(), re.MULTILINE)
-    if not match:
-        raise Failed(f"{copy.name}: scripts/check.sh has no `for {variable} in ...` loop")
-    return match.group(1).split()
+    """The names a `for <variable> in ...; do` loop in the copy's check scripts runs."""
+    for script in CHECK_SCRIPTS:
+        path = copy / script
+        match = re.search(rf"^\s*for {variable} in ([^;]+); do", path.read_text(), re.MULTILINE) if path.is_file() else None
+        if match:
+            return match.group(1).split()
+    raise Failed(f"{copy.name}: no `for {variable} in ...` loop in {' or '.join(CHECK_SCRIPTS)}")
 
 
 def run(copy: Path, command: list[str], **variables):

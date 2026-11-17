@@ -3,5 +3,273 @@
   "provenance": "Node VM executes original ES5 application/hardware; fake radio/pins/clock; SVG replays Graphics operations, host fonts",
   "fixture": "experiments/laptop-feasibility/evidence/fixture-recording.jsonl",
   "observed": "240x240 1-bpp buffer7200; sourcebattery97/avg4.09; battery sampling/pinrelease; raw816 nav/wake; D16 startup0 inactive; failed reconnect retries up to3 and later recovery requires newtelemetry; independent recovery beforeimports",
-  "hardware_acceptance": "pending: no deployment, device memory, radio, fonts, timing or physical controls measured"
+  "hardware_acceptance": "pending: no deployment, device memory, radio, fonts, timing or physical controls measured",
+  "paints": {
+    "navigation": [
+      {
+        "at_s": 0,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 0.2,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 0.4,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 30.2,
+        "screen": "dashboard",
+        "awake": false,
+        "recovery": false
+      },
+      {
+        "at_s": 30.4,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 30.6,
+        "screen": "settings",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 30.9,
+        "screen": "connection",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 31.1,
+        "screen": "connection",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 31.3,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 31.5,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 31.7,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 32.5,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 32.7,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      }
+    ],
+    "disconnect_failure": [
+      {
+        "at_s": 0,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      }
+    ],
+    "delayed_disconnect": [
+      {
+        "at_s": 0,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 0.2,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 0.5,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      }
+    ],
+    "subscription_failure": [
+      {
+        "at_s": 0,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      }
+    ],
+    "discovery_timeout": [
+      {
+        "at_s": 0,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 0.2,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 6,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      }
+    ],
+    "reconnect_retry": [
+      {
+        "at_s": 0,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 0.2,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 1,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 1.2,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 3,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      }
+    ],
+    "reconnect_limit": [
+      {
+        "at_s": 0,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 0.2,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 1,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 1.2,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 3,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 3.2,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 7,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 7.2,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      }
+    ],
+    "initial_connect_failure": [
+      {
+        "at_s": 0,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 0.2,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      }
+    ],
+    "replaced_session": [
+      {
+        "at_s": 0,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      }
+    ],
+    "recovery_hold": [
+      {
+        "at_s": 0,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 0.2,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 2,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": false
+      },
+      {
+        "at_s": 30,
+        "screen": "dashboard",
+        "awake": true,
+        "recovery": true
+      }
+    ]
+  }
 }

@@ -1,0 +1,18 @@
+# Coding standards
+
+These rules need judgement, so no linter or test checks them. A reviewer checks every change against them.
+
+## Commit prefix
+
+Use `refactor:` only for a commit that changes no visible behavior. If the commit message lists a behavior change, the
+commit is `fix:` or `feat:`. For example, a06f311 changed which screen is painted first and was wrongly `refactor:`.
+
+## Glossary vocabulary
+
+New identifiers, view fields and messages use the terms in `GLOSSARY.md`. Never use a term the glossary lists under
+_Avoid_. For example, `connection_error` was renamed `wheel_link_error` because the glossary avoids "connection screen".
+
+## Shared watch test helpers
+
+When two watch suites use a helper, it lives in `watch/tests/harness.cjs`. Suites keep only their scenarios and
+assertions, and no suite imports another suite.

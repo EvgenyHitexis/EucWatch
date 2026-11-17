@@ -65,6 +65,8 @@ dashboard artifact.
 | Alert competition/freshness | Lost>PWM>speed>battery, no overlap, every valid frame evaluated; stale cancels measurements, no overdue bursts | Passed | Public-core source-derived packets and controlled clocks |
 | Watch Storage | Explicit Save survives restart; refused staging/partial activation keep old copy; interrupted first Save has validated default backup; missing/corrupt active copy recovers good backup | Passed | Actual main/store adapter with fake Storage failures; not a claim of atomic Storage |
 | Vibration output | Installed D16 active-high start1/stop0, independent 150/500 ms output deadline; shutdown cannot reactivate output | Passed | Actual motor/hardware with fake pins/timers; no physical motor operation |
+| Paint order in evidence (#70) | Every `present(state)` call of each `runtime.cjs` journey, in order, with its controlled-clock time and screen, repeated frames kept; Connect wheel paints Wheel selection and selecting a wheel paints the Riding dashboard with no Wheel selection frame in between | Passed | `runtime.cjs` records the hook actual main gives the core into `regression-offline.json`; reintroducing the 383abd6 bug fails the suite and changes that file |
+| Paint signature covers what the screen shows (#70) | Every view field the renderer and touch targets read is in the paint signature or is a listed derived field; the Alert editor's "Vibration output unavailable" repaints when only the output error changes | Passed | `paint-signature.cjs` reads the production sources; `alerts.cjs` drives the public core with a failing vibration output |
 
 `watch/app.js` owns parsing, freshness, calculations, navigation and clocks.
 `watch/main.js` composes narrow adapters; its public `start(options)` returns
