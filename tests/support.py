@@ -262,10 +262,36 @@ class Page:
     async def description(self):
         return await self.evaluate("document.querySelector('#watch').getAttribute('aria-label')")
 
-    async def snapshot(self, path):
-        """Write the 240x240 watch Canvas as a PNG."""
-        data = await self.evaluate("document.querySelector('#watch').toDataURL().split(',')[1]")
-        Path(path).write_bytes(base64.b64decode(data))
+    async def snapshot(self, path, *, shows, timeout=5):
+        """Wait until the watch shows `shows`, then write that 240x240 Canvas frame as a PNG.
+
+        `shows` is a screen id (the Canvas's data-screen) or text in its
+        accessible label, whichever the view exposes. Label text must appear in
+        no frame on the way there: 'Input Ab 3' also matches the 'Input Ab 3y'
+        typed before a backspace, so end entry text with its period
+        ('Input Ab 3.'). The Canvas repaints on its
+        own 200 ms timer, and each paint sets the screen id and label together
+        with the pixels, so one page evaluation reads all three from the same
+        frame. Returns the frame's accessible label. Raises TimeoutError naming
+        `shows`, the path and what the watch showed instead if no frame within
+        `timeout` seconds shows it.
+        """
+        shown = None
+        try:
+            async with asyncio.timeout(timeout):
+                while True:
+                    shown = await self.evaluate("""(() => { const watch = document.querySelector('#watch');
+                        return {screen: watch.dataset.screen ?? '', label: watch.getAttribute('aria-label') ?? '',
+                                png: watch.toDataURL().split(',')[1]}; })()""")
+                    if shown['screen'] == shows or shows in shown['label']:
+                        break
+                    await asyncio.sleep(.05)
+        except TimeoutError:
+            instead = f"screen {shown['screen']!r}, label {shown['label']!r}" if shown else 'nothing'
+            raise TimeoutError(f'the watch never showed {shows!r} within {timeout} s, so {path} '
+                               f'was not written; it showed {instead}') from None
+        Path(path).write_bytes(base64.b64decode(shown['png']))
+        return shown['label']
 
 
 async def type_percentage(tap, text):

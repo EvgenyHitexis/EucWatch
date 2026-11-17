@@ -12,7 +12,7 @@ async def exercise(page, app, output):
 
     async def pointer(start, end):
         await page.pointer(start, end)
-        await asyncio.sleep(.13)
+        await asyncio.sleep(.13)  # Lets the action reach the Application before app.view() is read.
         state = app.view()
         assert state['command_events'] == []
         timeline.append({'input': 'tap' if start == end else 'swipe', 'start': start, 'end': end,
@@ -25,9 +25,8 @@ async def exercise(page, app, output):
 
     label = page.label
 
-    async def snapshot(name):
-        await asyncio.sleep(.15)
-        await page.snapshot(output / (name + '.png'))
+    async def snapshot(name, shows):
+        await page.snapshot(output / (name + '.png'), shows=shows)
         renderings.append(name + '.png')
 
     async def number(text):
@@ -64,7 +63,7 @@ async def exercise(page, app, output):
         await tap(36 + index % 12 % 4 * 56, 60 + index % 12 // 4 * 38)
     await label('OK or Cancel')
     assert app.view()['preset_draft']['name'] == 'Road'
-    await snapshot('name-entry')
+    await snapshot('name-entry', 'Input Commute.')
     state = await tap(176, 226)
     assert state['screen'] == 'preset_editor' and state['preset_input'] is None
     assert state['preset_draft']['name'] == 'Commute' and state['config'] == initial
@@ -77,7 +76,7 @@ async def exercise(page, app, output):
         assert state['preset_draft']['pedal_sensitivity'] == expected
         assert state['preset_draft']['name'] == 'Commute'
         assert state['config'] == initial
-    await snapshot('accepted-values')
+    await snapshot('accepted-values', 'Pedal sensitivity: 40. Swipe left/right')
     state = await tap(176, 226)
     expected = json.loads(json.dumps(initial))
     expected['revision'] = 1
@@ -99,16 +98,14 @@ async def exercise(page, app, output):
     await tap(120, 80)
     await tap(120, 174)
     await tap(176, 226)
-    await label('name must contain')
-    await snapshot('invalid-name')
+    await snapshot('invalid-name', 'name must contain')
     assert app.view()['preset_input']['text'] == ''
     assert app.view()['preset_draft']['name'] == 'Commute'
     await tap(64, 226)
     await tap(220, 20)
     await number('101')
     await tap(176, 226)
-    await label('Pedal sensitivity: enter')
-    await snapshot('invalid-percentage')
+    await snapshot('invalid-percentage', 'Pedal sensitivity: enter')
     entry = app.view()['preset_input']
     for start, end in [((215, 220), (20, 220)), ((20, 220), (215, 220)),
                        ((220, 20), (220, 20))]:
@@ -127,8 +124,7 @@ async def exercise(page, app, output):
     await tap(220, 20)
     await number('101')
     await tap(176, 226)
-    await label('Pedal dip compensation: enter')
-    await snapshot('invalid-dip')
+    await snapshot('invalid-dip', 'Pedal dip compensation: enter')
     assert app.view()['preset_input']['text'] == '101'
     await tap(64, 226)
     await number('99')
@@ -146,8 +142,7 @@ async def exercise(page, app, output):
     timeline.append({'input': 'storage_failure', 'mode': 'refuse'})
     with patch('os.replace', side_effect=OSError('Controlled disk full')):
         await tap(176, 226)
-        await label('Controlled disk full')
-        await snapshot('value-failed-save')
+        await snapshot('value-failed-save', 'Controlled disk full')
     assert app.view()['preset_input'] is None
     assert app.view()['preset_draft']['pedal_sensitivity'] == 41
     assert Application(store=app.store).view()['config'] == expected

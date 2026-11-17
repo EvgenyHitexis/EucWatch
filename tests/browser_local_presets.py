@@ -12,19 +12,17 @@ async def defaults(page, app, output):
         trace.append({'start':start,'end':end})
         await page.pointer(start,end)
     screen=page.screen
-    async def render(name):
-        label=await page.description()
-        await page.snapshot(output/(name+'.png'))
-        return label
+    async def render(name,shows):
+        return await page.snapshot(output/(name+'.png'),shows=shows)
     await page.wait("document.querySelector('#backend-status')?.textContent==='Application ready'")
     assert app.view()['config']==FIXTURE['fresh']
     await pointer((215,120),(20,120));await screen('presets')
-    riding=await render('defaults-riding')
+    riding=await render('defaults-riding','presets')
     assert all(name in riding for name in ['Jump','Forest','Road','Drag'])
     await pointer((20,120),(215,120));await screen('dashboard')
     await pointer((120,10),(120,110));await screen('settings')
     await pointer((120,196),(120,196));await screen('preset_slots')
-    selection=await render('defaults-settings')
+    selection=await render('defaults-settings','preset_slots')
     assert all(name in selection for name in ['Jump','Forest','Road','Drag'])
     await page.evaluate("document.querySelector('#controlled').checked=true;document.querySelector('#start').click()")
     await page.wait("document.querySelector('#mode').textContent==='SIMULATOR'")
