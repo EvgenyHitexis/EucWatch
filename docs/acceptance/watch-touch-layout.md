@@ -39,6 +39,10 @@ results are present. In the ordinary menu, preset targets are taller.
 The [validation manifest](evidence/touch-layout/validation.json) records 160
 Python tests, the frontend build, six browser flows, launcher shutdown/relaunch
 and thirteen native watch suites, with scoped follow-up runs after review.
+Nine of the files its `artifact_sha256` lists were later regenerated in place
+(the alert validation rendering by #69, the rest by the #68 evidence refresh).
+Their recorded hashes are this pass's; the manifest's `superseded` entries give
+each file's current hash and the commit that changed it.
 Renderings include [Settings](evidence/touch-layout/settings.png),
 [alerts](evidence/touch-layout/alerts.png), the
 [name keypad](evidence/touch-layout/name-entry.png) and

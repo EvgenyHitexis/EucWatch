@@ -110,5 +110,49 @@
     "watch/evidence/touch-layout/slot-2-dip-input.svg": "ff09785514e9b02b6898c152d3f3dbc31fc4fcf4aeeb91fab7b0768ee70dcc9d",
     "watch/evidence/touch-layout/slot-1-pedal_dip_compensation.svg": "a5f80e7a8be090baab61b1c9ee8851fd3dc79645f6d78de736188bc47e782fdb",
     "watch/evidence/touch-layout/slot-3-pedal_sensitivity.svg": "9593628c0df384a7b0047522dee5128e1827e22bbf3a6fa5780b1ee94da2c1eb"
+  },
+  "superseded": {
+    "docs/acceptance/evidence/touch-layout/alerts-validation.png": {
+      "sha256": "910fa9b20a06654ab1997cc000ba42b321ac19d5f0bdf4fb699d250752f0244d",
+      "commit": "0942423cbedca2f42c3029f3f08c4de3bd6ae0c8"
+    },
+    "docs/acceptance/evidence/touch-layout/editor-laptop.json": {
+      "sha256": "e83ba1234cbd2440c6f6fe1974b6a26dfaaecaed056be49c19d28de99e6cf280",
+      "commit": "6ddf5e546be94a4064ff0c409401e2651a035305"
+    },
+    "docs/acceptance/evidence/touch-layout/invalid-name-save.png": {
+      "sha256": "a801f799db4a982a6e174e2ebe2d68016135c151a679e2b4fc763436c73dcd2c",
+      "commit": "6ddf5e546be94a4064ff0c409401e2651a035305"
+    },
+    "docs/acceptance/evidence/touch-layout/invalid-save.png": {
+      "sha256": "17d61a37cd43626ccc76915a4255c30606dff52e5554d2ddde52b321899d1f28",
+      "commit": "6ddf5e546be94a4064ff0c409401e2651a035305"
+    },
+    "docs/acceptance/evidence/touch-layout/navigation-laptop.json": {
+      "sha256": "b0be9056791f3be36b5cff8b98dcaf87031a00e17c7cc12e247100cf42c196ac",
+      "commit": "6ddf5e546be94a4064ff0c409401e2651a035305"
+    },
+    "docs/acceptance/evidence/touch-layout/value-editor-laptop.json": {
+      "sha256": "6b693c2b0ba161b47e80c0c5e9cce8b5e369149eaa31f8479f6afecda6653d5d",
+      "commit": "6ddf5e546be94a4064ff0c409401e2651a035305"
+    },
+    "watch/evidence/touch-layout/editor.json": {
+      "sha256": "662bd094570b5f6a411496938d07d8be390533af8b6a50e264da503f2e06e1da",
+      "commit": "6ddf5e546be94a4064ff0c409401e2651a035305",
+      "earlier_commits": [
+        "b5fa8cf27f6fda545ddac9bdbec8a3f8109e8392"
+      ]
+    },
+    "watch/evidence/touch-layout/navigation.json": {
+      "sha256": "e6d85b5559881ff57f71ff147f665eaa66af50c0a1ea5e18829b03c611b59505",
+      "commit": "6ddf5e546be94a4064ff0c409401e2651a035305",
+      "earlier_commits": [
+        "b5fa8cf27f6fda545ddac9bdbec8a3f8109e8392"
+      ]
+    },
+    "watch/evidence/touch-layout/value-editor.json": {
+      "sha256": "3db734b080b6502a677074c5aabed2a8aa93bd1637a60436ba464fca4b10c24f",
+      "commit": "6ddf5e546be94a4064ff0c409401e2651a035305"
+    }
   }
 }
