@@ -3,24 +3,16 @@
 Each test hands explain() the tracked evidence at a base ref and in the working
 tree as path-to-bytes maps, and checks one group of the report.
 """
-import hashlib
-import importlib.util
 import json
 import unittest
 
-from support import ROOT
+from support import load_script, sha256
 
-spec = importlib.util.spec_from_file_location("evidence_explain", ROOT / "scripts" / "evidence-explain.py")
-evidence_explain = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(evidence_explain)
+evidence_explain = load_script("evidence-explain")
 
 
 def encoded(value):
     return (json.dumps(value, indent=2) + "\n").encode()
-
-
-def sha256(content):
-    return hashlib.sha256(content).hexdigest()
 
 
 def explain(base, tree, tracked=None):

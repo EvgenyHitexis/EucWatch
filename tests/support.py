@@ -3,12 +3,14 @@
 It owns the protocol frame builders, the fake Bleak transports, the Preset
 editor action helper, the saved Preset fixture, and, for the browser flows, the served laptop
 application plus Chrome page bootstrap, the CDP driver and the watch pointer
-and screenshot helpers, and the gate on tracked evidence. Nothing here opens
+and screenshot helpers, the gate on tracked evidence, and the loader for the
+hyphenated scripts/*.py. Nothing here opens
 Bluetooth or touches a wheel.
 """
 import asyncio
 import base64
 import hashlib
+import importlib.util
 import inspect
 import json
 import os
@@ -32,6 +34,18 @@ from eucwatch.scenarios import FileScenarioStore
 from eucwatch.server import create_app
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def load_script(name):
+    """Import scripts/<name>.py as a module; its hyphenated name rules out a plain import."""
+    spec = importlib.util.spec_from_file_location(name.replace('-', '_'), ROOT / 'scripts' / f'{name}.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def sha256(content):
+    return hashlib.sha256(content).hexdigest()
 
 
 # Frame builders
@@ -169,6 +183,21 @@ def edit(app, action, **payload):
 
 # Chrome DevTools Protocol driver
 
+def label_shows(label, text):
+    """Whether a watch label shows text as whole text: an occurrence counts only if
+    it does not run into a longer word. 'Input Ab 3' is not shown by 'Input Ab 3y.',
+    the frame the Preset editor draws before a backspace, and '6.' not by '26.'."""
+    start = label.find(text)
+    while start >= 0:
+        end = start + len(text)
+        starts_word = start == 0 or not (text[0].isalnum() and label[start - 1].isalnum())
+        ends_word = end == len(label) or not (text[-1].isalnum() and label[end].isalnum())
+        if starts_word and ends_word:
+            return True
+        start = label.find(text, start + 1)
+    return False
+
+
 class Browser:
     """One Chrome DevTools websocket. Page-level calls name a session."""
 
@@ -252,9 +281,17 @@ class Page:
         """Press and release the watch's physical button."""
         await self.pointer((10, 20), (10, 20), '#watch-button')
 
-    async def label(self, text):
-        """Wait until the watch's accessible description contains text."""
-        await self.wait(f"document.querySelector('#watch')?.getAttribute('aria-label').includes({json.dumps(text)})")
+    async def label(self, text, timeout=15):
+        """Wait until the watch's accessible description shows text (see label_shows).
+        Raises TimeoutError naming text and the last label after `timeout` seconds."""
+        shown = None
+        try:
+            async with asyncio.timeout(timeout):
+                while not label_shows(shown := await self.evaluate(
+                        "document.querySelector('#watch')?.getAttribute('aria-label') ?? ''"), text):
+                    await asyncio.sleep(.05)
+        except TimeoutError:
+            raise TimeoutError(f'the watch label never showed {text!r} within {timeout} s; it showed {shown!r}') from None
 
     async def screen(self, name):
         await self.wait(f"document.querySelector('#watch')?.dataset.screen==={json.dumps(name)}")
@@ -265,14 +302,11 @@ class Page:
     async def snapshot(self, path, *, shows, timeout=5):
         """Wait until the watch shows `shows`, then write that 240x240 Canvas frame as a PNG.
 
-        `shows` is a screen id (the Canvas's data-screen) or text in its
-        accessible label, whichever the view exposes. Label text must appear in
-        no frame on the way there: 'Input Ab 3' also matches the 'Input Ab 3y'
-        typed before a backspace, so end entry text with its period
-        ('Input Ab 3.'). The Canvas repaints on its
-        own 200 ms timer, and each paint sets the screen id and label together
-        with the pixels, so one page evaluation reads all three from the same
-        frame. Returns the frame's accessible label. Raises TimeoutError naming
+        `shows` is a screen id (the Canvas's data-screen) or text its
+        accessible label shows, matched as label_shows matches it. The Canvas
+        repaints on its own 200 ms timer, and each paint sets the screen id and
+        label together with the pixels, so one page evaluation reads all three
+        from the same frame. Returns the frame's accessible label. Raises TimeoutError naming
         `shows`, the path and what the watch showed instead if no frame within
         `timeout` seconds shows it.
         """
@@ -283,7 +317,7 @@ class Page:
                     shown = await self.evaluate("""(() => { const watch = document.querySelector('#watch');
                         return {screen: watch.dataset.screen ?? '', label: watch.getAttribute('aria-label') ?? '',
                                 png: watch.toDataURL().split(',')[1]}; })()""")
-                    if shown['screen'] == shows or shows in shown['label']:
+                    if shown['screen'] == shows or label_shows(shown['label'], shows):
                         break
                     await asyncio.sleep(.05)
         except TimeoutError:

@@ -6,7 +6,6 @@ reported. The others pin the exit-2 failures and the lists read from check.sh.
 """
 
 import contextlib
-import importlib.util
 import io
 import json
 import os
@@ -17,11 +16,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from support import ROOT
+from support import ROOT, load_script
 
-spec = importlib.util.spec_from_file_location("evidence_compare", ROOT / "scripts" / "evidence-compare.py")
-evidence_compare = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(evidence_compare)
+evidence_compare = load_script("evidence-compare")
 
 
 class EvidenceCompareTests(unittest.TestCase):

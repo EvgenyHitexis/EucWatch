@@ -61,6 +61,17 @@ class SnapshotTests(unittest.TestCase):
         self.snapshot(browser, shows='Input Ab 1')
         self.assertEqual(browser.evaluations, 2)
 
+    def test_label_text_does_not_match_the_start_of_a_longer_word(self):
+        # The Preset editor types "Ab 3y" and deletes the y: that frame does not show 'Input Ab 3'.
+        browser = FakeBrowser(frame('preset_editor', 'Name: Road. name keypad. Input Ab 3y. OK or Cancel'),
+                              frame('preset_editor', 'Name: Road. name keypad. Input Ab 3. OK or Cancel'))
+        self.assertIn('Input Ab 3.', self.snapshot(browser, shows='Input Ab 3'))
+        self.assertEqual(browser.evaluations, 2)
+
+    def test_label_text_does_not_match_the_end_of_a_longer_word(self):
+        browser = FakeBrowser(frame('preset_editor', 'Input 26.'), frame('preset_editor', 'Input 6.'))
+        self.assertEqual(self.snapshot(browser, shows='6.'), 'Input 6.')
+
     def test_a_frame_that_never_appears_fails_naming_what_was_expected_and_the_path(self):
         browser = FakeBrowser(frame('settings', 'Settings.'))
         started = time.monotonic()
@@ -72,6 +83,29 @@ class SnapshotTests(unittest.TestCase):
         self.assertIn(str(self.path), message)
         self.assertIn('Settings.', message)
         self.assertFalse(self.path.exists())
+
+
+class LabelWaitTests(unittest.TestCase):
+    """Page.label waits for label text the same way snapshot matches it."""
+
+    def wait(self, text, *labels):
+        browser = FakeBrowser(*labels)
+        asyncio.run(Page(browser, 'session', 'target').label(text))
+        return browser.evaluations
+
+    def test_it_waits_past_a_frame_whose_word_only_starts_with_the_text(self):
+        self.assertEqual(self.wait('Input Ab 3', 'Input Ab 3y. OK', 'Input Ab 3. OK'), 2)
+
+    def test_a_label_that_never_shows_the_text_fails_naming_it_and_what_was_shown(self):
+        page = Page(FakeBrowser('Settings.'), 'session', 'target')
+        with self.assertRaises(TimeoutError) as raised:
+            asyncio.run(page.label('Settings Presets.', timeout=.2))
+        self.assertIn("'Settings Presets.'", str(raised.exception))
+        self.assertIn("'Settings.'", str(raised.exception))
+
+    def test_text_followed_by_punctuation_or_the_end_of_the_label_matches(self):
+        self.assertEqual(self.wait('Settings', 'Settings Presets.'), 1)
+        self.assertEqual(self.wait('Controlled disk full', 'Error: Controlled disk full'), 1)
 
 
 if __name__ == '__main__':
