@@ -65,6 +65,7 @@ dashboard artifact.
 | Alert competition/freshness | Lost>PWM>speed>battery, no overlap, every valid frame evaluated; stale cancels measurements, no overdue bursts | Passed | Public-core source-derived packets and controlled clocks |
 | Watch Storage | Explicit Save survives restart; refused staging/partial activation keep old copy; interrupted first Save has validated default backup; missing/corrupt active copy recovers good backup | Passed | Actual main/store adapter with fake Storage failures; not a claim of atomic Storage |
 | Vibration output | Installed D16 active-high start1/stop0, independent 150/500 ms output deadline; shutdown cannot reactivate output | Passed | Actual motor/hardware with fake pins/timers; no physical motor operation |
+| Paint signature covers what the screen shows (#70) | Every view field the renderer and touch targets read is in the paint signature or is a listed derived field; "Vibration output unavailable" repaints when only the output error changes | Passed | `paint-signature.cjs` reads the production sources; `alerts.cjs` drives the public core with a failing vibration output |
 
 `watch/app.js` owns parsing, freshness, calculations, navigation and clocks.
 `watch/main.js` composes narrow adapters; its public `start(options)` returns

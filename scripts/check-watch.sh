@@ -4,6 +4,6 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 # Watch modules must stay ES5 for Espruino 2v14: parse exactly what the bundle builder ships.
 uv run --offline --no-sync --project experiments/laptop-feasibility python scripts/check-es5.py
-for suite in offline runtime alerts alerts-runtime compare-alerts alert-editor control local-configuration preset-defaults preset-editor preset-editor-runtime preset-navigation preset-value-editor preset-editor-bundle wheel-selection; do
+for suite in offline runtime alerts alerts-runtime compare-alerts alert-editor control local-configuration preset-defaults preset-editor preset-editor-runtime preset-navigation preset-value-editor preset-editor-bundle wheel-selection paint-signature; do
   node "watch/tests/$suite.cjs"
 done
