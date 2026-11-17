@@ -29,6 +29,7 @@ The only Python project is `experiments/laptop-feasibility/` (Python 3.12, aioht
 EUCWATCH_BROWSER_CHECKS=1 ./scripts/check.sh   # adds launch smoke + Chrome CDP flows (Chrome required)
 ./scripts/launch.sh       # backend on 127.0.0.1:8765 + browser; EUCWATCH_NO_BROWSER=1, EUCWATCH_PORT=...
 uv run --offline --no-sync --project experiments/laptop-feasibility python scripts/evidence-compare.py <base-ref> [--browser]   # did behavior change since <base-ref>?
+uv run --offline --no-sync --project experiments/laptop-feasibility python scripts/evidence-explain.py <base-ref>               # how does tracked evidence differ from <base-ref>? (reads only)
 
 # One Python test module or test (tests/ has no __init__.py, so put it on PYTHONPATH)
 env PYTHONPATH=laptop:tests uv run --offline --no-sync --project experiments/laptop-feasibility python -m unittest test_presets
@@ -46,7 +47,7 @@ The `tests/browser_*.py` and `tests/launch_smoke.py` files are scripts, not unit
 
 One flag gates all tracked evidence: the watch suites write `watch/evidence/**` and the browser flows write `docs/acceptance/evidence/**` only when `EUCWATCH_WRITE_EVIDENCE=1` is set (`EUCWATCH_WRITE_EVIDENCE=1 node watch/tests/<suite>.cjs`, `EUCWATCH_WRITE_EVIDENCE=1 EUCWATCH_BROWSER_CHECKS=1 ./scripts/check.sh`). Without it a run leaves `git status` unchanged, and the browser flows write the same files to `.test-output/evidence/` instead. The watch parity suites (`preset-navigation`, `preset-value-editor`, `preset-editor-runtime`) replay laptop traces through `harness.laptopTrace()`: in an `EUCWATCH_BROWSER_CHECKS=1` run, the ones the browser flows just wrote, wherever the flag sent them; otherwise the committed ones. Commit regenerated evidence only when your change is meant to update it.
 
-Check a "behavior unchanged" criterion with `scripts/evidence-compare.py <base-ref>`, adding `--browser` (Chrome) when laptop behavior is in scope. Exit 0 meets the criterion. `--help` says what it regenerates, which provenance fields it ignores and what the other exit codes mean.
+Check a "behavior unchanged" criterion with `scripts/evidence-compare.py <base-ref>`, adding `--browser` (Chrome) when laptop behavior is in scope. Exit 0 meets the criterion. `--help` says what it regenerates, which provenance fields it ignores and what the other exit codes mean. To explain a regenerated-evidence diff in a commit message, run `scripts/evidence-explain.py <base-ref>`: it groups the JSON field changes, lists the files whose only change is that provenance, and gives each changed PNG's old and new sha256 with the tracked files identical to the new one.
 
 ## Architecture
 
