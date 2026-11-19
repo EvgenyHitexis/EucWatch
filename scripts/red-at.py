@@ -17,11 +17,13 @@ The test runs as check.sh runs it:
 
 With --runs N, each copy runs the test N times, for a race that fails only when
 its interleaving is forced. A run counts as failed when it exits non-zero or
-exceeds the timeout. The base's first failure is printed, so you can see whether
-the test fails for the reason the fix addresses.
+exceeds the timeout, except a base run that could not load the test (an import
+error, a missing module): that run is not a failure, and the summary counts it.
+The base's first failing run is printed, so you can see whether the test fails
+for the reason the fix addresses.
 
 Exit 0: red, meaning every base run failed and every working-tree run passed.
-Exit 1: not red, meaning some base run passed or some working-tree run failed.
+Exit 1: not red, meaning some base run passed or could not load the test, or some working-tree run failed.
 Exit 2: the run itself failed (an unknown ref, a missing test, a frontend build that fails).
 The repository is never written: git status and git worktree list are unchanged.
 """
@@ -30,6 +32,7 @@ import argparse
 import importlib.util
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -44,24 +47,29 @@ TEST_DIRECTORIES = ["tests", "watch/tests"]
 TIMEOUT_SECONDS = 300
 # The lines of the base's first failure that are printed.
 SHOWN_LINES = 20
+# Output that means a run could not load the test, rather than ran it and failed.
+LOAD_FAILURES = ["Failed to import test module", "ImportError", "ModuleNotFoundError", "MODULE_NOT_FOUND",
+                 "Cannot find module"]
+
+
+def kind(test: str) -> str:
+    """How check.sh runs this test: "watch" (node), "unit" (unittest) or "script" (a browser flow or the smoke)."""
+    path = Path(test)
+    if path.parts[:2] == ("watch", "tests") and path.suffix == ".cjs":
+        return "watch"
+    if path.parent == Path("tests") and path.suffix == ".py":
+        return "unit" if path.name.startswith("test_") else "script"
+    raise compare.Failed(f"{test}: not a test check.sh runs (tests/*.py or watch/tests/*.cjs)")
 
 
 def command_for(copy: Path, test: str, names: list[str]) -> list[str]:
     """The command check.sh would run for this test, in this copy."""
     python = str(copy / compare.VENV / "bin/python")
-    path = Path(test)
-    if path.parts[:2] == ("watch", "tests") and path.suffix == ".cjs":
+    if kind(test) == "watch":
         return ["node", test, *names]
-    if path.parent == Path("tests") and path.suffix == ".py":
-        if path.name.startswith("test_"):
-            return [python, "-m", "unittest", *([f"{path.stem}.{name}" for name in names] or [path.stem])]
-        return [python, test, *names]
-    raise compare.Failed(f"{test}: not a test check.sh runs (tests/*.py or watch/tests/*.cjs)")
-
-
-def needs_frontend(test: str) -> bool:
-    path = Path(test)
-    return path.parent == Path("tests") and path.suffix == ".py" and not path.name.startswith("test_")
+    if kind(test) == "unit":
+        return [python, "-m", "unittest", *([f"{Path(test).stem}.{name}" for name in names] or [Path(test).stem])]
+    return [python, test, *names]
 
 
 def prepare(copy: Path, test: str):
@@ -70,25 +78,32 @@ def prepare(copy: Path, test: str):
         raise compare.Failed(f"{test} does not exist in the working tree")
     (copy / compare.VENV).parent.mkdir(parents=True, exist_ok=True)
     (copy / compare.VENV).symlink_to(compare.ROOT / compare.VENV, target_is_directory=True)
-    if needs_frontend(test):
+    if kind(test) == "script":
         (copy / compare.NODE_MODULES).symlink_to(compare.ROOT / compare.NODE_MODULES, target_is_directory=True)
         result = subprocess.run(["npm", "run", "build", "--prefix", "frontend"], cwd=copy, capture_output=True, text=True)
         if result.returncode:
             raise compare.Failed(f"{copy.name}: the frontend build exited {result.returncode}\n{result.stdout}{result.stderr}")
 
 
-def run_once(copy: Path, command: list[str]) -> tuple[bool, str]:
-    """Run the test once in the copy, without any inherited EUCWATCH_* setting. True when it passed."""
+def run_once(copy: Path, command: list[str]) -> tuple[str, str]:
+    """Run the test once in the copy, without any inherited EUCWATCH_* setting: "passed", "failed" or
+    "could not load the test", and its output. A timeout kills the test's whole process group."""
     env = {key: value for key, value in os.environ.items() if not key.startswith("EUCWATCH_")}
     try:
-        result = subprocess.run(command, cwd=copy, env={**env, "PYTHONPATH": "laptop:tests"},
-                                capture_output=True, text=True, timeout=TIMEOUT_SECONDS)
-    except subprocess.TimeoutExpired as expired:
-        output = (expired.stdout or b"").decode() if isinstance(expired.stdout, bytes) else (expired.stdout or "")
-        return False, f"{output}timed out after {TIMEOUT_SECONDS} s"
+        process = subprocess.Popen(command, cwd=copy, env={**env, "PYTHONPATH": "laptop:tests"}, text=True,
+                                   stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True)
     except OSError as error:
         raise compare.Failed(f"{copy.name}: cannot run {command[0]}: {error.strerror}") from None
-    return result.returncode == 0, f"{result.stdout}{result.stderr}exited {result.returncode}"
+    try:
+        stdout, stderr = process.communicate(timeout=TIMEOUT_SECONDS)
+    except subprocess.TimeoutExpired:
+        os.killpg(process.pid, signal.SIGKILL)
+        stdout, stderr = process.communicate()
+        return "failed", f"{stdout}{stderr}timed out after {TIMEOUT_SECONDS} s"
+    output = f"{stdout}{stderr}exited {process.returncode}"
+    if process.returncode == 0:
+        return "passed", output
+    return ("could not load the test" if any(text in output for text in LOAD_FAILURES) else "failed"), output
 
 
 def main() -> int:
@@ -103,7 +118,7 @@ def main() -> int:
     try:
         if args.runs < 1:
             raise compare.Failed("--runs must be at least 1")
-        compare.require_dependencies(needs_frontend(args.test))
+        compare.require_dependencies(kind(args.test) == "script")
         commit = compare.git("rev-parse", "--verify", "--quiet", f"{args.base}^{{commit}}", allow_failure=True).strip()
         if not commit:
             raise compare.Failed(f"{args.base} is not a commit")
@@ -116,19 +131,25 @@ def main() -> int:
             shutil.rmtree(base / directory, ignore_errors=True)
             if (tree / directory).is_dir():
                 shutil.copytree(tree / directory, base / directory, symlinks=True)
-        passed = {}
+        outcomes = {}
         for copy in (base, tree):
             prepare(copy, args.test)
             command = command_for(copy, args.test, args.names)
-            passed[copy] = 0
+            outcomes[copy] = []
+            shown = False
             for number in range(1, args.runs + 1):
-                ok, output = run_once(copy, command)
-                print(f"{copy.name} run {number}: {'passed' if ok else 'failed'}", flush=True)
-                if not ok and copy is base and passed[copy] == number - 1 and number == 1:
+                outcome, output = run_once(copy, command)
+                if copy is tree and outcome != "passed":
+                    outcome = "failed"
+                print(f"{copy.name} run {number}: {outcome}", flush=True)
+                if copy is base and outcome != "passed" and not shown:
                     print("\n".join(output.strip().splitlines()[-SHOWN_LINES:]), flush=True)
-                passed[copy] += ok
-        failed_at_base, passed_in_tree = args.runs - passed[base], passed[tree]
-        summary = (f"{failed_at_base} of {args.runs} runs failed there and "
+                    shown = True
+                outcomes[copy].append(outcome)
+        failed_at_base, passed_in_tree = outcomes[base].count("failed"), outcomes[tree].count("passed")
+        unloaded = outcomes[base].count("could not load the test")
+        summary = (f"{failed_at_base} of {args.runs} runs failed there"
+                   f"{f' ({unloaded} could not load the test)' if unloaded else ''} and "
                    f"{passed_in_tree} of {args.runs} passed in the working tree")
         if failed_at_base == args.runs and passed_in_tree == args.runs:
             print(f"red at {args.base}: {summary}")

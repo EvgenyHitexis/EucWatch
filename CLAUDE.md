@@ -8,7 +8,7 @@ Name things with `GLOSSARY.md`'s terms. `CODING_STANDARDS.md` holds the judgemen
 
 ### Issue tracker
 
-GitHub Issues in EvgenyHitexis/EucWatch, through `gh`. Read `docs/agents/issue-tracker.md` before opening a PR or closing an issue: PRs target `research/watch-recovery`, so closing keywords such as `Fixes #N` never fire.
+GitHub Issues in EvgenyHitexis/EucWatch, through `gh`. Read `docs/agents/issue-tracker.md` before opening a PR or closing an issue: PRs don't target the default branch, so closing keywords such as `Fixes #N` never fire.
 
 ### Triage labels
 

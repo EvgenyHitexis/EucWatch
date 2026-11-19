@@ -15,8 +15,8 @@ _Avoid_. For example, `connection_error` was renamed `wheel_link_error` because 
 ## Regression tests fail without the fix
 
 A commit that adds or changes a regression test records, in its message, the `scripts/red-at.py` run of that version
-of the test against code without the fix: the base ref, the runs failed there and the runs passed in the working tree.
-A later commit that reworks the test records a new run. For example, #75's reworked `overtaken_export` passed on the
+of the test against code without the fix: the base ref, the runs failed there, the runs passed in the working tree,
+and the line of the base's first failure that gives its reason. A later commit that reworks the test records a new run. For example, #75's reworked `overtaken_export` passed on the
 unfixed frontend too, and only a re-run against `a171e1e` showed it.
 
 ## Shared watch test helpers

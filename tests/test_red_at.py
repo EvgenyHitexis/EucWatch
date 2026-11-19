@@ -10,6 +10,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -35,7 +36,9 @@ class RedAtTests(unittest.TestCase):
         self.repository.mkdir()
         self.git("init", "-q", "-b", "main")
         # The fixture's .venv is a link to this tree's, and a trailing slash would not ignore a link.
-        self.write(".gitignore", "**/.venv\n")
+        self.write(".gitignore", "**/.venv\nfrontend/node_modules/\nfrontend/dist/\n")
+        # A frontend whose build makes the dist a browser flow serves.
+        self.write("frontend/package.json", '{"scripts": {"build": "node -e \\"require(\'fs\').mkdirSync(\'dist\')\\""}}\n')
         venv = self.repository / red_at.compare.VENV
         venv.parent.mkdir(parents=True)
         venv.symlink_to(ROOT / red_at.compare.VENV, target_is_directory=True)
@@ -71,7 +74,8 @@ class RedAtTests(unittest.TestCase):
         with patch.object(sys, "argv", ["red-at.py", *args]), contextlib.redirect_stdout(stdout), \
                 contextlib.redirect_stderr(stderr):
             code = red_at.main()
-        lines = (stdout.getvalue() + stderr.getvalue()).strip().splitlines()
+        self.output = stdout.getvalue() + stderr.getvalue()
+        lines = self.output.strip().splitlines()
         return code, lines[-1] if lines else ""
 
     def test_a_unit_test_that_fails_at_the_base_and_passes_in_the_working_tree_is_red(self):
@@ -97,6 +101,58 @@ class RedAtTests(unittest.TestCase):
         self.assertEqual(self.main(self.buggy, "tests/test_arithmetic.py", "DoubleTests.test_double")[0], 0)
         self.assertEqual(self.main(self.buggy, "tests/test_arithmetic.py", "DoubleTests.test_missing")[1],
                          f"not red at {self.buggy}: 1 of 1 runs failed there and 0 of 1 passed in the working tree")
+
+    def test_a_browser_flow_runs_as_a_script_after_the_frontend_is_built(self):
+        (self.repository / red_at.compare.NODE_MODULES).mkdir(parents=True)
+        self.write("tests/flow_arithmetic.py", "import sys\nfrom pathlib import Path\nfrom arithmetic import double\n\n"
+                                               "sys.exit(0 if Path('frontend/dist').is_dir() and double(4) == 8 else 1)\n")
+        self.assertEqual(self.main(self.buggy, "tests/flow_arithmetic.py"),
+                         (0, f"red at {self.buggy}: 1 of 1 runs failed there and 1 of 1 passed in the working tree"))
+
+    def test_a_timeout_kills_the_whole_test_and_counts_as_a_failure(self):
+        pids = self.repository.parent / "pids"
+        self.write("watch/tests/hang.cjs", "const fs = require('fs');\n"
+                                           "const child = require('child_process').spawn('sleep', ['60'], {stdio: 'ignore'});\n"
+                                           f"fs.appendFileSync({str(pids)!r}, child.pid + '\\n');\n"
+                                           "setTimeout(() => {}, 60000);\n")
+        with patch.object(red_at, "TIMEOUT_SECONDS", 0.5):
+            self.assertEqual(self.main(self.buggy, "watch/tests/hang.cjs"),
+                             (1, f"not red at {self.buggy}: 1 of 1 runs failed there and 0 of 1 passed in the working tree"))
+        self.assertIn("timed out after 0.5 s", self.output)
+        for pid in pids.read_text().split():
+            stat = Path(f"/proc/{pid}/stat")
+            for _ in range(50):  # Killed, the sleep is reaped by whichever process adopted it.
+                if not stat.exists() or stat.read_text().rsplit(")", 1)[1].split()[0] == "Z":
+                    break
+                time.sleep(0.05)
+            else:
+                self.fail(f"the test's child {pid} outlived the timeout")
+
+    def test_the_first_failing_base_run_is_printed_even_when_it_is_not_the_first_run(self):
+        counter = self.repository.parent / "counter"
+        self.write("watch/tests/second.cjs", "const fs = require('fs');\n"
+                                             f"const path = {str(counter)!r};\n"
+                                             "const run = (fs.existsSync(path) ? Number(fs.readFileSync(path, 'utf8')) : 0) + 1;\n"
+                                             "fs.writeFileSync(path, String(run));\n"
+                                             "if (run === 2) throw new Error('the second run fails');\n")
+        self.assertEqual(self.main(self.buggy, "watch/tests/second.cjs", "--runs", "2"),
+                         (1, f"not red at {self.buggy}: 1 of 2 runs failed there and 2 of 2 passed in the working tree"))
+        self.assertIn("Error: the second run fails", self.output)
+
+    def test_a_base_that_cannot_load_the_test_is_not_red(self):
+        # The working tree adds halve, which the test imports: at the base the test never runs.
+        self.write("laptop/arithmetic.py", FIXED + "\n\ndef halve(value):\n    return value / 2\n")
+        self.write("watch/halve.js", "exports.halve = v => v / 2;\n")
+        self.write("tests/test_halve.py", "import unittest\nfrom arithmetic import halve\n\n\n"
+                                          "class HalveTests(unittest.TestCase):\n"
+                                          "    def test_halve(self):\n        self.assertEqual(halve(4), 2)\n")
+        self.write("watch/tests/halve.cjs", "require('assert').strictEqual(require('../halve.js').halve(4), 2);\n")
+        for test in ["tests/test_halve.py", "watch/tests/halve.cjs"]:
+            with self.subTest(test=test):
+                self.assertEqual(self.main(self.buggy, test),
+                                 (1, f"not red at {self.buggy}: 0 of 1 runs failed there (1 could not load the test) "
+                                     "and 1 of 1 passed in the working tree"))
+                self.assertIn("base run 1: could not load the test", self.output)
 
     def test_the_repository_is_left_as_it_was(self):
         self.write("laptop/arithmetic.py", FIXED + "\n")
