@@ -34,7 +34,7 @@ async def main():
     await runner.setup()
     site = web.TCPSite(runner, '127.0.0.1', 0)
     await site.start()
-    port = site._server.sockets[0].getsockname()[1]
+    port = runner.addresses[0][1]
     port_file = Path(profile) / 'DevToolsActivePort'
     port_file.write_text('')
     await asyncio.sleep(.5)

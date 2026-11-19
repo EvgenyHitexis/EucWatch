@@ -1,7 +1,7 @@
 # Scheduled browser checks (#79): ./scripts/setup.sh, then EUCWATCH_BROWSER_CHECKS=1 ./scripts/check.sh,
 # which adds the launch smoke and the Chrome CDP flows to everything the check workflow runs.
 # Not a required check: it runs only on a schedule and on demand, never on push or pull request,
-# so a failure records history without blocking a merge. The check workflow stays as #67 set it.
+# so a failure records history without blocking a merge.
 # The flows use the simulated wheel and fake BLE clients only. No Bluetooth, wheel, horn or watch
 # deployment, and nothing from experiments/wheel-verification/. EUCWATCH_WRITE_EVIDENCE stays unset,
 # so evidence goes to .test-output/ and is uploaded when the job fails.
@@ -19,7 +19,7 @@ permissions:
 jobs:
   browser-checks:
     runs-on: ubuntu-24.04
-    # A green run took 3.5 minutes (run 44567934467). Each browser wait times out after 15 s, so a
+    # A green run took 3.5 minutes (run 44567934467). Each browser wait times out within at most 15 s, so a
     # stuck flow fails rather than hangs; this cap covers a slow runner and any wait that escapes that.
     timeout-minutes: 20
     steps:
