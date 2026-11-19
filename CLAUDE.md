@@ -22,6 +22,8 @@ Single-context: root `GLOSSARY.md` and `docs/adr/`. See `docs/agents/domain.md`.
 
 The only Python project is `experiments/laptop-feasibility/` (Python 3.12, aiohttp, bleak, locked with uv). The app code in `laptop/` runs from that environment through `PYTHONPATH`. There is no root `pyproject.toml`.
 
+A new worktree has no `.venv` or `frontend/node_modules`: run `./scripts/setup.sh` in it before any check.
+
 ```bash
 ./scripts/setup.sh        # uv sync --locked + npm ci + frontend build
 ./scripts/check.sh        # every Python unit test, frontend typecheck/build, then check-watch.sh
@@ -29,6 +31,7 @@ The only Python project is `experiments/laptop-feasibility/` (Python 3.12, aioht
 EUCWATCH_BROWSER_CHECKS=1 ./scripts/check.sh   # adds launch smoke + Chrome CDP flows (Chrome required)
 ./scripts/launch.sh       # backend on 127.0.0.1:8765 + browser; EUCWATCH_NO_BROWSER=1, EUCWATCH_PORT=...
 uv run --offline --no-sync --project experiments/laptop-feasibility python scripts/evidence-compare.py <base-ref> [--browser]   # did behavior change since <base-ref>?
+uv run --offline --no-sync --project experiments/laptop-feasibility python scripts/evidence-explain.py <base-ref>               # how does tracked evidence differ from <base-ref>? (reads only)
 
 # One Python test module or test (tests/ has no __init__.py, so put it on PYTHONPATH)
 env PYTHONPATH=laptop:tests uv run --offline --no-sync --project experiments/laptop-feasibility python -m unittest test_presets
@@ -46,7 +49,7 @@ The `tests/browser_*.py` and `tests/launch_smoke.py` files are scripts, not unit
 
 One flag gates all tracked evidence: the watch suites write `watch/evidence/**` and the browser flows write `docs/acceptance/evidence/**` only when `EUCWATCH_WRITE_EVIDENCE=1` is set (`EUCWATCH_WRITE_EVIDENCE=1 node watch/tests/<suite>.cjs`, `EUCWATCH_WRITE_EVIDENCE=1 EUCWATCH_BROWSER_CHECKS=1 ./scripts/check.sh`). Without it a run leaves `git status` unchanged, and the browser flows write the same files to `.test-output/evidence/` instead. The watch parity suites (`preset-navigation`, `preset-value-editor`, `preset-editor-runtime`) replay laptop traces through `harness.laptopTrace()`: in an `EUCWATCH_BROWSER_CHECKS=1` run, the ones the browser flows just wrote, wherever the flag sent them; otherwise the committed ones. Commit regenerated evidence only when your change is meant to update it.
 
-Check a "behavior unchanged" criterion with `scripts/evidence-compare.py <base-ref>`, adding `--browser` (Chrome) when laptop behavior is in scope. Exit 0 meets the criterion. `--help` says what it regenerates, which provenance fields it ignores and what the other exit codes mean.
+Check a "behavior unchanged" criterion with `scripts/evidence-compare.py <base-ref>`, adding `--browser` (Chrome) when laptop behavior is in scope. Exit 0 meets the criterion. `--help` says what it regenerates, which provenance fields it ignores and what the other exit codes mean. To explain a regenerated-evidence diff in a commit message, run `scripts/evidence-explain.py <base-ref>`: it groups the JSON field changes, lists the files whose only change is that provenance, and gives each changed PNG's old and new sha256 with the tracked files identical to the new one.
 
 ## Architecture
 
@@ -75,3 +78,5 @@ Keep private live recordings, watch backups and captures out of git. Commit only
 ## Acceptance evidence
 
 Work tracks GitHub issues. Commits use conventional prefixes with the issue number, e.g. `fix: … (#31)`. Each milestone has a write-up in `docs/acceptance/*.md`, backed by JSON/PNG/SVG evidence. Older evidence is preserved and labelled with the scope it originally showed. Two kinds of evidence, two rules: a new acceptance pass for a write-up goes in a new evidence file or directory, leaving the earlier pass intact; a file a test suite regenerates (every `watch/evidence/**` file, and the `docs/acceptance/evidence/**` files a browser flow writes) is updated in place, in the commit whose change is meant to alter it, with the diff explained in the commit message. Mark unknown or failed checks as incomplete.
+
+A pass's manifest under `docs/acceptance/evidence/` records the sha256 of each evidence file it produced in `artifact_sha256` (repository-relative paths; the laptop-31 pass uses `artifacts_sha256`, relative to its own directory). `tests/test_evidence_manifests.py` fails when one of those files is missing or no longer matches. When a later commit regenerates such a file in place, leave the recorded hash as it is and add a `superseded` entry beside `artifact_sha256` in the same manifest: `"superseded": {"<path>": {"sha256": "<current sha256>", "commit": "<commit that wrote those bytes>"}}`, plus `"earlier_commits": [...]` if other commits changed it in between (`git log -- <path>` finds them). The check then holds the file to the superseded hash, so any further change fails again. `source_sha256` and `final_source_sha256` record the code a pass ran on and are not checked.

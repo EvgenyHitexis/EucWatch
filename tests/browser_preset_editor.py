@@ -12,15 +12,13 @@ async def exercise(page, app, output):
     async def pointer(start,end):
         timeline.append({'input':'tap' if start==end else 'swipe','start':start,'end':end})
         await page.pointer(start,end)
-        await asyncio.sleep(.12)
+        await asyncio.sleep(.12) # Lets the action reach the Application before app.view() is read; captures wait in snapshot.
     async def tap(x,y):await pointer((x,y),(x,y))
     async def page_index(index):
         while app.view()['preset_page']!=index:await tap(220,20)
         await wait(['Name:','Pedal sensitivity:','Dynamic assist:','Pedal dip compensation:'][index])
-    async def snap(name):
-        await asyncio.sleep(.12)
-        await page.snapshot(output/(name+'.png'))
-        renderings.append({'file':name+'.png','label':await page.description()})
+    async def snap(name,shows):
+        renderings.append({'file':name+'.png','label':await page.snapshot(output/(name+'.png'),shows=shows)})
     async def number(text):
         if app.view()['preset_input'] is None:await tap(120,80)
         await type_percentage(tap,text)
@@ -41,7 +39,7 @@ async def exercise(page, app, output):
         await tap(49,73);await tap(164,174) # Add/remove y.
         name=f'Ab {slot}';await wait('Input '+name)
         # OK accepts the name, then whole-preset Save persists it.
-        await snap(f'slot-{slot}-name');await tap(176,226);await wait('Whole-preset Save');await tap(176,226);await wait('Settings Presets.')
+        await snap(f'slot-{slot}-name','Input '+name+'.');await tap(176,226);await wait('Whole-preset Save');await tap(176,226);await wait('Settings Presets.')
         assert app.view()['config']['presets'][slot-1]['name']==name
         await tap(80,55+(slot-1)*44);await page_index(3)
         assert app.view()['preset_draft']['dip_included'] is False
@@ -53,9 +51,9 @@ async def exercise(page, app, output):
             assert app.view()['preset_draft']['dip_included'] is included
             assert app.view()['preset_input']['text']=='11'
             assert app.view()['config']['presets'][slot-1]['dip_included'] is False
-        await snap(f'slot-{slot}-dip-input')
+        await snap(f'slot-{slot}-dip-input','Dip omitted.')
         await tap(176,226);await page_index(1);await number('31');await tap(176,226);await page_index(2);await number('26')
-        await snap(f'slot-{slot}-numeric');await tap(176,226);await tap(176,226);await wait('Settings Presets.')
+        await snap(f'slot-{slot}-numeric','Input 26.');await tap(176,226);await tap(176,226);await wait('Settings Presets.')
         expected={'id':slot,'name':name,'configured':True,'pedal_sensitivity':31,'dynamic_assist':26,'pedal_dip_compensation':11,'dip_included':False}
         assert app.view()['config']['presets'][slot-1]==expected
         assert app.view()['config']['alerts']==before['alerts']
@@ -66,20 +64,20 @@ async def exercise(page, app, output):
     saved=app.view()['config']
     # Invalid OK keeps this field's entry open without changing its draft.
     await tap(80,55);await tap(120,80);await tap(120,174)
-    await tap(176,226);await wait('name must contain');await snap('invalid-name-save')
+    await tap(176,226);await snap('invalid-name-save','name must contain')
     assert app.view()['preset_draft']['name']=='Ab 1'
     assert app.view()['preset_input']['field']=='name'
     assert app.view()['preset_input']['text']==''
     assert app.view()['config']==saved
     await tap(64,226);await tap(64,226);await wait('Settings Presets.')
     await tap(80,55);await page_index(1);await number('')
-    await tap(176,226);await wait('Pedal sensitivity: enter');await snap('invalid-save')
+    await tap(176,226);await snap('invalid-save','Pedal sensitivity: enter')
     assert app.view()['config']==saved
     await number('32');await tap(176,226)
     # A controlled file boundary fault around real FileStore, then local retry.
     timeline.append({'input':'storage_failure','mode':'refuse'})
     with patch('os.replace',side_effect=OSError('Controlled disk full')):
-        await tap(176,226);await wait('Controlled disk full');await snap('failed-save')
+        await tap(176,226);await snap('failed-save','Controlled disk full')
     assert app.view()['config']==saved
     timeline.append({'input':'storage_failure','mode':'none'})
     await tap(176,226);await wait('Settings Presets.')

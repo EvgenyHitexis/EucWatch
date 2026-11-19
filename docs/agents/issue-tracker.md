@@ -19,11 +19,15 @@ For multiline bodies, write the exact text to a temporary file and pass it with 
 - **Make an issue a sub-issue of a parent**: `gh issue create --parent <parent>` for a new issue, `gh issue edit <child> --parent <parent>` for an existing one. If that fails, put `Part of #<parent>` at the top of the child body.
 - **Comment on an issue**: `gh issue comment <number> --body-file <path>`
 - **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
-- **Close**: `gh issue close <number> --comment "..."`
+- **Close**: `gh issue close <number> --comment "..."`. `Closes #N` in a PR body does not fire here, because PRs merge into `research/watch-recovery` and GitHub closes issues only from the default branch (`research/sherman-l-horn`). After the PR merges, close the issue by hand: `gh issue close N --comment "<PR link>, merge commit <sha>"`.
+
+## Branches and merging
+
+Work goes through pull requests. Each issue gets its own branch (e.g. `issue/72-environment-fixes`) cut from `research/watch-recovery`. Push it and open a PR against `research/watch-recovery` (`gh pr create --base research/watch-recovery`), as #71 did. That is not the repository's default branch, so pass `--base` every time, and close the issue by hand after the merge (see **Close** above).
 
 ## Pull requests as a triage surface
 
-**PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_
+**PRs as a request surface: no.** _(Set to `yes` if this repo treats external PRs as feature requests; `/triage` reads this flag.)_ The flag concerns external PRs only. The repository's own work goes through PRs, as **Branches and merging** says.
 
 When set to `yes`, PRs run through the same labels and states as issues, using the `gh pr` equivalents:
 

@@ -16,3 +16,8 @@ _Avoid_. For example, `connection_error` was renamed `wheel_link_error` because 
 
 When two watch suites use a helper, it lives in `watch/tests/harness.cjs`. Suites keep only their scenarios and
 assertions, and no suite imports another suite.
+
+## Shared Python test helpers
+
+When two Python test modules or browser flows use a helper, it lives in `tests/support.py`, as `load_script` (for the
+hyphenated `scripts/*.py`) and `sha256` do. Test files import from `support` and never from one another.
