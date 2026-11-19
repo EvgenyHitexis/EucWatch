@@ -12,8 +12,6 @@ on:
   schedule:
     - cron: "17 3 * * *"
   workflow_dispatch:
-  push:
-    branches: [issue/79-browser-ci] # temporary, to run this on its own branch; removed before merge
 
 permissions:
   contents: read
@@ -21,9 +19,9 @@ permissions:
 jobs:
   browser-checks:
     runs-on: ubuntu-24.04
-    # Each browser wait times out after 15 s, so a stuck flow fails rather than hangs; this cap
-    # covers a slow runner and any wait that escapes that.
-    timeout-minutes: 40
+    # A green run took 3.5 minutes (run 44567934467). Each browser wait times out after 15 s, so a
+    # stuck flow fails rather than hangs; this cap covers a slow runner and any wait that escapes that.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -45,7 +43,6 @@ jobs:
       - run: ./scripts/check.sh
         env:
           EUCWATCH_BROWSER_CHECKS: "1"
-      - run: exit 1 # temporary, to show the failure upload; removed before merge
       - if: failure()
         uses: actions/upload-artifact@v7
         with:
