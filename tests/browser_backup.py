@@ -3,6 +3,7 @@
 overtaken_export: Export reports success when a poll's state read supersedes the action's own (#75).
 missing_export: Export that gets no export back says so and downloads nothing (#77).
 stale_export: Export whose state read fails downloads this action's export, not an earlier one (#77).
+refused_export: Export that the server refuses says so, shows the refusal and downloads nothing (#77).
 """
 import asyncio
 import hashlib
@@ -84,7 +85,17 @@ FAIL_READ_AFTER_EXPORT = """(()=>{
       failNextRead=true;
       return response;
     }
-    if(failNextRead && url.startsWith('/api/state')){ failNextRead=false; throw new TypeError('state read failed'); }
+    if(failNextRead && url.startsWith('/api/state')){ failNextRead=false; window.readFailed=true; throw new TypeError('state read failed'); }
+    return send(input,init);
+  };
+})()"""
+
+# The server refuses the Export action.
+REFUSE_EXPORT = """(()=>{
+  const send=window.fetch.bind(window);
+  window.fetch=async(input,init)=>{
+    if(init?.method==='POST' && JSON.parse(init.body).action==='configuration_export')
+      return new Response(JSON.stringify({error:'Export refused for this check'}),{status:400,headers:{'Content-Type':'application/json'}});
     return send(input,init);
   };
 })()"""
@@ -107,14 +118,10 @@ async def run():
         page, behavior, output = laptop.page, laptop.app, laptop.output
         await start_simulator(page)
         download_dir=(output/f'downloads-{laptop.run_id}').resolve()
-        download_dir.mkdir(exist_ok=True)
-        await page.browser.call('Browser.setDownloadBehavior',{'behavior':'allow','downloadPath':str(download_dir)})
+        await allow_downloads(page, download_dir)
         await page.click('#configuration-export')
         await page.wait("document.querySelector('#configuration-status').textContent.includes('Exported')")
-        async with asyncio.timeout(5):
-            while not (download_dir/'eucwatch-configuration.json').exists():
-                await asyncio.sleep(.05)
-        exported=json.loads((download_dir/'eucwatch-configuration.json').read_text())
+        exported=await downloaded(download_dir)
         assert set(exported)=={'version','revision','presets','alerts'}
         before_backup=behavior.view()['config']
         before_commands=len(behavior.view()['command_events'])
@@ -230,11 +237,27 @@ async def stale_export():
         await page.evaluate(FAIL_READ_AFTER_EXPORT)
         await page.click('#configuration-export')
         await page.wait("document.querySelector('#configuration-status').textContent.includes('Exported')")
+        assert await page.evaluate("window.readFailed===true"), 'the state read after the Export action did not fail'
         second=await downloaded(second_dir)
         assert second['presets'][0]['name']=='Stale check', second['presets'][0]['name']
         assert second['revision']==behavior.view()['config']['revision']
     print('backup stale export: passed')
 
 
+async def refused_export():
+    async with served_laptop() as laptop:
+        page, output = laptop.page, laptop.output
+        await start_simulator(page)
+        download_dir=(output/f'downloads-refused-{laptop.run_id}').resolve()
+        await allow_downloads(page, download_dir)
+        await page.evaluate(REFUSE_EXPORT)
+        await page.click('#configuration-export')
+        await page.wait("document.querySelector('#configuration-status').textContent.includes('Export did not complete')")
+        assert await page.evaluate("document.querySelector('#message').textContent==='Export refused for this check'")
+        await asyncio.sleep(.5)
+        assert not list(download_dir.iterdir()), list(download_dir.iterdir())
+    print('backup refused export: passed')
+
+
 if __name__ == '__main__':
-    main(run, overtaken_export, missing_export, stale_export)
+    main(run, overtaken_export, missing_export, stale_export, refused_export)
