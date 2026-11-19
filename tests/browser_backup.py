@@ -74,18 +74,21 @@ DROP_EXPORT = """(()=>{
   };
 })()"""
 
-# The state read that the Export action makes after its POST fails, as a dropped connection would.
+# Every state read from the Export action's answer until the Export status changes fails, as a dropped connection
+# would: the action's own read among them, whichever poll reads start beside it.
 FAIL_READ_AFTER_EXPORT = """(()=>{
   const send=window.fetch.bind(window);
-  let failNextRead=false;
+  const status=document.querySelector('#configuration-status');
+  let failing=false;
   window.fetch=async(input,init)=>{
     const url=String(input);
     if(init?.method==='POST' && JSON.parse(init.body).action==='configuration_export'){
       const response=await send(input,init);
-      failNextRead=true;
+      failing=true;
       return response;
     }
-    if(failNextRead && url.startsWith('/api/state')){ failNextRead=false; window.readFailed=true; throw new TypeError('state read failed'); }
+    if(failing && status.textContent!=='') failing=false;
+    if(failing && url.startsWith('/api/state')){ window.readFailed=true; throw new TypeError('state read failed'); }
     return send(input,init);
   };
 })()"""
