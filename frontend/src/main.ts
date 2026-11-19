@@ -473,7 +473,13 @@ async function readState(generation: number): Promise<void> {
 }
 
 async function action(actionName: string, payload: Record<string, unknown> = {}): Promise<boolean> {
-  if (!available || !session?.controller || submitting) return false;
+  return await submitAction(actionName, payload) !== null;
+}
+
+// The view the Application answered this action's own request with, or null when the action was not
+// sent or was refused. A later state read may fail or be superseded; this view is this action's result.
+async function submitAction(actionName: string, payload: Record<string, unknown> = {}): Promise<View | null> {
+  if (!available || !session?.controller || submitting) return null;
   if (['simulator_start', 'stop', 'connect', 'replay_start', 'live_select', 'live_disconnect'].includes(actionName)) replayLoadGeneration++;
   submitting = true;
   setControls();
@@ -500,14 +506,15 @@ async function action(actionName: string, payload: Record<string, unknown> = {})
       if (delivered) await refresh();
       throw new Error(result.error ?? `Action refused (${response.status})`);
     }
+    const answered = await response.json() as View;
     await refresh();
-    return true;
+    return answered;
   } catch (error) {
     message.textContent = error instanceof Error ? error.message : 'Action could not be sent';
     if (alertEditorAction(actionName) && !delivered) undeliveredAlertError = message.textContent;
     if (actionName.startsWith('preset_')) presetError = message.textContent;
     if (actionName.startsWith('live_')) liveError = message.textContent;
-    return false;
+    return null;
   } finally {
     submitting = false;
     setControls();
@@ -733,7 +740,7 @@ let holdTimer: number | null = null;
 let buttonCycleOpen = false;
 let inputGeneration = 0;
 const updateScenarios=mountScenarios(action,()=>current?.scenario ?? null,()=>JSON.stringify([inputGeneration,current?.session,session?.credential]));
-const updateBackup=mountBackup(action,()=>current,()=>JSON.stringify([inputGeneration,current?.session,current?.config.revision,session?.credential]));
+const updateBackup=mountBackup(submitAction,()=>current,()=>JSON.stringify([inputGeneration,current?.session,current?.config.revision,session?.credential]));
 function enqueueWatch(actionName: string, payload: Record<string, unknown> = {}): Promise<unknown> {
   return enqueueInput(() => ({ action: actionName, payload }));
 }

@@ -1,7 +1,7 @@
 interface Preview { content: unknown; base_revision: number; migration: { from:number; to:number; changes:string[] } }
 interface BackupView { configuration_preview: Preview | null; configuration_export: unknown; config:{revision:number}; persistence_error:string|null }
 
-export function mountBackup(action:(name:string,payload?:Record<string,unknown>)=>Promise<boolean>,getView:()=>BackupView|null,epoch:()=>string): (enabled:boolean)=>void {
+export function mountBackup(action:(name:string,payload?:Record<string,unknown>)=>Promise<BackupView|null>,getView:()=>BackupView|null,epoch:()=>string): (enabled:boolean)=>void {
   const section=document.createElement('section');
   section.innerHTML=`<div class="divider"></div><h2>Configuration backup</h2>
     <p class="intro">Back up the four saved preset definitions and alert settings. Restore only after reviewing the complete content. Wheel readings and confirmation are excluded.</p>
@@ -13,9 +13,10 @@ export function mountBackup(action:(name:string,payload?:Record<string,unknown>)
   const status=section.querySelector<HTMLElement>('#configuration-status')!;
   let reading=false;
   section.querySelector('#configuration-export')!.addEventListener('click',async()=>{
-    if(!await action('configuration_export')) return;
-    const content=getView()?.configuration_export;
-    if(!content) return;
+    // The export comes from the action's own answer: a later state read can fail or be superseded and leave
+    // an earlier Export's content in the current view.
+    const content=(await action('configuration_export'))?.configuration_export;
+    if(!content){status.textContent='Export did not complete; saved configuration unchanged.';return;}
     const url=URL.createObjectURL(new Blob([JSON.stringify(content,null,2)+'\n'],{type:'application/json'}));
     const link=document.createElement('a');link.href=url;link.download='eucwatch-configuration.json';link.click();
     window.setTimeout(()=>URL.revokeObjectURL(url),1000);
