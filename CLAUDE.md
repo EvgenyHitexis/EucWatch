@@ -44,7 +44,7 @@ node watch/tests/preset-editor.cjs
 npm run typecheck --prefix frontend
 ```
 
-`.github/workflows/check.yml` runs `./scripts/setup.sh` and the plain `./scripts/check.sh` on every push and pull request, without Chrome.
+`.github/workflows/check.yml` runs `./scripts/setup.sh` and the plain `./scripts/check.sh` on every push and pull request, without Chrome. `.github/workflows/browser-checks.yml` runs `EUCWATCH_BROWSER_CHECKS=1 ./scripts/check.sh` with headless Chrome nightly and on demand (`gh workflow run browser-checks.yml`). It is not a required check, and GitHub runs it only from the default branch.
 
 The `tests/browser_*.py` and `tests/launch_smoke.py` files are scripts, not unittest modules. Run them directly the way `check.sh` does.
 
