@@ -1,10 +1,42 @@
-"""Local Watch configuration backup, review, Cancel and restore, and no transfer UI (#27, #40)."""
+"""Local Watch configuration backup, review, Cancel and restore, and no transfer UI (#27, #40).
+
+overtaken_export: Export reports success when a poll's state read supersedes the action's own (#75).
+"""
 import asyncio
 import hashlib
 import json
 from pathlib import Path
 
 from support import main, served_laptop, start_simulator, write_evidence
+
+# The server answers the state read that the Export action makes after its POST, but the page receives that answer
+# only once the next poll has started a read of its own. The poll's answer arrives 300 ms after that. The poll's read
+# supersedes the action's, so Export has to wait for the poll's answer before it looks for the export.
+OVERTAKE_EXPORT_READ = """(()=>{
+  const send=window.fetch.bind(window);
+  let exported=false, release=null;
+  window.overtaken=false;
+  window.fetch=async(input,init)=>{
+    const url=String(input);
+    if(init?.method==='POST' && JSON.parse(init.body).action==='configuration_export'){
+      const response=await send(input,init); exported=true; return response;
+    }
+    if(exported && url.startsWith('/api/state')){
+      exported=false;
+      const response=await send(input,init);
+      await new Promise(resolve=>{release=resolve;});
+      return response;
+    }
+    if(release && url.startsWith('/api/state')){
+      const response=send(input,init);
+      release(); release=null;
+      await new Promise(resolve=>setTimeout(resolve,300));
+      window.overtaken=true;
+      return response;
+    }
+    return send(input,init);
+  };
+})()"""
 
 
 async def run():
@@ -78,5 +110,17 @@ async def run():
     print('backup: passed')
 
 
+async def overtaken_export():
+    async with served_laptop() as laptop:
+        page = laptop.page
+        await start_simulator(page)
+        await page.browser.call('Browser.setDownloadBehavior', {'behavior': 'deny'})
+        await page.evaluate(OVERTAKE_EXPORT_READ)
+        await page.click('#configuration-export')
+        await page.wait('window.overtaken')
+        await page.wait("document.querySelector('#configuration-status').textContent.includes('Exported')")
+    print('backup overtaken export: passed')
+
+
 if __name__ == '__main__':
-    main(run)
+    main(run, overtaken_export)
