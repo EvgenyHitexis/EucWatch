@@ -371,13 +371,14 @@ async def chrome():
             '--remote-debugging-port=0', f'--user-data-dir={profile}', 'about:blank'],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         try:
+            # Chrome creates DevToolsActivePort before it writes the port and path into it, so wait for both lines.
             port_file = Path(profile) / 'DevToolsActivePort'
             async with asyncio.timeout(15):
-                while not port_file.exists():
+                while len(lines := port_file.read_text().splitlines() if port_file.exists() else []) < 2:
                     if process.poll() is not None:
                         raise RuntimeError('Chrome exited before readiness')
                     await asyncio.sleep(.1)
-            port, path = port_file.read_text().splitlines()
+            port, path = lines[:2]
             async with ClientSession() as client, client.ws_connect(f'http://127.0.0.1:{port}{path}') as ws:
                 yield Browser(ws)
         finally:
