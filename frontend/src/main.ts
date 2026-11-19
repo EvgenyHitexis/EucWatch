@@ -438,12 +438,12 @@ async function read<T>(path: string): Promise<T> {
 // A read started after this one supersedes it, and its answer is dropped. refresh() then resolves only when the
 // superseding read has, so its caller (an action that just completed, say) never goes on with a view read before
 // it called.
-let latestRead: Promise<void> = Promise.resolve();
+let latestRefresh: Promise<void> = Promise.resolve();
 
 function refresh(): Promise<void> {
   const generation=++readGeneration;
-  const settled=readState(generation).then(() => generation===readGeneration ? undefined : latestRead);
-  latestRead=settled;
+  const settled=readState(generation).then(() => generation===readGeneration ? undefined : latestRefresh);
+  latestRefresh=settled;
   return settled;
 }
 

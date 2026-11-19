@@ -12,29 +12,50 @@ from support import main, served_laptop, start_simulator, write_evidence
 # The server answers the state read that the Export action makes after its POST, but the page receives that answer
 # only once the next poll has started a read of its own. The poll's answer arrives 300 ms after that. The poll's read
 # supersedes the action's, so Export has to wait for the poll's answer before it looks for the export.
+# The POST goes out only once a poll's read has been handled, so the page holds a view from before the export and the
+# next poll is 200 ms away. If a read is still in flight when the action's read starts, holding the action's read
+# would stall the poll behind it: that attempt is let through and reported as missed.
 OVERTAKE_EXPORT_READ = """(()=>{
   const send=window.fetch.bind(window);
-  let exported=false, release=null;
-  window.overtaken=false;
+  let reading=0, pollHandled=null, holdNextRead=false, release=null;
+  window.overtake='idle';
+  // A state read is in flight until the page has handled its view, in the microtasks after its json() settles:
+  // a task queued then runs after them.
+  const read=async(input,init)=>{
+    reading++;
+    let response;
+    try { response=await send(input,init); } catch(error){ reading--; throw error; }
+    const json=response.json.bind(response);
+    response.json=()=>json().finally(()=>setTimeout(()=>{
+      reading--;
+      if(pollHandled){ const handled=pollHandled; pollHandled=null; handled(); }
+    },0));
+    return response;
+  };
   window.fetch=async(input,init)=>{
     const url=String(input);
     if(init?.method==='POST' && JSON.parse(init.body).action==='configuration_export'){
-      const response=await send(input,init); exported=true; return response;
-    }
-    if(exported && url.startsWith('/api/state')){
-      exported=false;
+      await new Promise(resolve=>{pollHandled=resolve;});
       const response=await send(input,init);
+      holdNextRead=true;
+      return response;
+    }
+    if(!url.startsWith('/api/state')) return send(input,init);
+    if(holdNextRead){
+      holdNextRead=false;
+      if(reading){ window.overtake='missed'; return read(input,init); }
+      const response=await read(input,init);
       await new Promise(resolve=>{release=resolve;});
       return response;
     }
-    if(release && url.startsWith('/api/state')){
-      const response=send(input,init);
+    if(release){
+      const response=read(input,init);
       release(); release=null;
       await new Promise(resolve=>setTimeout(resolve,300));
-      window.overtaken=true;
+      window.overtake='overtaken';
       return response;
     }
-    return send(input,init);
+    return read(input,init);
   };
 })()"""
 
@@ -116,8 +137,14 @@ async def overtaken_export():
         await start_simulator(page)
         await page.browser.call('Browser.setDownloadBehavior', {'behavior': 'deny'})
         await page.evaluate(OVERTAKE_EXPORT_READ)
-        await page.click('#configuration-export')
-        await page.wait('window.overtaken')
+        for _ in range(5):
+            await page.evaluate("window.overtake='idle';document.querySelector('#configuration-status').textContent=''")
+            await page.click('#configuration-export')
+            await page.wait("window.overtake==='overtaken'||window.overtake==='missed'")
+            if await page.evaluate("window.overtake==='overtaken'"):
+                break
+        else:
+            raise AssertionError('a state read was in flight whenever the Export read started')
         await page.wait("document.querySelector('#configuration-status').textContent.includes('Exported')")
     print('backup overtaken export: passed')
 
