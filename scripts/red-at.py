@@ -31,6 +31,7 @@ The repository is never written: git status and git worktree list are unchanged.
 import argparse
 import importlib.util
 import os
+import re
 import shutil
 import signal
 import subprocess
@@ -47,9 +48,10 @@ TEST_DIRECTORIES = ["tests", "watch/tests"]
 TIMEOUT_SECONDS = 300
 # The lines of the base's first failure that are printed.
 SHOWN_LINES = 20
-# Output that means a run could not load the test, rather than ran it and failed.
-LOAD_FAILURES = ["Failed to import test module", "ImportError", "ModuleNotFoundError", "MODULE_NOT_FOUND",
-                 "Cannot find module"]
+# Output that means a run could not load the test, rather than ran it and failed. The last is
+# watch/tests/harness.cjs's require of a watch module the base does not have.
+LOAD_FAILURES = re.compile(r"Failed to import test module|ImportError|ModuleNotFoundError|MODULE_NOT_FOUND"
+                           r"|Cannot find module|ENOENT: no such file or directory, open '[^']*/watch/[^/']+\.js'")
 
 
 def kind(test: str) -> str:
@@ -87,7 +89,7 @@ def prepare(copy: Path, test: str):
 
 def run_once(copy: Path, command: list[str]) -> tuple[str, str]:
     """Run the test once in the copy, without any inherited EUCWATCH_* setting: "passed", "failed" or
-    "could not load the test", and its output. A timeout kills the test's whole process group."""
+    "could not load the test", and its output. A timeout, or an interrupt, kills the test's whole process group."""
     env = {key: value for key, value in os.environ.items() if not key.startswith("EUCWATCH_")}
     try:
         process = subprocess.Popen(command, cwd=copy, env={**env, "PYTHONPATH": "laptop:tests"}, text=True,
@@ -96,14 +98,16 @@ def run_once(copy: Path, command: list[str]) -> tuple[str, str]:
         raise compare.Failed(f"{copy.name}: cannot run {command[0]}: {error.strerror}") from None
     try:
         stdout, stderr = process.communicate(timeout=TIMEOUT_SECONDS)
-    except subprocess.TimeoutExpired:
+    except BaseException as error:  # In its own session, the test gets no Ctrl-C of ours.
         os.killpg(process.pid, signal.SIGKILL)
         stdout, stderr = process.communicate()
+        if not isinstance(error, subprocess.TimeoutExpired):
+            raise
         return "failed", f"{stdout}{stderr}timed out after {TIMEOUT_SECONDS} s"
     output = f"{stdout}{stderr}exited {process.returncode}"
     if process.returncode == 0:
         return "passed", output
-    return ("could not load the test" if any(text in output for text in LOAD_FAILURES) else "failed"), output
+    return ("could not load the test" if LOAD_FAILURES.search(output) else "failed"), output
 
 
 def main() -> int:

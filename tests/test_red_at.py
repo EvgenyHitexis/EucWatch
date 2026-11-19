@@ -109,16 +109,16 @@ class RedAtTests(unittest.TestCase):
         self.assertEqual(self.main(self.buggy, "tests/flow_arithmetic.py"),
                          (0, f"red at {self.buggy}: 1 of 1 runs failed there and 1 of 1 passed in the working tree"))
 
-    def test_a_timeout_kills_the_whole_test_and_counts_as_a_failure(self):
+    def write_hanging_suite(self):
+        """A watch suite that starts a child and hangs; the child's pid is appended to the returned file."""
         pids = self.repository.parent / "pids"
         self.write("watch/tests/hang.cjs", "const fs = require('fs');\n"
                                            "const child = require('child_process').spawn('sleep', ['60'], {stdio: 'ignore'});\n"
                                            f"fs.appendFileSync({str(pids)!r}, child.pid + '\\n');\n"
                                            "setTimeout(() => {}, 60000);\n")
-        with patch.object(red_at, "TIMEOUT_SECONDS", 0.5):
-            self.assertEqual(self.main(self.buggy, "watch/tests/hang.cjs"),
-                             (1, f"not red at {self.buggy}: 1 of 1 runs failed there and 0 of 1 passed in the working tree"))
-        self.assertIn("timed out after 0.5 s", self.output)
+        return pids
+
+    def assert_children_killed(self, pids):
         for pid in pids.read_text().split():
             stat = Path(f"/proc/{pid}/stat")
             for _ in range(50):  # Killed, the sleep is reaped by whichever process adopted it.
@@ -126,7 +126,30 @@ class RedAtTests(unittest.TestCase):
                     break
                 time.sleep(0.05)
             else:
-                self.fail(f"the test's child {pid} outlived the timeout")
+                self.fail(f"the test's child {pid} outlived red-at's run")
+
+    def test_a_timeout_kills_the_whole_test_and_counts_as_a_failure(self):
+        pids = self.write_hanging_suite()
+        with patch.object(red_at, "TIMEOUT_SECONDS", 0.5):
+            self.assertEqual(self.main(self.buggy, "watch/tests/hang.cjs"),
+                             (1, f"not red at {self.buggy}: 1 of 1 runs failed there and 0 of 1 passed in the working tree"))
+        self.assertIn("timed out after 0.5 s", self.output)
+        self.assert_children_killed(pids)
+
+    def test_an_interrupt_kills_the_whole_test_and_is_raised(self):
+        pids = self.write_hanging_suite()
+        communicate = subprocess.Popen.communicate
+
+        def interrupted(process, input=None, timeout=None):
+            if timeout is None:
+                return communicate(process, input)
+            while not pids.exists():  # Ctrl-C once the test has started its child.
+                time.sleep(0.05)
+            raise KeyboardInterrupt
+
+        with patch.object(subprocess.Popen, "communicate", interrupted), self.assertRaises(KeyboardInterrupt):
+            self.main(self.buggy, "watch/tests/hang.cjs")
+        self.assert_children_killed(pids)
 
     def test_the_first_failing_base_run_is_printed_even_when_it_is_not_the_first_run(self):
         counter = self.repository.parent / "counter"
@@ -147,7 +170,10 @@ class RedAtTests(unittest.TestCase):
                                           "class HalveTests(unittest.TestCase):\n"
                                           "    def test_halve(self):\n        self.assertEqual(halve(4), 2)\n")
         self.write("watch/tests/halve.cjs", "require('assert').strictEqual(require('../halve.js').halve(4), 2);\n")
-        for test in ["tests/test_halve.py", "watch/tests/halve.cjs"]:
+        # harness.cjs reads a watch module with readFileSync, so a missing one throws ENOENT.
+        self.write("watch/tests/halve_harness.cjs", "const fs = require('fs');\nconst path = require('path');\n"
+                                                    "fs.readFileSync(path.join(__dirname, '..', 'halve.js'), 'utf8');\n")
+        for test in ["tests/test_halve.py", "watch/tests/halve.cjs", "watch/tests/halve_harness.cjs"]:
             with self.subTest(test=test):
                 self.assertEqual(self.main(self.buggy, test),
                                  (1, f"not red at {self.buggy}: 0 of 1 runs failed there (1 could not load the test) "
