@@ -8,7 +8,7 @@ Name things with `GLOSSARY.md`'s terms. `CODING_STANDARDS.md` holds the judgemen
 
 ### Issue tracker
 
-GitHub Issues in EvgenyHitexis/EucWatch, through `gh`. See `docs/agents/issue-tracker.md`.
+GitHub Issues in EvgenyHitexis/EucWatch, through `gh`. Read `docs/agents/issue-tracker.md` before opening a PR or closing an issue: PRs target `research/watch-recovery`, so closing keywords such as `Fixes #N` never fire.
 
 ### Triage labels
 
@@ -32,6 +32,7 @@ EUCWATCH_BROWSER_CHECKS=1 ./scripts/check.sh   # adds launch smoke + Chrome CDP 
 ./scripts/launch.sh       # backend on 127.0.0.1:8765 + browser; EUCWATCH_NO_BROWSER=1, EUCWATCH_PORT=...
 uv run --offline --no-sync --project experiments/laptop-feasibility python scripts/evidence-compare.py <base-ref> [--browser]   # did behavior change since <base-ref>?
 uv run --offline --no-sync --project experiments/laptop-feasibility python scripts/evidence-explain.py <base-ref>               # how does tracked evidence differ from <base-ref>? (reads only)
+uv run --offline --no-sync --project experiments/laptop-feasibility python scripts/red-at.py <base-ref> <test> [names...] [--runs N]   # does this test fail without the fix? (exit 0: red)
 
 # One Python test module or test (tests/ has no __init__.py, so put it on PYTHONPATH)
 env PYTHONPATH=laptop:tests uv run --offline --no-sync --project experiments/laptop-feasibility python -m unittest test_presets
