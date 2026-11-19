@@ -45,10 +45,13 @@ jobs:
       - run: ./scripts/check.sh
         env:
           EUCWATCH_BROWSER_CHECKS: "1"
+      - run: exit 1 # temporary, to show the failure upload; removed before merge
       - if: failure()
         uses: actions/upload-artifact@v7
         with:
           name: test-output-${{ github.run_id }}-${{ github.run_attempt }}
           path: .test-output/
+          # .test-output/ is a dot directory, which upload-artifact skips unless told otherwise.
+          include-hidden-files: true
           if-no-files-found: warn
           retention-days: 30
